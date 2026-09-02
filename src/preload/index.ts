@@ -5,6 +5,9 @@ export interface ElectronAPI {
   captureScreenshot: () => Promise<string | null>;
   checkGame: (exeName: string) => Promise<{ running: boolean; pid: number | null }>;
   setGameExe: (exe: string) => Promise<void>;
+  setCaptureRegion: (
+    region: { x: number; y: number; width: number; height: number } | null,
+  ) => Promise<void>;
 
   // AI
   analyze: (
@@ -21,6 +24,9 @@ export interface ElectronAPI {
   // Config
   getConfig: () => Promise<unknown>;
   setProvider: (name: string, config: Record<string, unknown>) => Promise<void>;
+  setOverlayConfig: (config: Record<string, unknown>) => Promise<void>;
+  setTTSConfig: (config: Record<string, unknown>) => Promise<void>;
+  setPromptsConfig: (config: Record<string, unknown>) => Promise<void>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -43,6 +49,7 @@ const electronAPI: ElectronAPI = {
   captureScreenshot: () => ipcRenderer.invoke("capture:screenshot"),
   checkGame: (exeName: string) => ipcRenderer.invoke("capture:check-game", exeName),
   setGameExe: (exe: string) => ipcRenderer.invoke("config:set-game-exe", exe),
+  setCaptureRegion: (region) => ipcRenderer.invoke("capture:set-region", region),
 
   // AI
   analyze: (imageBase64: string, userMessage?: string) =>
@@ -58,6 +65,11 @@ const electronAPI: ElectronAPI = {
   getConfig: () => ipcRenderer.invoke("config:get"),
   setProvider: (name: string, config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-provider", name, config),
+  setOverlayConfig: (config: Record<string, unknown>) =>
+    ipcRenderer.invoke("config:set-overlay", config),
+  setTTSConfig: (config: Record<string, unknown>) => ipcRenderer.invoke("config:set-tts", config),
+  setPromptsConfig: (config: Record<string, unknown>) =>
+    ipcRenderer.invoke("config:set-prompts", config),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),

@@ -1,44 +1,52 @@
 import { useEffect, useState } from "react";
+import ChatHistory from "./components/ChatHistory";
 import Overlay from "./components/Overlay";
+import RegionSelector from "./components/RegionSelector";
 import Settings from "./components/Settings";
 
 function MainWindow() {
-  const [status, setStatus] = useState("Ready");
-  const [lastScreenshot, setLastScreenshot] = useState<string | null>(null);
+  const [showRegionSelector, setShowRegionSelector] = useState(false);
+  const [captureRegion, setCaptureRegion] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
-  const handleCapture = async () => {
-    setStatus("Capturing screenshot...");
-    const result = await window.electronAPI.analyze("", "Analyze this game screenshot.");
-    if (result.response) {
-      setStatus(result.response);
-    } else if (result.error) {
-      setStatus(`Error: ${result.error}`);
-    }
-    const data = await window.electronAPI.captureScreenshot();
-    if (data) {
-      setLastScreenshot(data);
-      setStatus("Screenshot captured! Sending to AI...");
-    } else {
-      setStatus("Capture failed — no source found");
-    }
+  const handleRegionComplete = async (region: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => {
+    setCaptureRegion(region);
+    await window.electronAPI.setCaptureRegion(region);
+    setShowRegionSelector(false);
+  };
+
+  const handleRegionClear = async () => {
+    setCaptureRegion(null);
+    await window.electronAPI.setCaptureRegion(null);
   };
 
   useEffect(() => {
-    window.electronAPI.onCaptureResult((dataUrl) => {
-      setLastScreenshot(dataUrl);
-      setStatus("Screenshot captured via hotkey!");
-    });
     window.electronAPI.onNavigateSettings(() => {
       window.location.hash = "#/settings";
     });
     return () => {
-      window.electronAPI.removeAllListeners("capture:result");
       window.electronAPI.removeAllListeners("navigate:settings");
     };
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
+      {showRegionSelector && (
+        <RegionSelector
+          onComplete={handleRegionComplete}
+          onCancel={() => setShowRegionSelector(false)}
+        />
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Gaming Copilot</h1>
         <button
@@ -50,33 +58,62 @@ function MainWindow() {
         </button>
       </div>
 
-      <div className="space-y-4">
-        <div className="bg-gray-800 rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-2">Quick Capture</h2>
-          <p className="text-gray-400 text-sm mb-4">
-            Press <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Shift+G</kbd> anywhere to
-            capture and analyze your screen.
-          </p>
-          <button
-            type="button"
-            onClick={handleCapture}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            Capture & Analyze
-          </button>
-        </div>
-
-        <div className="bg-gray-800 rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-2">Status</h2>
-          <p className="text-gray-400 whitespace-pre-wrap">{status}</p>
-        </div>
-
-        {lastScreenshot && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: Controls */}
+        <div className="space-y-4">
           <div className="bg-gray-800 rounded-lg p-4">
-            <h2 className="text-xl font-semibold mb-2">Last Screenshot</h2>
-            <img src={lastScreenshot} alt="Screenshot" className="rounded-lg max-w-full" />
+            <h2 className="text-xl font-semibold mb-2">Quick Capture</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Press <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Shift+G</kbd> anywhere to
+              capture and analyze your screen.
+            </p>
           </div>
-        )}
+
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h2 className="text-xl font-semibold mb-2">Capture Region</h2>
+            {captureRegion ? (
+              <div className="space-y-2">
+                <p className="text-green-400 text-sm">
+                  Region: {captureRegion.width}×{captureRegion.height} at ({captureRegion.x},{" "}
+                  {captureRegion.y})
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRegionSelector(true)}
+                    className="bg-gray-600 hover:bg-gray-500 px-3 py-1.5 rounded text-sm transition-colors"
+                  >
+                    Redraw
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRegionClear}
+                    className="bg-gray-600 hover:bg-gray-500 px-3 py-1.5 rounded text-sm transition-colors"
+                  >
+                    Clear (Full Screen)
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-gray-400 text-sm">Capturing full screen (no region set)</p>
+                <button
+                  type="button"
+                  onClick={() => setShowRegionSelector(true)}
+                  className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+                >
+                  Select Region
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Chat History */}
+        <div className="bg-gray-800 rounded-lg p-4">
+          <h2 className="text-xl font-semibold mb-2">Chat</h2>
+          <ChatHistory />
+        </div>
       </div>
     </div>
   );

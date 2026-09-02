@@ -40,6 +40,23 @@ export interface ScreenshotResult {
   timestamp: number;
 }
 
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  screenshot?: string; // data URL
+  timestamp: number;
+  provider?: string;
+  model?: string;
+}
+
+export interface RegionBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface AppConfig {
   // General
   hotkey: string;
@@ -49,6 +66,7 @@ export interface AppConfig {
   // Capture
   gameExe: string;
   captureQuality: number;
+  captureRegion?: RegionBounds;
 
   // Providers
   providers: {

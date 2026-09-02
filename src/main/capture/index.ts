@@ -1,3 +1,5 @@
+import { execSync } from "node:child_process";
+
 import { desktopCapturer } from "electron";
 
 export interface CaptureResult {
@@ -5,6 +7,42 @@ export interface CaptureResult {
   width: number;
   height: number;
   timestamp: number;
+}
+
+export interface RegionBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Crop a PNG buffer to the specified region using GDI+.
+ */
+function cropBuffer(buffer: Buffer, region: RegionBounds): Buffer {
+  try {
+    const script = `
+Add-Type -AssemblyName System.Drawing
+$img = [System.Drawing.Image]::FromStream([System.IO.MemoryStream]::new([Convert]::FromBase64String('${buffer.toString("base64")}')))
+$cropped = New-Object System.Drawing.Bitmap ${region.width}, ${region.height}
+$g = [System.Drawing.Graphics]::FromImage($cropped)
+$g.DrawImage($img, -${region.x}, -${region.y}, $img.Width, $img.Height)
+$ms = New-Object System.IO.MemoryStream
+$cropped.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+[Convert]::ToBase64String($ms.ToArray())
+$g.Dispose(); $cropped.Dispose(); $img.Dispose()
+`.trim();
+
+    const output = execSync(
+      `powershell -NoProfile -Command "${script.replace(/"/g, '\\"').replace(/\n/g, "; ")}"`,
+      { encoding: "base64", timeout: 10000, maxBuffer: 10 * 1024 * 1024 },
+    );
+
+    const cropped = Buffer.from(output, "base64");
+    return cropped.length > 0 ? cropped : buffer;
+  } catch {
+    return buffer;
+  }
 }
 
 /**
@@ -156,18 +194,42 @@ if ($width -gt 0 -and $height -gt 0) {
 
 /**
  * Smart capture: tries window capture first, falls back to GDI+ then fullscreen.
+ * Optionally crops to a region.
  */
-export async function smartCapture(gameExe?: string): Promise<CaptureResult> {
+export async function smartCapture(
+  gameExe?: string,
+  region?: RegionBounds,
+): Promise<CaptureResult> {
+  let result: CaptureResult;
+
   // Try window capture by exe name
   if (gameExe) {
     const windowCapture = await captureWindowByExe(gameExe);
-    if (windowCapture) return windowCapture;
-
-    // Fallback to GDI+
-    const gdiCapture = await captureWithGDI(gameExe);
-    if (gdiCapture) return gdiCapture;
+    if (windowCapture) {
+      result = windowCapture;
+    } else {
+      // Fallback to GDI+
+      const gdiCapture = await captureWithGDI(gameExe);
+      if (gdiCapture) {
+        result = gdiCapture;
+      } else {
+        result = await captureFullScreen();
+      }
+    }
+  } else {
+    result = await captureFullScreen();
   }
 
-  // Final fallback: capture primary screen
-  return captureFullScreen();
+  // Crop to region if specified
+  if (region && region.width > 0 && region.height > 0) {
+    const croppedBuffer = cropBuffer(result.buffer, region);
+    return {
+      buffer: croppedBuffer,
+      width: region.width,
+      height: region.height,
+      timestamp: result.timestamp,
+    };
+  }
+
+  return result;
 }

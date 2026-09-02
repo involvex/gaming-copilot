@@ -11,7 +11,6 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
   const [voices, setVoices] = useState<Array<{ name: string; lang: string }>>([]);
 
   useEffect(() => {
-    // Load voices (may need a delay for browser to populate)
     const loadVoices = () => setVoices(getAvailableVoices());
     loadVoices();
     window.speechSynthesis?.addEventListener("voiceschanged", loadVoices);
@@ -19,6 +18,10 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
       window.speechSynthesis?.removeEventListener("voiceschanged", loadVoices);
     };
   }, []);
+
+  const persist = (update: Record<string, unknown>) => {
+    window.electronAPI.setTTSConfig(update);
+  };
 
   return (
     <div className="space-y-6">
@@ -31,7 +34,11 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
         </div>
         <button
           type="button"
-          onClick={() => setEnabled(!enabled)}
+          onClick={() => {
+            const next = !enabled;
+            setEnabled(next);
+            persist({ enabled: next });
+          }}
           className={`w-12 h-6 rounded-full transition-colors ${enabled ? "bg-blue-600" : "bg-gray-600"}`}
         >
           <div
@@ -49,7 +56,10 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
             <select
               id="tts-voice"
               value={voice}
-              onChange={(e) => setVoice(e.target.value)}
+              onChange={(e) => {
+                setVoice(e.target.value);
+                persist({ voice: e.target.value });
+              }}
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="">System Default</option>
@@ -72,7 +82,11 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
               max={2}
               step={0.1}
               value={rate}
-              onChange={(e) => setRate(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setRate(v);
+                persist({ rate: v });
+              }}
               className="w-full"
             />
           </div>
@@ -88,7 +102,11 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
               max={2}
               step={0.1}
               value={pitch}
-              onChange={(e) => setPitch(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setPitch(v);
+                persist({ pitch: v });
+              }}
               className="w-full"
             />
           </div>
@@ -104,7 +122,11 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
               max={1}
               step={0.05}
               value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setVolume(v);
+                persist({ volume: v });
+              }}
               className="w-full"
             />
           </div>

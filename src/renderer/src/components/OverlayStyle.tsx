@@ -7,6 +7,10 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
   const [opacity, setOpacity] = useState((overlay.opacity as number) || 0.9);
   const [fontSize, setFontSize] = useState((overlay.fontSize as number) || 14);
 
+  const persist = (update: Record<string, unknown>) => {
+    window.electronAPI.setOverlayConfig(update);
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">Overlay Settings</h2>
@@ -18,7 +22,10 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         <select
           id="overlay-position"
           value={position}
-          onChange={(e) => setPosition(e.target.value)}
+          onChange={(e) => {
+            setPosition(e.target.value);
+            persist({ position: e.target.value });
+          }}
           className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
         >
           <option value="bottom-right">Bottom Right</option>
@@ -39,7 +46,11 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
           max={30000}
           step={1000}
           value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setDuration(v);
+            persist({ duration: v });
+          }}
           className="w-full"
         />
       </div>
@@ -55,7 +66,11 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
           max={1}
           step={0.05}
           value={opacity}
-          onChange={(e) => setOpacity(Number(e.target.value))}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setOpacity(v);
+            persist({ opacity: v });
+          }}
           className="w-full"
         />
       </div>
@@ -71,7 +86,11 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
           max={24}
           step={1}
           value={fontSize}
-          onChange={(e) => setFontSize(Number(e.target.value))}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setFontSize(v);
+            persist({ fontSize: v });
+          }}
           className="w-full"
         />
       </div>

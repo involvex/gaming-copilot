@@ -12,11 +12,12 @@ import {
   Tray,
 } from "electron";
 
-import { DEFAULT_SYSTEM_PROMPT } from "../shared/constants";
-import type { AppConfig } from "../shared/types";
+import type { AppConfig, RegionBounds } from "../shared/types";
 import { ProviderManager } from "./ai-providers";
 import { smartCapture } from "./capture";
 import { findProcessByExe } from "./capture/win32";
+import { initConfig, setConfigValue } from "./config";
+import { logger } from "./logger";
 import { MemreaderPlugin } from "./plugins";
 
 let mainWindow: BrowserWindow | null = null;
@@ -25,43 +26,9 @@ let tray: Tray | null = null;
 let providerManager: ProviderManager | null = null;
 let memreaderPlugin: MemreaderPlugin | null = null;
 
-// Default config (will be loaded from electron-store in Phase 5)
-let gameExe = "";
-const appConfig: AppConfig = {
-  hotkey: "CommandOrControl+Shift+G",
-  autoStart: false,
-  minimizeToTray: true,
-  gameExe: "",
-  captureQuality: 85,
-  providers: {},
-  activeProvider: "gemini",
-  overlay: {
-    position: "bottom-right",
-    duration: 8000,
-    opacity: 0.9,
-    fontSize: 14,
-    theme: "dark",
-    clickThrough: true,
-  },
-  tts: {
-    enabled: false,
-    voice: "",
-    rate: 1.0,
-    pitch: 1.0,
-    volume: 0.8,
-  },
-  plugins: {
-    bunMemreader: {
-      enabled: false,
-      port: 31337,
-      autoStart: false,
-    },
-  },
-  prompts: {
-    system: DEFAULT_SYSTEM_PROMPT,
-    gameSpecific: {},
-  },
-};
+// Load persisted config
+const appConfig: AppConfig = initConfig();
+let gameExe = appConfig.gameExe;
 
 function createMainWindow(): void {
   mainWindow = new BrowserWindow({
@@ -78,6 +45,7 @@ function createMainWindow(): void {
 
   mainWindow.on("ready-to-show", () => {
     mainWindow?.show();
+    logger.info("MainWindow", "Window ready");
   });
 
   mainWindow.on("close", (e) => {
@@ -126,26 +94,30 @@ function createOverlayWindow(): void {
   }
 
   overlayWindow.hide();
+  logger.info("Overlay", "Overlay window created");
 }
 
 function initProviders(): void {
   providerManager = new ProviderManager(appConfig);
+  logger.info("Providers", `Initialized with active: ${appConfig.activeProvider}`);
 }
 
 function registerHotkey(): void {
   globalShortcut.register("CommandOrControl+Shift+G", async () => {
-    // Capture screenshot
-    const result = await smartCapture(gameExe || undefined);
-    if (!result) return;
+    logger.info("Hotkey", "Ctrl+Shift+G triggered");
+    const region = appConfig.captureRegion;
+    const result = await smartCapture(gameExe || undefined, region);
+    if (!result) {
+      logger.warn("Hotkey", "No capture result");
+      return;
+    }
 
     const imageBase64 = result.buffer.toString("base64");
     const dataUrl = `data:image/png;base64,${imageBase64}`;
 
-    // Show "analyzing" state in overlay
     overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
     overlayWindow?.show();
 
-    // Send to AI provider
     if (providerManager && providerManager.getAvailableProviders().length > 0) {
       try {
         const response = await providerManager.analyze(
@@ -155,12 +127,13 @@ function registerHotkey(): void {
           "Analyze this game screenshot.",
         );
         overlayWindow?.webContents.send("overlay:data", response.text);
+        logger.info("Hotkey", `AI response from ${response.provider} (${response.latencyMs}ms)`);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Analysis failed";
         overlayWindow?.webContents.send("overlay:data", `Error: ${message}`);
+        logger.errorWithStack("Hotkey", "AI analysis failed", error);
       }
     } else {
-      // No providers configured, just show screenshot
       mainWindow?.webContents.send("capture:result", dataUrl);
       overlayWindow?.webContents.send(
         "overlay:data",
@@ -168,9 +141,9 @@ function registerHotkey(): void {
       );
     }
 
-    // Also send to main window
     mainWindow?.webContents.send("capture:result", dataUrl);
   });
+  logger.info("Hotkey", `Registered: CommandOrControl+Shift+G`);
 }
 
 function createTray(): void {
@@ -208,16 +181,17 @@ function createTray(): void {
   tray.on("double-click", () => {
     mainWindow?.show();
   });
+  logger.info("Tray", "System tray created");
 }
 
 app.whenReady().then(() => {
+  logger.info("App", `Starting Gaming Copilot v${app.getVersion()}`);
   createMainWindow();
   createOverlayWindow();
   initProviders();
   registerHotkey();
   createTray();
 
-  // Initialize memreader plugin if configured
   const pluginConfig = appConfig.plugins.bunMemreader;
   if (pluginConfig.enabled) {
     memreaderPlugin = new MemreaderPlugin(pluginConfig);
@@ -232,6 +206,7 @@ app.whenReady().then(() => {
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   memreaderPlugin?.stop();
+  logger.info("App", "Quitting");
 });
 
 app.on("window-all-closed", () => {
@@ -242,7 +217,8 @@ app.on("window-all-closed", () => {
 
 // IPC Handlers — Capture
 ipcMain.handle("capture:screenshot", async () => {
-  const result = await smartCapture(gameExe || undefined);
+  const region = appConfig.captureRegion;
+  const result = await smartCapture(gameExe || undefined, region);
   if (!result) return null;
   return `data:image/png;base64,${result.buffer.toString("base64")}`;
 });
@@ -250,6 +226,15 @@ ipcMain.handle("capture:screenshot", async () => {
 ipcMain.handle("capture:check-game", (_event, exeName: string) => {
   const pid = findProcessByExe(exeName);
   return { running: pid !== null, pid };
+});
+
+ipcMain.handle("capture:set-region", (_event, region: RegionBounds | null) => {
+  appConfig.captureRegion = region || undefined;
+  setConfigValue("captureRegion", region || undefined);
+  logger.info(
+    "Capture",
+    region ? `Region set: ${region.width}x${region.height}` : "Region cleared",
+  );
 });
 
 // IPC Handlers — AI
@@ -288,6 +273,7 @@ ipcMain.handle("ai:get-providers", () => {
 ipcMain.handle("config:set-game-exe", (_event, exe: string) => {
   gameExe = exe;
   appConfig.gameExe = exe;
+  setConfigValue("gameExe", exe);
 });
 
 ipcMain.handle("config:get", () => appConfig);
@@ -311,7 +297,23 @@ ipcMain.handle("config:set-provider", (_event, name: string, config: Record<stri
       });
     }
   }
+  setConfigValue("providers", appConfig.providers);
   initProviders();
+});
+
+ipcMain.handle("config:set-overlay", (_event, overlay: Partial<AppConfig["overlay"]>) => {
+  appConfig.overlay = { ...appConfig.overlay, ...overlay };
+  setConfigValue("overlay", appConfig.overlay);
+});
+
+ipcMain.handle("config:set-tts", (_event, tts: Partial<AppConfig["tts"]>) => {
+  appConfig.tts = { ...appConfig.tts, ...tts };
+  setConfigValue("tts", appConfig.tts);
+});
+
+ipcMain.handle("config:set-prompts", (_event, prompts: Partial<AppConfig["prompts"]>) => {
+  appConfig.prompts = { ...appConfig.prompts, ...prompts };
+  setConfigValue("prompts", appConfig.prompts);
 });
 
 // IPC Handlers — Overlay
