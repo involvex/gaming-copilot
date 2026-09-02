@@ -41,5 +41,5 @@ linux:
 
 publish:
   provider: github
-  owner: ""
-  repo: ""
+  owner: involvex
+  repo: gaming-copilot

@@ -44,5 +44,9 @@
     "gemini"
   ],
   "license": "MIT",
-  "author": "involvex"
+  "author": "involvex",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/involvex/gaming-copilot.git"
+  }
 }
