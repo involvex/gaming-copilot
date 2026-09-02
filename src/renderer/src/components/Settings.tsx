@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import OverlayStyle from "./OverlayStyle";
 import PromptEditor from "./PromptEditor";
 import ProviderConfig from "./ProviderConfig";
+import TTSConfig from "./TTSConfig";
 
-type Tab = "providers" | "capture" | "overlay" | "prompts";
+type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("providers");
@@ -18,6 +19,7 @@ export default function Settings() {
     { id: "providers", label: "AI Providers" },
     { id: "capture", label: "Capture" },
     { id: "overlay", label: "Overlay" },
+    { id: "tts", label: "TTS" },
     { id: "prompts", label: "Prompts" },
   ];
 
@@ -46,6 +48,7 @@ export default function Settings() {
         {activeTab === "providers" && <ProviderConfig config={config} />}
         {activeTab === "capture" && <CaptureConfig config={config} />}
         {activeTab === "overlay" && <OverlayStyle config={config} />}
+        {activeTab === "tts" && <TTSConfig config={config} />}
         {activeTab === "prompts" && <PromptEditor config={config} />}
       </div>
     </div>
