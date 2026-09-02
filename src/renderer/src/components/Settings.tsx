@@ -58,6 +58,8 @@ export default function Settings() {
 function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   const [gameExe, setGameExe] = useState((config?.gameExe as string) || "");
   const [autoStart, setAutoStart] = useState((config?.autoStart as boolean) || false);
+  const [hotkey, setHotkey] = useState((config?.hotkey as string) || "CommandOrControl+Shift+G");
+  const [hotkeyInput, setHotkeyInput] = useState("");
   const [gameStatus, setGameStatus] = useState<"idle" | "checking" | "running" | "not-found">(
     "idle",
   );
@@ -76,6 +78,16 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     const newValue = !autoStart;
     setAutoStart(newValue);
     await window.electronAPI.setAutoStart(newValue);
+  };
+
+  const handleHotkeyChange = async () => {
+    if (hotkeyInput.trim()) {
+      const ok = await window.electronAPI.setHotkey(hotkeyInput.trim());
+      if (ok) {
+        setHotkey(hotkeyInput.trim());
+        setHotkeyInput("");
+      }
+    }
   };
 
   return (
@@ -117,10 +129,31 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
       </div>
 
       <div>
-        <p className="text-sm font-medium text-gray-300 mb-2">Hotkey</p>
-        <p className="text-xs text-gray-500">
-          Default: <kbd className="bg-gray-700 px-1 rounded">Ctrl+Shift+G</kbd>
+        <label htmlFor="hotkey-input" className="block text-sm font-medium text-gray-300 mb-2">
+          Screenshot Hotkey
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          Current: <kbd className="bg-gray-700 px-1 rounded">{hotkey}</kbd>
         </p>
+        <div className="flex gap-2">
+          <input
+            id="hotkey-input"
+            type="text"
+            value={hotkeyInput}
+            onChange={(e) => setHotkeyInput(e.target.value)}
+            onBlur={handleHotkeyChange}
+            placeholder="Ctrl+Shift+G"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+          <button
+            type="button"
+            onClick={handleHotkeyChange}
+            disabled={!hotkeyInput.trim()}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Save
+          </button>
+        </div>
       </div>
 
       <div>

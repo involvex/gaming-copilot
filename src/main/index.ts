@@ -103,8 +103,9 @@ function initProviders(): void {
 }
 
 function registerHotkey(): void {
-  globalShortcut.register("CommandOrControl+Shift+G", async () => {
-    logger.info("Hotkey", "Ctrl+Shift+G triggered");
+  const hotkey = appConfig.hotkey;
+  globalShortcut.register(hotkey, async () => {
+    logger.info("Hotkey", `${hotkey} triggered`);
     const region = appConfig.captureRegion;
     const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
     if (!result) {
@@ -144,7 +145,15 @@ function registerHotkey(): void {
 
     mainWindow?.webContents.send("capture:result", dataUrl);
   });
-  logger.info("Hotkey", `Registered: CommandOrControl+Shift+G`);
+  logger.info("Hotkey", `Registered: ${hotkey}`);
+}
+
+function setHotkey(newHotkey: string): void {
+  globalShortcut.unregisterAll();
+  appConfig.hotkey = newHotkey;
+  setConfigValue("hotkey", newHotkey);
+  registerHotkey();
+  logger.info("Hotkey", `Updated to: ${newHotkey}`);
 }
 
 function createTray(): void {
@@ -337,6 +346,14 @@ ipcMain.handle("config:set-auto-start", (_event, enable: boolean) => {
   appConfig.autoStart = enable;
   setConfigValue("autoStart", enable);
   updateAutoStart();
+});
+
+ipcMain.handle("config:set-hotkey", (_event, hotkey: string) => {
+  if (!hotkey || !/^\w+([+^-]+.+)/.test(hotkey)) {
+    return false;
+  }
+  setHotkey(hotkey);
+  return true;
 });
 
 // IPC Handlers — Overlay
