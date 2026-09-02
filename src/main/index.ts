@@ -281,7 +281,10 @@ ipcMain.handle("config:get", () => appConfig);
 ipcMain.handle("config:set-provider", (_event, name: string, config: Record<string, unknown>) => {
   if (name === "gemini") {
     appConfig.providers.gemini = config as AppConfig["providers"]["gemini"];
-  } else if (appConfig.providers.openaiCompat) {
+  } else {
+    if (!appConfig.providers.openaiCompat) {
+      appConfig.providers.openaiCompat = { endpoints: [] };
+    }
     const existing = appConfig.providers.openaiCompat.endpoints.findIndex((e) => e.name === name);
     if (existing >= 0) {
       appConfig.providers.openaiCompat.endpoints[existing] = {

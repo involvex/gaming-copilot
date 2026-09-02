@@ -1,26 +1,76 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { OPENAI_COMPAT_PRESETS } from "../../../shared/constants";
 
 export default function ProviderConfig({ config }: { config: Record<string, unknown> | null }) {
   const providers = (config?.providers as Record<string, unknown>) || {};
   const activeProvider = (config?.activeProvider as string) || "gemini";
 
-  const [geminiKey, setGeminiKey] = useState(
-    ((providers.gemini as Record<string, unknown>)?.apiKey as string) || "",
-  );
+  const openaiCompat = providers.openaiCompat as Record<string, unknown> | undefined;
+  const endpoints = (openaiCompat?.endpoints as Array<Record<string, unknown>>) || [];
+
+  const getEndpoint = (name: string) => endpoints.find((e) => e.name === name) || null;
+
+  const geminiProvider = providers.gemini as Record<string, unknown> | undefined;
+  const zenEndpoint = getEndpoint("zen");
+  const kiloEndpoint = getEndpoint("kilo");
+
+  const [geminiKey, setGeminiKey] = useState((geminiProvider?.apiKey as string) || "");
   const [geminiModel, setGeminiModel] = useState(
-    ((providers.gemini as Record<string, unknown>)?.model as string) || "gemini-2.5-flash",
+    (geminiProvider?.model as string) || "gemini-2.5-flash",
   );
 
-  const [zenKey, setZenKey] = useState("");
-  const [kiloKey, setKiloKey] = useState("");
+  const [zenKey, setZenKey] = useState((zenEndpoint?.apiKey as string) || "");
+  const [zenModel, setZenModel] = useState(
+    (zenEndpoint?.model as string) || "gpt-4-vision-preview",
+  );
+
+  const [kiloKey, setKiloKey] = useState((kiloEndpoint?.apiKey as string) || "");
+  const [kiloModel, setKiloModel] = useState(
+    (kiloEndpoint?.model as string) || "gpt-4-vision-preview",
+  );
 
   const [testing, setTesting] = useState<string | null>(null);
+
+  useEffect(() => {
+    const geminiProvider_ = providers.gemini as Record<string, unknown> | undefined;
+    setGeminiKey((geminiProvider_?.apiKey as string) || "");
+    setGeminiModel((geminiProvider_?.model as string) || "gemini-2.5-flash");
+
+    const openaiCompat_ = providers.openaiCompat as Record<string, unknown> | undefined;
+    const endpoints_ = (openaiCompat_?.endpoints as Array<Record<string, unknown>>) || [];
+
+    const zenEp = endpoints_.find((e) => e.name === "zen");
+    setZenKey((zenEp?.apiKey as string) || "");
+    setZenModel((zenEp?.model as string) || "gpt-4-vision-preview");
+
+    const kiloEp = endpoints_.find((e) => e.name === "kilo");
+    setKiloKey((kiloEp?.apiKey as string) || "");
+    setKiloModel((kiloEp?.model as string) || "gpt-4-vision-preview");
+  }, [providers]);
 
   const handleSaveGemini = async () => {
     await window.electronAPI.setProvider("gemini", {
       apiKey: geminiKey,
       model: geminiModel,
       grounding: true,
+    });
+  };
+
+  const handleSaveZen = async () => {
+    const preset = OPENAI_COMPAT_PRESETS.zen;
+    await window.electronAPI.setProvider("zen", {
+      apiKey: zenKey,
+      baseUrl: preset.baseUrl,
+      model: zenModel,
+    });
+  };
+
+  const handleSaveKilo = async () => {
+    const preset = OPENAI_COMPAT_PRESETS.kilo;
+    await window.electronAPI.setProvider("kilo", {
+      apiKey: kiloKey,
+      baseUrl: preset.baseUrl,
+      model: kiloModel,
     });
   };
 
@@ -65,6 +115,7 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
             id="gemini-model"
             value={geminiModel}
             onChange={(e) => setGeminiModel(e.target.value)}
+            onBlur={handleSaveGemini}
             className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           >
             <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
@@ -100,7 +151,22 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
             type="password"
             value={zenKey}
             onChange={(e) => setZenKey(e.target.value)}
+            onBlur={handleSaveZen}
             placeholder="Enter your Zen API key"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="zen-model" className="block text-xs text-gray-400 mb-1">
+            Model
+          </label>
+          <input
+            id="zen-model"
+            type="text"
+            value={zenModel}
+            onChange={(e) => setZenModel(e.target.value)}
+            onBlur={handleSaveZen}
+            placeholder="gpt-4-vision-preview"
             className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
@@ -132,7 +198,22 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
             type="password"
             value={kiloKey}
             onChange={(e) => setKiloKey(e.target.value)}
+            onBlur={handleSaveKilo}
             placeholder="Enter your Kilo API key"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="kilo-model" className="block text-xs text-gray-400 mb-1">
+            Model
+          </label>
+          <input
+            id="kilo-model"
+            type="text"
+            value={kiloModel}
+            onChange={(e) => setKiloModel(e.target.value)}
+            onBlur={handleSaveKilo}
+            placeholder="gpt-4-vision-preview"
             className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>

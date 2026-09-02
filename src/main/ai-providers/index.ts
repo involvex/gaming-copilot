@@ -1,4 +1,4 @@
-import type { AppConfig } from "../shared/types";
+import type { AppConfig } from "../../shared/types";
 import { GeminiProvider } from "./gemini";
 import { OpenAICompatProvider } from "./openai-compat";
 import type { AIProvider, AIResponse } from "./types";
