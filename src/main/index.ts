@@ -124,14 +124,21 @@ function registerHotkey(): void {
 
     if (providerManager && providerManager.getAvailableProviders().length > 0) {
       try {
-        const response = await providerManager.analyze(
+        let fullText = "";
+        for await (const chunk of providerManager.streamAnalyze(
           resizedBase64,
           resizedMimeType,
           appConfig.prompts.system,
           "Analyze this game screenshot.",
-        );
-        overlayWindow?.webContents.send("overlay:data", response.text);
-        logger.info("Hotkey", `AI response from ${response.provider} (${response.latencyMs}ms)`);
+        )) {
+          if (chunk.done) {
+            logger.info("Hotkey", `AI streaming complete, total: ${fullText.length} chars`);
+          } else {
+            fullText += chunk.text;
+            overlayWindow?.webContents.send("overlay:data", fullText);
+          }
+        }
+        overlayWindow?.webContents.send("overlay:stream-done", fullText);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Analysis failed";
         overlayWindow?.webContents.send("overlay:data", `Error: ${message}`);
@@ -284,6 +291,32 @@ ipcMain.handle("ai:analyze", async (_event, imageBase64: string, userMessage?: s
 ipcMain.handle("ai:test-provider", async (_event, name: string) => {
   if (!providerManager) return false;
   return providerManager.testProvider(name);
+});
+
+ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?: string) => {
+  if (!providerManager) {
+    event.sender.send("ai:stream-error", "Provider manager not initialized");
+    return;
+  }
+
+  try {
+    let fullText = "";
+    for await (const chunk of providerManager.streamAnalyze(
+      imageBase64,
+      "image/png",
+      appConfig.prompts.system,
+      userMessage || "Analyze this game screenshot.",
+    )) {
+      if (!chunk.done) {
+        fullText += chunk.text;
+        event.sender.send("ai:stream-chunk", chunk.text);
+      }
+    }
+    event.sender.send("ai:stream-done", fullText);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Analysis failed";
+    event.sender.send("ai:stream-error", message);
+  }
 });
 
 ipcMain.handle("ai:get-providers", () => {

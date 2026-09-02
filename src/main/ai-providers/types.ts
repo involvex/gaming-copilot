@@ -10,8 +10,22 @@ export interface AIProvider {
     context?: string;
   }): Promise<AIResponse>;
 
+  streamAnalyze(params: {
+    imageBase64: string;
+    mimeType: "image/png" | "image/jpeg";
+    systemPrompt: string;
+    userMessage: string;
+    context?: string;
+  }): AsyncGenerator<StreamChunk>;
+
   isConfigured(): boolean;
   getRateLimitInfo(): RateLimitInfo;
+}
+
+export interface StreamChunk {
+  text: string;
+  done: boolean;
+  tokens?: { input: number; output: number };
 }
 
 export interface AIResponse {

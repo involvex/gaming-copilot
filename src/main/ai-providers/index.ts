@@ -1,7 +1,7 @@
 import type { AppConfig } from "../../shared/types";
 import { GeminiProvider } from "./gemini";
 import { OpenAICompatProvider } from "./openai-compat";
-import type { AIProvider, AIResponse } from "./types";
+import type { AIProvider, AIResponse, StreamChunk } from "./types";
 
 export class ProviderManager {
   private providers: AIProvider[] = [];
@@ -103,5 +103,45 @@ export class ProviderManager {
     } catch {
       return false;
     }
+  }
+
+  async *streamAnalyze(
+    imageBase64: string,
+    mimeType: "image/png" | "image/jpeg",
+    systemPrompt: string,
+    userMessage: string,
+    context?: string,
+  ): AsyncGenerator<StreamChunk> {
+    const available = this.getAvailableProviders();
+    if (available.length === 0) {
+      throw new Error("No AI providers configured. Add an API key in Settings.");
+    }
+
+    const active = available.find((p) => p.name === this.activeProviderName);
+    const ordered = active
+      ? [active, ...available.filter((p) => p.name !== this.activeProviderName)]
+      : available;
+
+    let lastError: unknown;
+    for (const provider of ordered) {
+      const rateLimit = provider.getRateLimitInfo();
+      if (rateLimit.remaining.minute <= 0) continue;
+
+      try {
+        yield* provider.streamAnalyze({
+          imageBase64,
+          mimeType,
+          systemPrompt,
+          userMessage,
+          context,
+        });
+        return;
+      } catch (error) {
+        lastError = error;
+        console.error(`Provider ${provider.name} failed:`, error);
+      }
+    }
+
+    throw lastError ?? new Error("All AI providers failed. Check your API keys and try again.");
   }
 }

@@ -39,17 +39,24 @@ export default function ChatHistory() {
       setMessages((prev) => [...prev, assistantMsg]);
 
       if (result) {
-        const base64 = result.replace("data:image/png;base64,", "");
-        const response = await window.electronAPI.analyze(base64, userMsg.text);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsg.id
-              ? {
-                  ...m,
-                  text: response.error || response.response || "No response",
-                }
-              : m,
-          ),
+        const base64 = result.replace(/^data:image\/(png|jpeg);base64,/, "");
+        window.electronAPI.analyzeStream(
+          base64,
+          userMsg.text,
+          (chunk) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantMsg.id ? { ...m, text: m.text + chunk } : m)),
+            );
+          },
+          (_fullText) => {
+            setAnalyzing(false);
+          },
+          (error) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantMsg.id ? { ...m, text: `Error: ${error}` } : m)),
+            );
+            setAnalyzing(false);
+          },
         );
       } else {
         setMessages((prev) =>
@@ -57,6 +64,7 @@ export default function ChatHistory() {
             m.id === assistantMsg.id ? { ...m, text: "Failed to capture screenshot" } : m,
           ),
         );
+        setAnalyzing(false);
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "Unknown error";
@@ -69,7 +77,6 @@ export default function ChatHistory() {
           timestamp: Date.now(),
         },
       ]);
-    } finally {
       setAnalyzing(false);
     }
   };

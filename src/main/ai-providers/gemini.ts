@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { AIProvider, AIResponse, GeminiConfig, RateLimitInfo } from "./types";
+import type { AIProvider, AIResponse, GeminiConfig, RateLimitInfo, StreamChunk } from "./types";
 
 export class GeminiProvider implements AIProvider {
   readonly name = "gemini";
@@ -90,6 +90,68 @@ export class GeminiProvider implements AIProvider {
       },
       latencyMs: Date.now() - start,
       timestamp: Date.now(),
+    };
+  }
+
+  async *streamAnalyze(params: {
+    imageBase64: string;
+    mimeType: "image/png" | "image/jpeg";
+    systemPrompt: string;
+    userMessage: string;
+    context?: string;
+  }): AsyncGenerator<StreamChunk> {
+    this.resetCountersIfNeeded();
+
+    const contents = [
+      {
+        role: "user" as const,
+        parts: [
+          {
+            inlineData: {
+              mimeType: params.mimeType,
+              data: params.imageBase64,
+            },
+          },
+          {
+            text: params.context
+              ? `${params.context}\n\n${params.userMessage}`
+              : params.userMessage,
+          },
+        ],
+      },
+    ];
+
+    const config: Record<string, unknown> = {
+      systemInstruction: params.systemPrompt,
+    };
+
+    if (this.config.grounding) {
+      config.tools = [{ googleSearch: {} }];
+    }
+
+    this.requestCount.minute++;
+    this.requestCount.day++;
+
+    const response = await this.client.models.generateContentStream({
+      model: this.config.model,
+      contents,
+      config,
+    });
+
+    for await (const chunk of response) {
+      const text = chunk.text ?? "";
+      if (text) {
+        yield { text, done: false };
+      }
+    }
+
+    yield {
+      text: "",
+      done: true,
+      tokens: {
+        input: 0,
+        output: 0,
+      },
     };
   }
 

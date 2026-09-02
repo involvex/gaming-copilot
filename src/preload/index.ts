@@ -14,6 +14,13 @@ export interface ElectronAPI {
     imageBase64: string,
     userMessage?: string,
   ) => Promise<{ response?: string; error?: string }>;
+  analyzeStream: (
+    imageBase64: string,
+    userMessage: string,
+    onChunk: (text: string) => void,
+    onDone: (fullText: string) => void,
+    onError: (error: string) => void,
+  ) => void;
   testProvider: (name: string) => Promise<boolean>;
   getProviders: () => Promise<Array<{ name: string; displayName: string; rateLimit: unknown }>>;
 
@@ -43,6 +50,7 @@ export interface ElectronAPI {
   // Events
   onCaptureResult: (callback: (dataUrl: string) => void) => void;
   onOverlayData: (callback: (text: string) => void) => void;
+  onOverlayStreamDone: (callback: (text: string) => void) => void;
   onNavigateSettings: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
 }
@@ -57,6 +65,18 @@ const electronAPI: ElectronAPI = {
   // AI
   analyze: (imageBase64: string, userMessage?: string) =>
     ipcRenderer.invoke("ai:analyze", imageBase64, userMessage),
+  analyzeStream: (
+    imageBase64: string,
+    userMessage: string,
+    onChunk: (text: string) => void,
+    onDone: (fullText: string) => void,
+    onError: (error: string) => void,
+  ) => {
+    ipcRenderer.send("ai:analyze-stream", imageBase64, userMessage);
+    ipcRenderer.on("ai:stream-chunk", (_event, text: string) => onChunk(text));
+    ipcRenderer.on("ai:stream-done", (_event, fullText: string) => onDone(fullText));
+    ipcRenderer.on("ai:stream-error", (_event, error: string) => onError(error));
+  },
   testProvider: (name: string) => ipcRenderer.invoke("ai:test-provider", name),
   getProviders: () => ipcRenderer.invoke("ai:get-providers"),
 
@@ -92,6 +112,9 @@ const electronAPI: ElectronAPI = {
   },
   onOverlayData: (callback: (text: string) => void) => {
     ipcRenderer.on("overlay:data", (_event, text) => callback(text));
+  },
+  onOverlayStreamDone: (callback: (text: string) => void) => {
+    ipcRenderer.on("overlay:stream-done", (_event, text) => callback(text));
   },
   onNavigateSettings: (callback: () => void) => {
     ipcRenderer.on("navigate:settings", () => callback());

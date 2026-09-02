@@ -21,6 +21,7 @@ export default function Overlay() {
   const [text, setText] = useState("");
   const [visible, setVisible] = useState(false);
   const [opacity, setOpacity] = useState(0);
+  const [_streaming, setStreaming] = useState(false);
   const [ttsConfig, setTtsConfig] = useState<TtsConfig>({
     enabled: false,
     voice: "",
@@ -64,14 +65,23 @@ export default function Overlay() {
     window.electronAPI.onOverlayData((data) => {
       setText(data);
       setVisible(true);
+      setStreaming(true);
       setTimeout(() => setOpacity(1), 50);
-
-      if (ttsConfig.enabled && data && !data.startsWith("Error:")) {
-        speak(data, ttsConfig);
-      }
     });
     return () => {
       window.electronAPI.removeAllListeners("overlay:data");
+    };
+  }, []);
+
+  useEffect(() => {
+    window.electronAPI.onOverlayStreamDone((finalText) => {
+      setStreaming(false);
+      if (ttsConfig.enabled && finalText && !finalText.startsWith("Error:")) {
+        speak(finalText, ttsConfig);
+      }
+    });
+    return () => {
+      window.electronAPI.removeAllListeners("overlay:stream-done");
     };
   }, [ttsConfig]);
 
@@ -80,11 +90,13 @@ export default function Overlay() {
     const timer = setTimeout(() => {
       setOpacity(0);
       stop();
+      setStreaming(false);
       setTimeout(() => {
         setVisible(false);
         window.electronAPI.hideOverlay();
       }, 300);
     }, overlayConfig.duration);
+
     return () => clearTimeout(timer);
   }, [visible, overlayConfig.duration]);
 
