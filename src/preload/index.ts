@@ -20,6 +20,7 @@ export interface ElectronAPI {
   // Overlay
   showOverlay: (text: string) => Promise<void>;
   hideOverlay: () => Promise<void>;
+  setClickThrough: (enable: boolean) => Promise<void>;
 
   // Config
   getConfig: () => Promise<unknown>;
@@ -62,6 +63,7 @@ const electronAPI: ElectronAPI = {
   // Overlay
   showOverlay: (text: string) => ipcRenderer.invoke("overlay:show", text),
   hideOverlay: () => ipcRenderer.invoke("overlay:hide"),
+  setClickThrough: (enable: boolean) => ipcRenderer.invoke("overlay:set-click-through", enable),
 
   // Config
   getConfig: () => ipcRenderer.invoke("config:get"),

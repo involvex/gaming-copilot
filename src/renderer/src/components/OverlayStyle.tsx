@@ -6,9 +6,18 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
   const [duration, setDuration] = useState((overlay.duration as number) || 8000);
   const [opacity, setOpacity] = useState((overlay.opacity as number) || 0.9);
   const [fontSize, setFontSize] = useState((overlay.fontSize as number) || 14);
+  const [clickThrough, setClickThrough] = useState<boolean>(
+    (overlay.clickThrough as boolean) || true,
+  );
 
   const persist = (update: Record<string, unknown>) => {
     window.electronAPI.setOverlayConfig(update);
+  };
+
+  const handleClickThroughToggle = async () => {
+    const newValue = !clickThrough;
+    setClickThrough(newValue);
+    await window.electronAPI.setClickThrough(newValue);
   };
 
   return (
@@ -93,6 +102,32 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
           }}
           className="w-full"
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor="overlay-click-through"
+          className="flex items-center justify-between cursor-pointer"
+        >
+          <span className="text-sm font-medium text-gray-300">Click-Through</span>
+          <button
+            id="overlay-click-through"
+            type="button"
+            onClick={handleClickThroughToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              clickThrough ? "bg-blue-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                clickThrough ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+        <p className="text-xs text-gray-500 mt-1">
+          When enabled, mouse clicks pass through the overlay to the game underneath.
+        </p>
       </div>
 
       <div className="bg-gray-700/50 rounded-lg p-4">

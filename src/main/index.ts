@@ -14,7 +14,7 @@ import {
 
 import type { AppConfig, RegionBounds } from "../shared/types";
 import { ProviderManager } from "./ai-providers";
-import { smartCapture } from "./capture";
+import { resizeImage, smartCapture } from "./capture";
 import { findProcessByExe } from "./capture/win32";
 import { initConfig, setConfigValue } from "./config";
 import { logger } from "./logger";
@@ -84,6 +84,7 @@ function createOverlayWindow(): void {
 
   overlayWindow.setVisibleOnAllWorkspaces(true);
   overlayWindow.setAlwaysOnTop(true, "screen-saver");
+  overlayWindow.setIgnoreMouseEvents(appConfig.overlay.clickThrough);
 
   if (is.dev && process.env.ELECTRON_RENDERER_URL) {
     overlayWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/#/overlay`);
@@ -113,9 +114,10 @@ function registerHotkey(): void {
       return;
     }
 
-    const imageBase64 = result.buffer.toString("base64");
-    const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
-    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+    const resizedBuffer = resizeImage(result.buffer, result.format, appConfig.captureQuality);
+    const resizedMimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
+    const resizedBase64 = resizedBuffer.toString("base64");
+    const resizedDataUrl = `data:${resizedMimeType};base64,${resizedBase64}`;
 
     overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
     overlayWindow?.show();
@@ -123,8 +125,8 @@ function registerHotkey(): void {
     if (providerManager && providerManager.getAvailableProviders().length > 0) {
       try {
         const response = await providerManager.analyze(
-          imageBase64,
-          "image/png",
+          resizedBase64,
+          resizedMimeType,
           appConfig.prompts.system,
           "Analyze this game screenshot.",
         );
@@ -136,14 +138,14 @@ function registerHotkey(): void {
         logger.errorWithStack("Hotkey", "AI analysis failed", error);
       }
     } else {
-      mainWindow?.webContents.send("capture:result", dataUrl);
+      mainWindow?.webContents.send("capture:result", resizedDataUrl);
       overlayWindow?.webContents.send(
         "overlay:data",
         "No AI provider configured. Open Settings to add one.",
       );
     }
 
-    mainWindow?.webContents.send("capture:result", dataUrl);
+    mainWindow?.webContents.send("capture:result", resizedDataUrl);
   });
   logger.info("Hotkey", `Registered: ${hotkey}`);
 }
@@ -239,8 +241,9 @@ ipcMain.handle("capture:screenshot", async () => {
   const region = appConfig.captureRegion;
   const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
   if (!result) return null;
+  const resizedBuffer = resizeImage(result.buffer, result.format, appConfig.captureQuality);
   const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
-  return `data:${mimeType};base64,${result.buffer.toString("base64")}`;
+  return `data:${mimeType};base64,${resizedBuffer.toString("base64")}`;
 });
 
 ipcMain.handle("capture:check-game", (_event, exeName: string) => {
@@ -364,6 +367,12 @@ ipcMain.handle("overlay:show", (_event, text: string) => {
 
 ipcMain.handle("overlay:hide", () => {
   overlayWindow?.hide();
+});
+
+ipcMain.handle("overlay:set-click-through", (_event, enable: boolean) => {
+  appConfig.overlay.clickThrough = enable;
+  setConfigValue("overlay", appConfig.overlay);
+  overlayWindow?.setIgnoreMouseEvents(enable);
 });
 
 // IPC Handlers — Window
