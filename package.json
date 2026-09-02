@@ -43,5 +43,6 @@
     "electron",
     "gemini"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "author": "involvex"
 }

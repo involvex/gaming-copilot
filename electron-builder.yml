@@ -3,7 +3,7 @@ productName: Gaming Copilot
 copyright: Copyright © 2026
 
 directories:
-  buildResources: build
+  buildResources: resources
   output: dist
 
 files:
