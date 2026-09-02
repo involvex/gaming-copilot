@@ -1,0 +1,47 @@
+{
+  "name": "gaming-copilot",
+  "version": "0.1.0",
+  "description": "AI-powered gaming assistant with screenshot analysis and floating overlay",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "prebuild": "bun run format && bun run lint && bun run typecheck",
+    "package": "electron-builder --win --config electron-builder.yml",
+    "test": "vitest run",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electron-toolkit/utils": "^4.0.0",
+    "@google/genai": "^1.1.0",
+    "electron-store": "^10.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^4.5.2",
+    "electron": "^35.7.5",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^4.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.7",
+    "@tailwindcss/vite": "^4.1.7",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "gaming",
+    "copilot",
+    "ai",
+    "screenshot",
+    "electron",
+    "gemini"
+  ],
+  "license": "MIT"
+}

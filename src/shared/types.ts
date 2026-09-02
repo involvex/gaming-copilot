@@ -1,0 +1,104 @@
+// Shared types between main and renderer processes
+
+export interface GameState {
+  name: string;
+  level: number;
+  hp: number;
+  mp: number;
+  fp: number;
+  str: number;
+  sta: number;
+  dex: number;
+  int: number;
+  x: number;
+  y: number;
+  z: number;
+  timestamp: number;
+}
+
+export interface AIResponse {
+  text: string;
+  provider: string;
+  model: string;
+  tokens: { input: number; output: number };
+  latencyMs: number;
+  timestamp: number;
+}
+
+export interface AIProviderConfig {
+  name: string;
+  displayName: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+export interface ScreenshotResult {
+  buffer: Buffer;
+  width: number;
+  height: number;
+  timestamp: number;
+}
+
+export interface AppConfig {
+  // General
+  hotkey: string;
+  autoStart: boolean;
+  minimizeToTray: boolean;
+
+  // Capture
+  gameExe: string;
+  captureQuality: number;
+
+  // Providers
+  providers: {
+    gemini?: {
+      apiKey: string;
+      model: string;
+      grounding: boolean;
+    };
+    openaiCompat?: {
+      endpoints: Array<{
+        name: string;
+        baseUrl: string;
+        apiKey: string;
+        model: string;
+      }>;
+    };
+  };
+  activeProvider: string;
+
+  // Overlay
+  overlay: {
+    position: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+    duration: number;
+    opacity: number;
+    fontSize: number;
+    theme: "dark" | "light" | "game";
+    clickThrough: boolean;
+  };
+
+  // TTS
+  tts: {
+    enabled: boolean;
+    voice: string;
+    rate: number;
+    pitch: number;
+    volume: number;
+  };
+
+  // Plugins
+  plugins: {
+    bunMemreader: {
+      enabled: boolean;
+      port: number;
+      autoStart: boolean;
+    };
+  };
+
+  // Prompts
+  prompts: {
+    system: string;
+    gameSpecific: Record<string, string>;
+  };
+}
