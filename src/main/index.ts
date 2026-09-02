@@ -185,6 +185,14 @@ function createTray(): void {
   logger.info("Tray", "System tray created");
 }
 
+function updateAutoStart(): void {
+  app.setLoginItemSettings({
+    openAtLogin: appConfig.autoStart,
+    path: app.isPackaged ? process.execPath : undefined,
+  });
+  logger.info("AutoStart", `Auto-start set to: ${appConfig.autoStart}`);
+}
+
 app.whenReady().then(() => {
   logger.info("App", `Starting Gaming Copilot v${app.getVersion()}`);
   createMainWindow();
@@ -192,6 +200,7 @@ app.whenReady().then(() => {
   initProviders();
   registerHotkey();
   createTray();
+  updateAutoStart();
 
   const pluginConfig = appConfig.plugins.bunMemreader;
   if (pluginConfig.enabled) {
@@ -322,6 +331,12 @@ ipcMain.handle("config:set-tts", (_event, tts: Partial<AppConfig["tts"]>) => {
 ipcMain.handle("config:set-prompts", (_event, prompts: Partial<AppConfig["prompts"]>) => {
   appConfig.prompts = { ...appConfig.prompts, ...prompts };
   setConfigValue("prompts", appConfig.prompts);
+});
+
+ipcMain.handle("config:set-auto-start", (_event, enable: boolean) => {
+  appConfig.autoStart = enable;
+  setConfigValue("autoStart", enable);
+  updateAutoStart();
 });
 
 // IPC Handlers — Overlay

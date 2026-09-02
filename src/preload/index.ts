@@ -27,6 +27,7 @@ export interface ElectronAPI {
   setOverlayConfig: (config: Record<string, unknown>) => Promise<void>;
   setTTSConfig: (config: Record<string, unknown>) => Promise<void>;
   setPromptsConfig: (config: Record<string, unknown>) => Promise<void>;
+  setAutoStart: (enable: boolean) => Promise<void>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -70,6 +71,7 @@ const electronAPI: ElectronAPI = {
   setTTSConfig: (config: Record<string, unknown>) => ipcRenderer.invoke("config:set-tts", config),
   setPromptsConfig: (config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-prompts", config),
+  setAutoStart: (enable: boolean) => ipcRenderer.invoke("config:set-auto-start", enable),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),

@@ -57,6 +57,7 @@ export default function Settings() {
 
 function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   const [gameExe, setGameExe] = useState((config?.gameExe as string) || "");
+  const [autoStart, setAutoStart] = useState((config?.autoStart as boolean) || false);
   const [gameStatus, setGameStatus] = useState<"idle" | "checking" | "running" | "not-found">(
     "idle",
   );
@@ -69,6 +70,12 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     if (result.running) {
       await window.electronAPI.setGameExe(gameExe);
     }
+  };
+
+  const handleAutoStartToggle = async () => {
+    const newValue = !autoStart;
+    setAutoStart(newValue);
+    await window.electronAPI.setAutoStart(newValue);
   };
 
   return (
@@ -113,6 +120,29 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         <p className="text-sm font-medium text-gray-300 mb-2">Hotkey</p>
         <p className="text-xs text-gray-500">
           Default: <kbd className="bg-gray-700 px-1 rounded">Ctrl+Shift+G</kbd>
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="auto-start" className="flex items-center justify-between cursor-pointer">
+          <span className="text-sm font-medium text-gray-300">Start with Windows</span>
+          <button
+            id="auto-start"
+            type="button"
+            onClick={handleAutoStartToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              autoStart ? "bg-blue-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                autoStart ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+        <p className="text-xs text-gray-500 mt-1">
+          Launch Gaming Copilot automatically when Windows starts.
         </p>
       </div>
     </div>
