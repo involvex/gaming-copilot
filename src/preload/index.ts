@@ -22,6 +22,12 @@ export interface ElectronAPI {
   getConfig: () => Promise<unknown>;
   setProvider: (name: string, config: Record<string, unknown>) => Promise<void>;
 
+  // Plugins
+  startMemreader: () => Promise<boolean>;
+  stopMemreader: () => Promise<boolean>;
+  getMemreaderState: () => Promise<unknown>;
+  isMemreaderConnected: () => Promise<boolean>;
+
   // Window
   openSettings: () => Promise<void>;
 
@@ -52,6 +58,12 @@ const electronAPI: ElectronAPI = {
   getConfig: () => ipcRenderer.invoke("config:get"),
   setProvider: (name: string, config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-provider", name, config),
+
+  // Plugins
+  startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),
+  stopMemreader: () => ipcRenderer.invoke("plugin:memreader:stop"),
+  getMemreaderState: () => ipcRenderer.invoke("plugin:memreader:state"),
+  isMemreaderConnected: () => ipcRenderer.invoke("plugin:memreader:connected"),
 
   // Window
   openSettings: () => ipcRenderer.invoke("window:open-settings"),

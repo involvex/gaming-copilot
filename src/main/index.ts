@@ -17,11 +17,13 @@ import type { AppConfig } from "../shared/types";
 import { ProviderManager } from "./ai-providers";
 import { smartCapture } from "./capture";
 import { findProcessByExe } from "./capture/win32";
+import { MemreaderPlugin } from "./plugins";
 
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let providerManager: ProviderManager | null = null;
+let memreaderPlugin: MemreaderPlugin | null = null;
 
 // Default config (will be loaded from electron-store in Phase 5)
 let gameExe = "";
@@ -215,6 +217,13 @@ app.whenReady().then(() => {
   registerHotkey();
   createTray();
 
+  // Initialize memreader plugin if configured
+  const pluginConfig = appConfig.plugins.bunMemreader;
+  if (pluginConfig.enabled) {
+    memreaderPlugin = new MemreaderPlugin(pluginConfig);
+    memreaderPlugin.start();
+  }
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
@@ -222,6 +231,7 @@ app.whenReady().then(() => {
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  memreaderPlugin?.stop();
 });
 
 app.on("window-all-closed", () => {
@@ -318,4 +328,26 @@ ipcMain.handle("overlay:hide", () => {
 ipcMain.handle("window:open-settings", () => {
   mainWindow?.show();
   mainWindow?.webContents.send("navigate:settings");
+});
+
+// IPC Handlers — Plugins
+ipcMain.handle("plugin:memreader:start", async () => {
+  if (!memreaderPlugin) {
+    memreaderPlugin = new MemreaderPlugin(appConfig.plugins.bunMemreader);
+  }
+  await memreaderPlugin.start();
+  return memreaderPlugin.isConnected();
+});
+
+ipcMain.handle("plugin:memreader:stop", () => {
+  memreaderPlugin?.stop();
+  return true;
+});
+
+ipcMain.handle("plugin:memreader:state", () => {
+  return memreaderPlugin?.getState() || null;
+});
+
+ipcMain.handle("plugin:memreader:connected", () => {
+  return memreaderPlugin?.isConnected() || false;
 });
