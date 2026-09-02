@@ -4,6 +4,19 @@
 
 This document catalogs opportunities for improvement, new features, and optimizations in the Gaming Copilot project. The analysis covers architecture, UX, performance, security, maintainability, and completeness gaps identified by comparing the codebase against the PLAN.md roadmap and best practices.
 
+## Completed Items
+
+| ID | Category | Description | PR |
+|----|----------|-------------|-----|
+| CRD-001 | Bug Fix | Added global type augmentation for `window.electronAPI` via `src/renderer/src/types/electron.d.ts` | `#1` |
+| CRD-002 | Bug Fix | Fixed broken import path in `ai-providers/index.ts` (`../shared/types` → `../../shared/types`) | `#1` |
+| FEAT-002 | Bug Fix | Wired up Zen/Kilo API key persistence with onBlur save handlers, model inputs, and `OPENAI_COMPAT_PRESETS` | `#1` |
+| FEAT-005 | Feature | Implemented auto-start with Windows via `app.setLoginItemSettings()` + IPC handler + toggle UI | `#5` |
+| FEAT-006 | Bug Fix | Wired up `captureQuality` config — JPEG compression for screenshots, dynamic MIME types | `#4` |
+| FEAT-035 | DevEx | Added GitHub Actions CI workflow with format, lint, typecheck, build, and test steps | `#2` |
+| FEAT-039 | Security | Added exe name validation (`SAFE_EXE_PATTERN`) in `findProcessByExe` and `capture:check-game` IPC handler | `#4` |
+| TECH-008 | Refactor | Fixed `Overlay.tsx` to read `duration`, `position`, `opacity`, `fontSize` from config | `#3` |
+
 ---
 
 ## Critical Development Issues
