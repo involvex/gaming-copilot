@@ -10,9 +10,14 @@ export interface ProcessInfo {
  * Find a running process by executable name (e.g., "Neuz.exe").
  * Returns the PID or null if not found.
  */
+const SAFE_EXE_PATTERN = /^[\w.-]+\.exe$/;
+
 export function findProcessByExe(exeName: string): number | null {
   try {
     const name = exeName.endsWith(".exe") ? exeName : `${exeName}.exe`;
+    if (!SAFE_EXE_PATTERN.test(name)) {
+      return null;
+    }
     const output = execSync(`tasklist /FI "IMAGENAME eq ${name}" /FO CSV /NH`, {
       encoding: "utf-8",
       timeout: 5000,
