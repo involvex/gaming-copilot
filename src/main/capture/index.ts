@@ -7,6 +7,7 @@ export interface CaptureResult {
   width: number;
   height: number;
   timestamp: number;
+  format: "png" | "jpeg";
 }
 
 export interface RegionBounds {
@@ -16,10 +17,27 @@ export interface RegionBounds {
   height: number;
 }
 
+const SAFE_EXE_PATTERN = /^[\w.-]+\.exe$/;
+
+function ensureExeExtension(exeName: string): string {
+  return exeName.endsWith(".exe") ? exeName : `${exeName}.exe`;
+}
+
 /**
- * Crop a PNG buffer to the specified region using GDI+.
+ * Validate that the exe name is safe (no shell metacharacters) before
+ * interpolating it into shell commands.
  */
-function cropBuffer(buffer: Buffer, region: RegionBounds): Buffer {
+function validateExeName(exeName: string): boolean {
+  const name = ensureExeExtension(exeName);
+  return SAFE_EXE_PATTERN.test(name);
+}
+
+/**
+ * Crop a buffer to the specified region using GDI+.
+ * Preserves the original format (PNG or JPEG).
+ */
+function cropBuffer(buffer: Buffer, region: RegionBounds, format: "png" | "jpeg"): Buffer {
+  const imageFormat = format === "jpeg" ? "Jpeg" : "Png";
   try {
     const script = `
 Add-Type -AssemblyName System.Drawing
@@ -28,7 +46,7 @@ $cropped = New-Object System.Drawing.Bitmap ${region.width}, ${region.height}
 $g = [System.Drawing.Graphics]::FromImage($cropped)
 $g.DrawImage($img, -${region.x}, -${region.y}, $img.Width, $img.Height)
 $ms = New-Object System.IO.MemoryStream
-$cropped.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+$cropped.Save($ms, [System.Drawing.Imaging.ImageFormat]::${imageFormat})
 [Convert]::ToBase64String($ms.ToArray())
 $g.Dispose(); $cropped.Dispose(); $img.Dispose()
 `.trim();
@@ -48,8 +66,12 @@ $g.Dispose(); $cropped.Dispose(); $img.Dispose()
 /**
  * Capture a screenshot of a specific window by its executable name.
  * Uses Electron desktopCapturer for windowed/borderless games.
+ * @param quality - JPEG quality (1-100). PNG used if 100 or undefined.
  */
-export async function captureWindowByExe(exeName: string): Promise<CaptureResult | null> {
+export async function captureWindowByExe(
+  exeName: string,
+  quality?: number,
+): Promise<CaptureResult | null> {
   const { findProcessByExe } = await import("./win32");
   const pid = findProcessByExe(exeName);
   if (!pid) return null;
@@ -59,20 +81,19 @@ export async function captureWindowByExe(exeName: string): Promise<CaptureResult
     thumbnailSize: { width: 1920, height: 1080 },
   });
 
-  // Find source matching the process name (Electron uses name for window titles)
-  const source = sources.find((s) => {
-    const name = s.name.toLowerCase();
-    const exe = exeName.toLowerCase().replace(".exe", "");
-    return name.includes(exe);
-  });
+  const exe = ensureExeExtension(exeName).toLowerCase().replace(".exe", "");
+  const source = sources.find((s) => s.name.toLowerCase().includes(exe));
 
   if (source) {
     const thumbnail = source.thumbnail;
+    const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
+    const buffer = format === "jpeg" ? thumbnail.toJPEG(quality ?? 80) : thumbnail.toPNG();
     return {
-      buffer: thumbnail.toPNG(),
+      buffer,
       width: thumbnail.getSize().width,
       height: thumbnail.getSize().height,
       timestamp: Date.now(),
+      format,
     };
   }
 
@@ -81,8 +102,9 @@ export async function captureWindowByExe(exeName: string): Promise<CaptureResult
 
 /**
  * Capture the primary screen using Electron desktopCapturer.
+ * @param quality - JPEG quality (1-100). PNG used if 100 or undefined.
  */
-export async function captureFullScreen(): Promise<CaptureResult> {
+export async function captureFullScreen(quality?: number): Promise<CaptureResult> {
   const sources = await desktopCapturer.getSources({
     types: ["screen"],
     thumbnailSize: { width: 1920, height: 1080 },
@@ -94,25 +116,38 @@ export async function captureFullScreen(): Promise<CaptureResult> {
   }
 
   const thumbnail = primaryScreen.thumbnail;
+  const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
+  const buffer = format === "jpeg" ? thumbnail.toJPEG(quality ?? 80) : thumbnail.toPNG();
   return {
-    buffer: thumbnail.toPNG(),
+    buffer,
     width: thumbnail.getSize().width,
     height: thumbnail.getSize().height,
     timestamp: Date.now(),
+    format,
   };
 }
 
 /**
  * Capture using Windows GDI+ fallback (for exclusive fullscreen games).
  * This runs a PowerShell script that uses CopyFromScreen.
+ * @param quality - JPEG quality (1-100). PNG used if 100 or undefined.
  */
-export async function captureWithGDI(exeName: string): Promise<CaptureResult | null> {
+export async function captureWithGDI(
+  exeName: string,
+  quality?: number,
+): Promise<CaptureResult | null> {
   const { findProcessByExe, getWindowTitleByPid } = await import("./win32");
   const pid = findProcessByExe(exeName);
   if (!pid) return null;
 
   const title = getWindowTitleByPid(pid);
   if (!title) return null;
+
+  const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
+  const jpegEncoder =
+    format === "jpeg" && quality !== undefined
+      ? `$jpegEncoder = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq "image/jpeg" }; $encoderParams = New-Object System.Drawing.Imaging.EncoderParameters(1); $encoderParams.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality, [long]@(${quality})); $bitmap.Save($ms, $jpegEncoder, $encoderParams);`
+      : `$bitmap.Save($ms, [System.Drawing.Imaging.ImageFormat]::${format === "jpeg" ? "Jpeg" : "Png"})`;
 
   try {
     const script = `
@@ -163,7 +198,7 @@ if ($width -gt 0 -and $height -gt 0) {
   $graphics.CopyFromScreen($rect.left, $rect.top, 0, 0, $bitmap.Size)
 
   $ms = New-Object System.IO.MemoryStream
-  $bitmap.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+  ${jpegEncoder}
   [Convert]::ToBase64String($ms.ToArray())
 
   $graphics.Dispose()
@@ -183,9 +218,10 @@ if ($width -gt 0 -and $height -gt 0) {
 
     return {
       buffer,
-      width: 1920, // Will be determined from actual image
+      width: 1920,
       height: 1080,
       timestamp: Date.now(),
+      format,
     };
   } catch {
     return null;
@@ -195,39 +231,41 @@ if ($width -gt 0 -and $height -gt 0) {
 /**
  * Smart capture: tries window capture first, falls back to GDI+ then fullscreen.
  * Optionally crops to a region.
+ * @param exeName - Process exe name to capture (e.g. "Neuz.exe")
+ * @param region - Optional crop region bounds
+ * @param quality - Optional JPEG quality (1-100). PNG used if 100 or undefined.
  */
 export async function smartCapture(
   gameExe?: string,
   region?: RegionBounds,
+  quality?: number,
 ): Promise<CaptureResult> {
   let result: CaptureResult;
 
-  // Try window capture by exe name
-  if (gameExe) {
-    const windowCapture = await captureWindowByExe(gameExe);
+  if (gameExe && validateExeName(gameExe)) {
+    const windowCapture = await captureWindowByExe(gameExe, quality);
     if (windowCapture) {
       result = windowCapture;
     } else {
-      // Fallback to GDI+
-      const gdiCapture = await captureWithGDI(gameExe);
+      const gdiCapture = await captureWithGDI(gameExe, quality);
       if (gdiCapture) {
         result = gdiCapture;
       } else {
-        result = await captureFullScreen();
+        result = await captureFullScreen(quality);
       }
     }
   } else {
-    result = await captureFullScreen();
+    result = await captureFullScreen(quality);
   }
 
-  // Crop to region if specified
   if (region && region.width > 0 && region.height > 0) {
-    const croppedBuffer = cropBuffer(result.buffer, region);
+    const croppedBuffer = cropBuffer(result.buffer, region, result.format);
     return {
       buffer: croppedBuffer,
       width: region.width,
       height: region.height,
       timestamp: result.timestamp,
+      format: result.format,
     };
   }
 

@@ -106,14 +106,15 @@ function registerHotkey(): void {
   globalShortcut.register("CommandOrControl+Shift+G", async () => {
     logger.info("Hotkey", "Ctrl+Shift+G triggered");
     const region = appConfig.captureRegion;
-    const result = await smartCapture(gameExe || undefined, region);
+    const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
     if (!result) {
       logger.warn("Hotkey", "No capture result");
       return;
     }
 
     const imageBase64 = result.buffer.toString("base64");
-    const dataUrl = `data:image/png;base64,${imageBase64}`;
+    const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
+    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
 
     overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
     overlayWindow?.show();
@@ -218,12 +219,16 @@ app.on("window-all-closed", () => {
 // IPC Handlers — Capture
 ipcMain.handle("capture:screenshot", async () => {
   const region = appConfig.captureRegion;
-  const result = await smartCapture(gameExe || undefined, region);
+  const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
   if (!result) return null;
-  return `data:image/png;base64,${result.buffer.toString("base64")}`;
+  const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
+  return `data:${mimeType};base64,${result.buffer.toString("base64")}`;
 });
 
 ipcMain.handle("capture:check-game", (_event, exeName: string) => {
+  if (!exeName || !/^[\w.-]+\.exe$/.test(exeName.endsWith(".exe") ? exeName : `${exeName}.exe`)) {
+    return { running: false, pid: null };
+  }
   const pid = findProcessByExe(exeName);
   return { running: pid !== null, pid };
 });
