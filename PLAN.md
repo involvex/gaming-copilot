@@ -1,5 +1,47 @@
 # Gaming Copilot — Full Implementation Plan
 
+## 0. Implementation Status
+
+| Phase | Status | Commit | Notes |
+|-------|--------|--------|-------|
+| 1: Scaffolding | ✅ Done | `e480f0c` | electron-vite + React 19 + Tailwind 4 + Biome 2 |
+| 2: Screenshot | ✅ Done | `e480f0c` | desktopCapturer → GDI+ → fullscreen fallback |
+| 3: AI Providers | ✅ Done | `e480f0c` | Gemini native SDK, OpenAI-compat (Zen/Kilo) |
+| 4: Floating Overlay | ✅ Done | `e480f0c` | Transparent frameless, auto-dismiss, fade |
+| 5: Settings GUI | ✅ Done | `e480f0c` | Tabbed UI (providers/capture/overlay/prompts) |
+| 6: TTS | ✅ Done | `f80e35c` | Web Speech API, voice/speed/pitch/volume |
+| 7: Plugins | ✅ Done | `911f554` | bun-memreader sidecar via HTTP, IPC integration |
+| 8: System Tray | ✅ Done | `308e9d9` | Context menu, minimize-to-tray |
+| 9: Packaging | ✅ Done | `cbc6215` | electron-builder NSIS, GitHub publish config |
+
+**All 9 phases implemented.** Repository: https://github.com/involvex/gaming-copilot (private)
+
+### What's Working
+- `bun run dev` — launches Electron app with hot reload
+- `bun run build` — full production pipeline (format + lint + typecheck + vite build)
+- `bun run package` — builds Windows NSIS installer
+- Settings GUI with 5 tabs: AI Providers, Capture, Overlay, TTS, Prompts
+- System tray with context menu and minimize-to-tray on close
+- Screenshot capture chain: desktopCapturer → GDI+ PowerShell fallback → fullscreen
+- AI provider fallback chain with rate limiting
+- TTS toggle with configurable voice, speed, pitch, volume
+- bun-memreader sidecar start/stop/state via IPC
+- 256x256 app icon (gamepad design)
+
+### What's Not Yet Done
+- Config persistence (electron-store not wired — config resets on restart)
+- Auto-start with Windows
+- Chat history / recent analyses
+- Region selection for screenshots
+- Multiple monitor support
+- Image preprocessing (crop/resize before AI)
+- Error logging to file
+- Unit/integration tests
+- Code signing
+- Auto-update
+
+---
+
 ## 1. Project Overview
 
 A **general-purpose AI gaming assistant** that captures screenshots of any game (or monitor), sends them to AI vision providers, and displays contextual feedback in a floating overlay. Not tied to any specific game.
@@ -16,18 +58,20 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
 
 ## 2. Tech Stack
 
-| Layer | Technology | Reason |
-|-------|-----------|--------|
-| Framework | **electron-vite** | Fast HMR, TypeScript-first, Vite ecosystem |
-| Runtime | **Bun** | Fast installs, native FFI, TypeScript native |
-| UI Framework | **React 18** + TypeScript | Component-based overlay/settings UI |
-| Screenshot | **Electron desktopCapturer** + **Windows GDI+ fallback** | Works in windowed/borderless; GDI+ for exclusive fullscreen |
-| AI Providers | **Gemini 2.5 Flash** (native) + **OpenAI-compatible** (Zen/Kilo) | Free tier + flexible provider system |
-| Hotkeys | **Electron globalShortcut** | Native OS-level registration |
-| TTS | **Web Speech API** (SpeechSynthesis) | Built into Chromium, no dependencies |
-| Styling | **Tailwind CSS** | Fast UI development for overlay + settings |
-| Build | **electron-builder** | Cross-platform packaging |
-| Package Manager | **Bun** | Per environment instructions |
+| Layer | Technology | Version | Reason |
+|-------|-----------|---------|--------|
+| Framework | **electron-vite** | 4.0.1 | Fast HMR, TypeScript-first, Vite 7 |
+| Runtime | **Bun** | 1.4.1 | Fast installs, native FFI, TypeScript native |
+| UI Framework | **React** | 19.1 | Component-based overlay/settings UI |
+| Screenshot | **Electron desktopCapturer** + **Windows GDI+ fallback** | — | Works in windowed/borderless; GDI+ for exclusive fullscreen |
+| AI Providers | **Gemini 2.5 Flash** (native `@google/genai`) + **OpenAI-compatible** (Zen/Kilo) | — | Free tier + flexible provider system |
+| Hotkeys | **Electron globalShortcut** | — | Native OS-level registration |
+| TTS | **Web Speech API** (SpeechSynthesis) | — | Built into Chromium, no dependencies |
+| Styling | **Tailwind CSS** | 4.1.7 | Fast UI development |
+| Build | **electron-builder** | 26.0 | Windows NSIS installer |
+| Linting | **Biome** | 2.5.11 | Format + lint + organize imports |
+| Type Check | **TypeScript** | 5.8.3 | Strict type safety |
+| Package Manager | **Bun** | >= 1.3.0 | Required by environment |
 
 ---
 
@@ -79,75 +123,54 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
 E:\Game\gaming-copilot\gaming-copilot\
 ├── package.json
 ├── electron.vite.config.ts
-├── tsconfig.json
-├── tsconfig.node.json
-├── tsconfig.web.json
+├── tsconfig.json / tsconfig.node.json / tsconfig.web.json
 ├── electron-builder.yml
-├── tailwind.config.js
-├── postcss.config.js
-├── .env.example                    # API keys template
+├── biome.json
+├── README.md
+├── AGENTS.md
+├── PLAN.md
 │
 ├── src/
 │   ├── main/                       # Electron main process
-│   │   ├── index.ts                # App entry, window management
-│   │   ├── capture.ts              # Screenshot capture (desktopCapturer + GDI+)
-│   │   ├── hotkey.ts               # Global hotkey registration
-│   │   ├── ai-providers/           # AI vision provider implementations
-│   │   │   ├── index.ts            # Provider manager + factory
-│   │   │   ├── gemini.ts           # Google Gemini 2.5 Flash
-│   │   │   ├── openai-compat.ts    # OpenAI-compatible (Zen, Kilo, etc.)
-│   │   │   └── types.ts            # Provider interface + types
-│   │   ├── ipc.ts                  # IPC handler registrations
-│   │   ├── tray.ts                 # System tray icon + menu
-│   │   ├── plugins.ts              # Plugin manager (bun-memreader sidecar)
-│   │   ├── config.ts               # Config store (electron-store)
-│   │   └── tts.ts                  # Text-to-speech (Web Speech API wrapper)
+│   │   ├── index.ts                # App entry, IPC handlers, tray, hotkey
+│   │   ├── capture/                # Screenshot capture
+│   │   │   ├── index.ts            # smartCapture (desktopCapturer → GDI+ → fullscreen)
+│   │   │   └── win32.ts            # findProcessByExe, getWindowTitleByPid
+│   │   ├── ai-providers/           # AI vision providers
+│   │   │   ├── types.ts            # AIProvider interface
+│   │   │   ├── gemini.ts           # Google Gemini (native SDK)
+│   │   │   ├── openai-compat.ts    # OpenAI-compatible (Zen, Kilo)
+│   │   │   └── index.ts            # ProviderManager + fallback chain
+│   │   └── plugins/                # Plugin integrations
+│   │       ├── index.ts            # Barrel export
+│   │       └── memreader.ts        # bun-memreader sidecar manager
 │   │
-│   ├── preload/                    # Preload scripts (contextBridge)
-│   │   └── index.ts                # Expose IPC methods to renderer
+│   ├── preload/
+│   │   └── index.ts                # contextBridge IPC API
 │   │
-│   ├── renderer/                   # Frontend UI (React)
-│   │   ├── index.html
-│   │   ├── src/
-│   │   │   ├── main.tsx            # React entry
-│   │   │   ├── App.tsx             # Root component
-│   │   │   ├── components/
-│   │   │   │   ├── Overlay.tsx     # Floating transparent overlay
-│   │   │   │   ├── Settings.tsx    # Settings window
-│   │   │   │   ├── ProviderConfig.tsx  # API key + provider selection
-│   │   │   │   ├── HotkeyConfig.tsx    # Hotkey configuration
-│   │   │   │   ├── PromptEditor.tsx    # System prompt editor
-│   │   │   │   ├── OverlayStyle.tsx    # Overlay appearance settings
-│   │   │   │   ├── TTSConfig.tsx       # TTS toggle + voice selection
-│   │   │   │   └── ChatHistory.tsx     # Recent analyses
-│   │   │   ├── hooks/
-│   │   │   │   ├── useOverlay.ts
-│   │   │   │   └── useSettings.ts
-│   │   │   ├── services/
-│   │   │   │   └── api.ts          # IPC wrapper for main process calls
-│   │   │   └── styles/
-│   │   │       └── globals.css     # Tailwind base
-│   │   └── public/
-│   │       └── icon.png
+│   ├── renderer/
+│   │   └── src/
+│   │       ├── main.tsx            # React entry
+│   │       ├── App.tsx             # Hash router (#/, #/overlay, #/settings)
+│   │       ├── tts.ts              # Web Speech API wrapper
+│   │       ├── styles/
+│   │       │   └── globals.css     # Tailwind base
+│   │       └── components/
+│   │           ├── Overlay.tsx     # Floating transparent overlay + TTS
+│   │           ├── Settings.tsx    # Tabbed settings container
+│   │           ├── ProviderConfig.tsx  # Gemini/Zen/Kilo API key config
+│   │           ├── OverlayStyle.tsx    # Position, opacity, font size
+│   │           ├── TTSConfig.tsx       # TTS toggle + voice settings
+│   │           └── PromptEditor.tsx    # System prompt editor
 │   │
-│   └── shared/                     # Shared types between main/renderer
-│       ├── types.ts                # GameState, ProviderConfig, etc.
-│       └── constants.ts            # Default hotkeys, ports, etc.
+│   └── shared/
+│       ├── types.ts                # AppConfig, AIResponse, GameState
+│       └── constants.ts            # DEFAULT_SYSTEM_PROMPT, presets
 │
-├── plugins/                        # Plugin manifests
-│   └── bun-memreader/
-│       └── manifest.json           # Plugin metadata + API schema
+├── resources/
+│   └── icon.png                    # 256x256 app icon
 │
-├── resources/                      # App icons, assets
-│   └── icon.ico
-│
-└── test/                           # Tests
-    ├── unit/
-    │   ├── capture.test.ts
-    │   ├── ai-providers.test.ts
-    │   └── config.test.ts
-    └── integration/
-        └── screenshot-to-ai.test.ts
+└── dist/                           # electron-builder output
 ```
 
 ---
