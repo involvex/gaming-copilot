@@ -1,7 +1,16 @@
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
-import { app, BrowserWindow, globalShortcut, ipcMain, screen, type Tray } from "electron";
+import {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  nativeImage,
+  screen,
+  Tray,
+} from "electron";
 
 import { DEFAULT_SYSTEM_PROMPT } from "../shared/constants";
 import type { AppConfig } from "../shared/types";
@@ -11,7 +20,7 @@ import { findProcessByExe } from "./capture/win32";
 
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
-const _tray: Tray | null = null;
+let tray: Tray | null = null;
 let providerManager: ProviderManager | null = null;
 
 // Default config (will be loaded from electron-store in Phase 5)
@@ -67,6 +76,13 @@ function createMainWindow(): void {
 
   mainWindow.on("ready-to-show", () => {
     mainWindow?.show();
+  });
+
+  mainWindow.on("close", (e) => {
+    if (appConfig.minimizeToTray && tray) {
+      e.preventDefault();
+      mainWindow?.hide();
+    }
   });
 
   if (is.dev && process.env.ELECTRON_RENDERER_URL) {
@@ -155,11 +171,49 @@ function registerHotkey(): void {
   });
 }
 
+function createTray(): void {
+  const iconPath = join(__dirname, "../resources/icon.png");
+  const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+  tray = new Tray(icon);
+  tray.setToolTip("Gaming Copilot");
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Show Settings",
+      click: () => {
+        mainWindow?.show();
+        mainWindow?.webContents.send("navigate:settings");
+      },
+    },
+    {
+      label: "Show Overlay",
+      click: () => {
+        overlayWindow?.webContents.send("overlay:data", "Ready to analyze.");
+        overlayWindow?.show();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Quit",
+      click: () => {
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(contextMenu);
+
+  tray.on("double-click", () => {
+    mainWindow?.show();
+  });
+}
+
 app.whenReady().then(() => {
   createMainWindow();
   createOverlayWindow();
   initProviders();
   registerHotkey();
+  createTray();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
