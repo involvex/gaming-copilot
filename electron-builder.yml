@@ -1,0 +1,45 @@
+appId: com.gamingcopilot.app
+productName: Gaming Copilot
+copyright: Copyright © 2026
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - out/**/*
+  - "!**/.vite/**"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "${productName}-${version}-Setup.${ext}"
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Gaming Copilot
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+
+publish:
+  provider: github
+  owner: ""
+  repo: ""
