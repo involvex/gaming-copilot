@@ -56,17 +56,22 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-056 | Feature | Active provider badge in overlay — shows which AI provider generated the response (e.g., "via Gemini") as a label in the overlay, with `overlay:provider` IPC channel | `0b08778` |
 | FEAT-057 | DevEx | Added `prebuild` script (format + lint + typecheck) chaining before electron-vite build | `e480f0c` |
 | FEAT-058 | DevEx | Updated CI workflow to use `bunx` for biome/tsc/electron-vite invocation | `eda5484` |
+| FEAT-046 | Feature | Auto-update via electron-updater — GitHub provider, `app:update` IPC handler, `app:get-version` handler, Settings UI with check/install buttons and live status, `onUpdateStatus` event listener | `6d06e0f` |
+| FEAT-059 | UX | Dark mode auto-detect — `prefers-color-scheme` media query auto-switches Settings theme, 3-state toggle (Dark → Light → System), `theme` field updated to `"dark" | "light" | "system"` | `767ad99` |
+| FEAT-060 | DevEx | TypeScript strictness audit — `noUnusedLocals`, `noUncheckedIndexedAccess`, `noUnusedParameters` enabled; all `any` types in test files eliminated | `48f0dd9` |
+| FEAT-079 | Feature | Overlay custom CSS code editor — CSS textarea in OverlayStyle settings, `<style>` injection in Overlay component, `overlay:set-css` IPC handler, `.overlay-container/.overlay-text/.overlay-provider` class names | `83cd7d7` |
 
-**Test suites (6 files, 128 tests total):**
+**Test suites (7 files, 133 tests total):**
 
 | Module | File | Tests | Coverage |
 |--------|------|-------|----------|
-| Schemas | `src/main/__tests__/schemas.test.ts` | 37 | validateIPC, all input schemas |
+| Schemas | `src/main/__tests__/schemas.test.ts` | 39 | validateIPC, all input schemas |
 | Capture | `src/main/capture/__tests__/capture.test.ts` | 30 | Smart capture, resize, crop, GDI, screen recording |
 | Memreader | `src/main/plugins/__tests__/memreader.test.ts` | 23 | Config, start/stop lifecycle, parseState |
 | ProviderManager | `src/main/ai-providers/__tests__/ProviderManager.test.ts` | 20 | Fallback chain, caching, rate limits, testProvider |
-| Config | `src/main/__tests__/config.test.ts` | 13 | initConfig, defaults, chat store, getConfigPath |
+| Config | `src/main/__tests__/config.test.ts` | 16 | initConfig, defaults, chat store, getConfigPath, overlay CSS |
 | Rate Limiter | `src/main/ai-providers/__tests__/rate-limiter.test.ts` | 5 | Increment, minute/day reset logic |
+| Overlay CSS | `src/main/__tests__/overlay-css.test.ts` | 3 | customCSS default, setConfigValue round-trip, setPartialConfig |
 
 **IPC Channels (in `src/main/index.ts`):**
 
@@ -76,7 +81,7 @@ AI: `ai:analyze`, `ai:analyze-stream`, `ai:stream-chunk`, `ai:stream-done`, `ai:
 
 Config: `config:get`, `config:set-game-exe`, `config:set-provider`, `config:remove-endpoint`, `config:set-active-provider`, `config:set-overlay`, `config:set-tts`, `config:set-prompts`, `config:set-auto-start`, `config:set-generic`, `config:set-telemetry`, `config:set-capture-mode`, `config:set-hotkey`, `config:set-hotkey-enabled`
 
-Overlay: `overlay:show`, `overlay:hide`, `overlay:set-click-through`
+Overlay: `overlay:show`, `overlay:hide`, `overlay:set-click-through`, `overlay:set-css`
 
 Chat: `chat:save`, `chat:load`, `chat:clear`, `chat:export`
 
@@ -84,7 +89,7 @@ Plugins: `plugin:memreader:start`, `plugin:memreader:stop`, `plugin:memreader:st
 
 Window: `window:open-settings`
 
-Events (Main → Renderer): `overlay:data`, `overlay:stream-done`, `overlay:provider`, `capture:result`, `navigate:settings`
+Events (Main → Renderer): `overlay:data, overlay:stream-done, overlay:provider, overlay:set-css, capture:result, navigate:settings`
 
 Telemetry: `trackEvent()` function for anonymous event tracking
 
@@ -98,15 +103,11 @@ Telemetry: `trackEvent()` function for anonymous event tracking
 |----|----------|-------------|--------|--------|
 | FEAT-046 | Feature | **Implement auto-update** — Add `electron-updater` and configure GitHub releases as the update provider. Add IPC handler for `app:update` and a UI indicator in Settings. The `publish` config in `electron-builder.yml` is already set to GitHub. | Medium | Medium |
 | FEAT-047 | Security | **Add code signing for Windows** — Unsigned executables trigger Windows SmartScreen warnings. Add `CSC_LINK` and `CSC_KEY_PASSWORD` env vars to CI and electron-builder config. | High | Medium |
-| FEAT-060 | DevEx | **TypeScript strictness audit** — Enable `noUnusedLocals`, `noUncheckedIndexedAccess`, and other strict options. Fix remaining `any` types (e.g., in `ProviderConfig.tsx` test mock, `ChatHistory.tsx` `PendingRequest` casts). | Medium | Medium |
 
 ### Medium Priority
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-056 | Feature | Active provider badge in overlay — Show which AI provider generated the overlay response (e.g., "via Gemini 2.5 Flash") as a small label in the overlay. | Low | Low |
-| FEAT-045 | Security | Add Zod-based IPC input validation — Several IPC handlers accept untyped `unknown` payloads. Replaced manual type guards with Zod schema validation at the IPC boundary via `validateIPC()` helper. Added `src/main/schemas.ts` with typed schemas and 37 schema tests. | Low | Low |
-| FEAT-059 | UX | Dark mode auto-detect — Use CSS `prefers-color-scheme` media query to auto-switch Settings window theme based on system preference, with manual override. | Low | Low |
 | FEAT-061 | UX | Settings search/filter — Add a search bar in Settings that filters tabs and options by keyword, useful as the number of settings grows. | Medium | Low |
 | FEAT-062 | Feature | Config import/export — Export all settings as JSON for backup/migration, and import with schema validation. | Medium | Low |
 | FEAT-063 | Feature | Screenshot saving — Option to save captured screenshots to a user-specified directory with timestamped filenames. | Medium | Low |
@@ -192,3 +193,6 @@ All Week 1–5 items from the original roadmap are complete:
 ---
 
 _Generated from codebase analysis. Updated: 2026-09-03_
+
+
+

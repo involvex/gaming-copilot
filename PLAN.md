@@ -29,10 +29,10 @@
 | 23: Chat History Persistence | ✅ Done | `e363b8b` | electron-store backed, export MD/JSON |
 | 24: Telemetry | ✅ Done | `a6ec947` | Anonymous opt-in toggle, event tracking |
 | 25: CI/CD | ✅ Done | `d643341` | GitHub Actions on Windows (biome, tsc, build, test) using bunx |
-| 26: Unit Tests | ✅ Done | `1de1d1b` | vitest: 128 tests across 6 suites (schemas, capture, config, ProviderManager, memreader, rate-limiter) |
+| 26: Unit Tests | ✅ Done | `1de1d1b` | vitest: 133 tests across 7 suites (schemas, capture, config, ProviderManager, memreader, rate-limiter) |
 | 27: Code Signing | ❌ Not done | — | Windows SmartScreen will warn on unsigned exe |
-| 28: Auto-update | ❌ Not done | — | electron-updater not yet integrated |
-| 29: TypeScript Strictness Audit | ❌ Not done | — | Enable noUnusedLocals, noUncheckedIndexedAccess, fix any types |
+| 28: Auto-update | ✅ Done | `6d06e0f` + `42b7c6d` | electron-updater with GitHub provider, IPC handler + UI |
+| 29: TypeScript Strictness Audit | ✅ Done | `48f0dd9` | noUnusedLocals, noUncheckedIndexedAccess, noUnusedParameters |
 
 **Repository**: https://github.com/involvex/gaming-copilot (private)
 
@@ -60,7 +60,7 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
 - **Windows system notifications** when analysis completes
 - **Capture region selection** and preview thumbnail
 - **Multiple monitor selection**
-- **Custom CSS overlay themes** (colors, border radius, padding)
+- **Custom CSS overlay theme** — color pickers for background/text/border, border radius, padding controls with live preview, plus a CSS code editor for advanced customization
 - **Chat history persistence** with export to Markdown/JSON
 - **Anonymous telemetry** (opt-in)
 - **Configurable hotkey** with runtime toggle
@@ -630,6 +630,8 @@ Format: Use bullet points for multiple observations.
 | `overlay:show` | R → M | Show overlay with text |
 | `overlay:hide` | R → M | Hide overlay |
 | `overlay:set-click-through` | R → M | Toggle click-through mode |
+| `overlay:set-css` | R → M | Set custom CSS for overlay |
+| `overlay:set-css` | M → R | Push CSS updates to overlay window at runtime |
 | `overlay:data` | M → R | Push text to overlay (streaming) |
 | `overlay:provider` | M → R | Push active provider info to overlay |
 | `overlay:stream-done` | M → R | Signal overlay stream complete |
@@ -653,7 +655,7 @@ Format: Use bullet points for multiple observations.
 {
    "@electron-toolkit/utils": "^4.0.0",
     "@google/genai": "^1.1.0",
-    "electron-store": "^10.0.1",
+    "electron-store": "^9.0.0",
     "keytar": "^7.9.0",
     "tesseract.js": "^7.0.0",
     "zod": "^4.5.4"
@@ -688,21 +690,23 @@ Format: Use bullet points for multiple observations.
 ### Unit Tests (vitest)
 | Module | File | Status | Tests | Coverage |
 |--------|------|--------|-------|----------|
-| Schemas | `src/main/__tests__/schemas.test.ts` | ✅ Exists | 37 | validateIPC, all input schemas |
+| Schemas | `src/main/__tests__/schemas.test.ts` | ✅ Exists | 39 | validateIPC, all input schemas, customCSS |
 | Capture | `src/main/capture/__tests__/capture.test.ts` | ✅ Exists | 30 | Smart capture, resize, crop, GDI, screen recording |
-| Config | `src/main/__tests__/config.test.ts` | ✅ Exists | 13 | initConfig, setConfigValue, defaults, chat store |
+| Config | `src/main/__tests__/config.test.ts` | ✅ Exists | 16 | initConfig, setConfigValue, defaults, chat store, overlay CSS |
 | ProviderManager | `src/main/ai-providers/__tests__/ProviderManager.test.ts` | ✅ Exists | 20 | Fallback chain, caching, rate limits, testProvider |
 | Memreader | `src/main/plugins/__tests__/memreader.test.ts` | ✅ Exists | 23 | Config, start/stop lifecycle, parseState, updateConfig |
 | Rate Limiter | `src/main/ai-providers/__tests__/rate-limiter.test.ts` | ✅ Exists | 5 | Increment, minute/day reset logic |
-| **Total** | **6 suites** | | **128** | |
+| Overlay CSS | `src/main/__tests__/overlay-css.test.ts` | ✅ Exists | 3 | customCSS default, setConfigValue round-trip, setPartialConfig |
+| **Total** | **7 suites** | | **133** | |
 
 ### Test Coverage Plan
 - **FEAT-031** — Capture logic tests: `cropBuffer()`, `smartCapture()` fallback chain, region bounding box validation. Mocking `desktopCapturer` and `execSync`.
 - **FEAT-032** — ProviderManager tests: fallback chain, rate limit checking, cache hit/miss, error propagation.
 - **FEAT-033** — Config tests: `initConfig()`, `setConfigValue()`, `setPartialConfig()`, `getDefaultConfig()`.
 - **FEAT-034** — MemreaderPlugin tests: config updates, start/stop lifecycle, `parseState()` with various data shapes.
-- **FEAT-045** — Schema validation tests: `validateIPC()` helper, all Zod schemas for IPC input validation (37 tests).
+- **FEAT-045** — Schema validation tests: `validateIPC()` helper, all Zod schemas for IPC input validation (39 tests, including customCSS).
 - **FEAT-055** — RateLimiter tests: increment, minute/day reset, edge cases for remaining count (5 tests).
+- **FEAT-079** — Overlay CSS tests: customCSS default value, setConfigValue round-trip persistence, setPartialConfig with customCSS.
 
 ### Integration Tests (planned)
 - End-to-end: capture → resize → AI analyze → overlay display
@@ -779,3 +783,11 @@ Format: Use bullet points for multiple observations.
 - Light theme refinement — Audit remaining Tailwind classes for full light-mode support
 - macOS and Linux support (currently Windows-only) — GDI+, PowerShell, and keytar Windows Credential Manager are Windows-specific
 - Ollama provider enhancements (model auto-detection, streaming)
+
+
+
+
+
+
+
+

@@ -165,6 +165,19 @@ describe("overlayConfigSchema", () => {
       "IPC validation failed",
     );
   });
+
+  it("should accept customCSS string", () => {
+    const result = validateIPC(overlayConfigSchema, {
+      customCSS: ".overlay-text { font-weight: bold; }",
+    });
+    expect(result.customCSS).toBe(".overlay-text { font-weight: bold; }");
+  });
+
+  it("should reject non-string customCSS", () => {
+    expect(() => validateIPC(overlayConfigSchema, { customCSS: 123 })).toThrow(
+      "IPC validation failed",
+    );
+  });
 });
 
 describe("ttsConfigSchema", () => {
