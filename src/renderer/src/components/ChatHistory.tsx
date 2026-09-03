@@ -1,14 +1,5 @@
-import { useState } from "react";
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  text: string;
-  screenshot?: string;
-  timestamp: number;
-  provider?: string;
-  isError?: boolean;
-}
+import { useEffect, useState } from "react";
+import type { ChatMessage } from "../../../shared/types";
 
 interface PendingRequest {
   msgId: string;
@@ -24,6 +15,20 @@ export default function ChatHistory() {
   const [analyzing, setAnalyzing] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<PendingRequest | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.electronAPI.loadChatHistory().then((saved) => {
+      if (saved && saved.length > 0) {
+        setMessages(saved);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      window.electronAPI.saveChatHistory(messages);
+    }
+  }, [messages]);
 
   const startAnalysis = (screenshot: string | null, userMessage: string) => {
     setAnalyzing(true);
@@ -135,6 +140,13 @@ export default function ChatHistory() {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleClearHistory = async () => {
+    if (window.confirm("Clear all chat history?")) {
+      await window.electronAPI.clearChatHistory();
+      setMessages([]);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -291,6 +303,16 @@ export default function ChatHistory() {
         >
           Send
         </button>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClearHistory}
+            disabled={analyzing}
+            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Clear
+          </button>
+        )}
       </div>
     </div>
   );

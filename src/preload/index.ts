@@ -31,6 +31,11 @@ export interface ElectronAPI {
   hideOverlay: () => Promise<void>;
   setClickThrough: (enable: boolean) => Promise<void>;
 
+  // Chat History
+  saveChatHistory: (messages: import("../shared/types").ChatMessage[]) => Promise<boolean>;
+  loadChatHistory: () => Promise<import("../shared/types").ChatMessage[]>;
+  clearChatHistory: () => Promise<void>;
+
   // Config
   getConfig: () => Promise<unknown>;
   setProvider: (name: string, config: Record<string, unknown>) => Promise<void>;
@@ -91,6 +96,11 @@ const electronAPI: ElectronAPI = {
   showOverlay: (text: string) => ipcRenderer.invoke("overlay:show", text),
   hideOverlay: () => ipcRenderer.invoke("overlay:hide"),
   setClickThrough: (enable: boolean) => ipcRenderer.invoke("overlay:set-click-through", enable),
+
+  // Chat History
+  saveChatHistory: (messages) => ipcRenderer.invoke("chat:save", messages),
+  loadChatHistory: () => ipcRenderer.invoke("chat:load"),
+  clearChatHistory: () => ipcRenderer.invoke("chat:clear"),
 
   // Config
   getConfig: () => ipcRenderer.invoke("config:get"),

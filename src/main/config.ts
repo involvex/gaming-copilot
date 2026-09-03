@@ -1,6 +1,6 @@
 import Store from "electron-store";
 import { DEFAULT_SYSTEM_PROMPT } from "../shared/constants";
-import type { AppConfig } from "../shared/types";
+import type { AppConfig, ChatMessage } from "../shared/types";
 import { logger } from "./logger";
 
 const schema = {
@@ -119,6 +119,34 @@ export function setPartialConfig(partial: Partial<AppConfig>): void {
 
 export function getConfigPath(): string {
   return store?.path ?? "";
+}
+
+let chatStore: Store<{ messages: ChatMessage[] }>;
+let chatMessages: ChatMessage[] = [];
+
+export function initChatStore(): void {
+  chatStore = new Store<{ messages: ChatMessage[] }>({
+    name: "chat-history",
+    defaults: { messages: [] },
+  });
+  chatMessages = chatStore.get("messages", []);
+  logger.info("Config", `Loaded chat history: ${chatMessages.length} messages`);
+}
+
+export function getChatHistory(): ChatMessage[] {
+  return chatMessages;
+}
+
+export function saveChatHistory(messages: ChatMessage[]): void {
+  chatMessages = messages;
+  chatStore.set("messages", messages);
+  logger.debug("Config", `Saved chat history: ${messages.length} messages`);
+}
+
+export function clearChatHistory(): void {
+  chatMessages = [];
+  chatStore.set("messages", []);
+  logger.info("Config", "Chat history cleared");
 }
 
 function getDefaultConfig(): AppConfig {

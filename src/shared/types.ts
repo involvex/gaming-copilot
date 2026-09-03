@@ -48,6 +48,7 @@ export interface ChatMessage {
   timestamp: number;
   provider?: string;
   model?: string;
+  isError?: boolean;
 }
 
 export interface RegionBounds {

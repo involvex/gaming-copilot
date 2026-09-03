@@ -13,11 +13,18 @@ import {
   Tray,
 } from "electron";
 
-import type { AppConfig, RegionBounds } from "../shared/types";
+import type { AppConfig, ChatMessage, RegionBounds } from "../shared/types";
 import { ProviderManager } from "./ai-providers";
 import { resizeImage, smartCapture } from "./capture";
 import { findProcessByExe } from "./capture/win32";
-import { initConfig, setConfigValue } from "./config";
+import {
+  clearChatHistory,
+  getChatHistory,
+  initChatStore,
+  initConfig,
+  saveChatHistory,
+  setConfigValue,
+} from "./config";
 import { logger } from "./logger";
 import { MemreaderPlugin } from "./plugins";
 
@@ -248,6 +255,7 @@ app.whenReady().then(() => {
   createMainWindow();
   createOverlayWindow();
   initProviders();
+  initChatStore();
   registerHotkey();
   createTray();
   updateAutoStart();
@@ -474,6 +482,21 @@ ipcMain.handle("config:set-hotkey-enabled", (_event, enabled: boolean) => {
     unregisterHotkey();
   }
   logger.info("Hotkey", `Hotkey enabled: ${enabled}`);
+  return true;
+});
+
+// IPC Handlers — Chat History
+ipcMain.handle("chat:save", (_event, messages: ChatMessage[]) => {
+  saveChatHistory(messages);
+  return true;
+});
+
+ipcMain.handle("chat:load", () => {
+  return getChatHistory();
+});
+
+ipcMain.handle("chat:clear", () => {
+  clearChatHistory();
   return true;
 });
 
