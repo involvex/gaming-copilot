@@ -67,6 +67,18 @@ function MainWindow() {
               Press <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Shift+G</kbd> anywhere to
               capture and analyze your screen.
             </p>
+            <button
+              type="button"
+              onClick={async () => {
+                const result = await window.electronAPI.captureRecord();
+                if (result) {
+                  window.location.hash = "#/settings";
+                }
+              }}
+              className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Record Screen (Composite)
+            </button>
           </div>
 
           <div className="bg-gray-800 rounded-lg p-4">

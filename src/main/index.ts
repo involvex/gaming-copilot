@@ -15,7 +15,7 @@ import {
 
 import type { AppConfig, ChatMessage, RegionBounds } from "../shared/types";
 import { ProviderManager } from "./ai-providers";
-import { resizeImage, smartCapture } from "./capture";
+import { recordScreen, resizeImage, smartCapture } from "./capture";
 import { findProcessByExe } from "./capture/win32";
 import {
   clearChatHistory,
@@ -338,6 +338,23 @@ ipcMain.handle("capture:screenshot", async () => {
   const result = await smartCapture(
     gameExe || undefined,
     region,
+    appConfig.captureQuality,
+    appConfig.monitorIndex,
+  );
+  if (!result) return null;
+  const resizedBuffer = resizeImage(
+    result.buffer,
+    result.format,
+    appConfig.captureQuality,
+    appConfig.maxImageWidth,
+  );
+  const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
+  return `data:${mimeType};base64,${resizedBuffer.toString("base64")}`;
+});
+
+ipcMain.handle("capture:record", async () => {
+  const result = await recordScreen(
+    appConfig.recordDuration,
     appConfig.captureQuality,
     appConfig.monitorIndex,
   );

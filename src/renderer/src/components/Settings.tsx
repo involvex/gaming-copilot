@@ -81,6 +81,9 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     ((config?.ocr as Record<string, unknown>)?.language as string) || "eng",
   );
   const [monitorIndex, setMonitorIndex] = useState<number>((config?.monitorIndex as number) || 0);
+  const [recordDuration, setRecordDuration] = useState<number>(
+    (config?.recordDuration as number) || 10,
+  );
   const [screens, setScreens] = useState<Array<{ index: number; name: string; primary: boolean }>>(
     [],
   );
@@ -346,6 +349,30 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         ) : (
           <p className="text-xs text-gray-500">Loading displays...</p>
         )}
+      </div>
+
+      <div>
+        <label htmlFor="record-duration" className="block text-sm font-medium text-gray-300 mb-2">
+          Recording Duration: {recordDuration}s
+        </label>
+        <p className="text-xs text-gray-400 mb-2">
+          Seconds to record when using the screen recording capture mode. Multiple keyframes are
+          combined into a single composite image.
+        </p>
+        <input
+          id="record-duration"
+          type="range"
+          min={5}
+          max={30}
+          step={1}
+          value={recordDuration}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setRecordDuration(v);
+            window.electronAPI.setSetting("recordDuration", v);
+          }}
+          className="w-full"
+        />
       </div>
 
       <div>

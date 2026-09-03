@@ -38,6 +38,7 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-023 | Feature | Export chat history as Markdown or JSON via download link | `#19` |
 | FEAT-030 | Feature | Anonymous telemetry toggle — events for hotkey usage, analysis completion, provider status | `#19` |
 | FEAT-025 | Feature | TTS voice preview button — plays sample text with current voice/rate/pitch/volume settings | `#20` |
+| FEAT-028 | Feature | Screen recording — captures keyframe burst over duration, composites into grid image for AI analysis | `#21` |
 
 ---
 

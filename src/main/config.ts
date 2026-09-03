@@ -103,6 +103,7 @@ const schema = {
       },
       default: {},
     },
+    recordDuration: { type: "number", default: 10 },
     telemetry: {
       type: "object",
       properties: {
@@ -226,6 +227,7 @@ function getDefaultConfig(): AppConfig {
       enabled: true,
       language: "eng",
     },
+    recordDuration: 10,
     telemetry: {
       enabled: false,
     },

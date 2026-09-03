@@ -319,3 +319,127 @@ export function resizeImage(
 
   return result.toPNG();
 }
+
+/**
+ * Capture a short video clip by taking burst screenshots over a duration.
+ * Returns a composite image (grid of keyframes) that can be sent to AI.
+ * @param duration - Recording duration in seconds
+ * @param quality - JPEG quality (1-100)
+ * @param monitorIndex - Screen index to record
+ * @param fps - Frames per second to capture (lower = fewer keyframes)
+ */
+export async function recordScreen(
+  duration: number,
+  quality?: number,
+  monitorIndex: number = 0,
+  fps: number = 2,
+): Promise<CaptureResult | null> {
+  const sources = await desktopCapturer.getSources({
+    types: ["screen"],
+    thumbnailSize: { width: 1920, height: 1080 },
+  });
+
+  const screen = sources[monitorIndex];
+  if (!screen) {
+    return null;
+  }
+
+  const frames: Buffer[] = [];
+  const interval = 1000 / fps;
+  const totalFrames = Math.ceil((duration * 1000) / interval);
+
+  for (let i = 0; i < totalFrames; i++) {
+    try {
+      const updatedSources = await desktopCapturer.getSources({
+        types: ["screen"],
+        thumbnailSize: { width: 1920, height: 1080 },
+      });
+      const updatedScreen = updatedSources[monitorIndex];
+      if (updatedScreen) {
+        const thumbnail = updatedScreen.thumbnail;
+        const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
+        const buffer = format === "jpeg" ? thumbnail.toJPEG(quality ?? 80) : thumbnail.toPNG();
+
+        if (i === 0 || i === totalFrames - 1 || i % 2 === 0) {
+          frames.push(buffer);
+        }
+      }
+    } catch {
+      // Skip frame on error
+    }
+
+    if (i < totalFrames - 1) {
+      await new Promise((r) => setTimeout(r, interval));
+    }
+  }
+
+  if (frames.length === 0) return null;
+
+  const gridCols = Math.min(3, Math.ceil(Math.sqrt(frames.length)));
+  const gridRows = Math.min(3, Math.ceil(frames.length / gridCols));
+  return compositeFrames(frames.slice(0, gridCols * gridRows), gridCols, gridRows, quality);
+}
+
+function compositeFrames(
+  frames: Buffer[],
+  cols: number,
+  rows: number,
+  quality?: number,
+): CaptureResult | null {
+  if (frames.length === 0) return null;
+
+  const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
+  const images = frames
+    .map((buf) => nativeImage.createFromBuffer(buf))
+    .filter((img) => !img.isEmpty());
+
+  if (images.length === 0) return null;
+
+  const sampleSize = images[0].getSize();
+  const thumbW = Math.min(320, sampleSize.width);
+  const thumbH = Math.min(180, sampleSize.height);
+  const gap = 8;
+
+  const resized = images.map((img) => img.resize({ width: thumbW, height: thumbH }));
+
+  const canvasWidth = thumbW * cols + gap * (cols - 1);
+  const canvasHeight = thumbH * rows + gap * (rows - 1);
+  const compositeData = Buffer.alloc(canvasWidth * canvasHeight * 4, 0);
+
+  resized.slice(0, cols * rows).forEach((img, idx) => {
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    const bitmap = img.toBitmap();
+    const xOffset = col * (thumbW + gap);
+    const yOffset = row * (thumbH + gap);
+
+    for (let y = 0; y < thumbH; y++) {
+      for (let x = 0; x < thumbW; x++) {
+        const srcIdx = (y * thumbW + x) * 4;
+        const dstIdx = ((yOffset + y) * canvasWidth + (xOffset + x)) * 4;
+        if (srcIdx + 3 < bitmap.length && dstIdx + 3 < compositeData.length) {
+          compositeData[dstIdx] = bitmap[srcIdx];
+          compositeData[dstIdx + 1] = bitmap[srcIdx + 1];
+          compositeData[dstIdx + 2] = bitmap[srcIdx + 2];
+          compositeData[dstIdx + 3] = bitmap[srcIdx + 3];
+        }
+      }
+    }
+  });
+
+  const compositeImage = nativeImage.createFromBuffer(compositeData, {
+    width: canvasWidth,
+    height: canvasHeight,
+  });
+
+  if (compositeImage.isEmpty()) return null;
+
+  const buffer = format === "jpeg" ? compositeImage.toJPEG(quality ?? 80) : compositeImage.toPNG();
+  return {
+    buffer,
+    width: canvasWidth,
+    height: canvasHeight,
+    timestamp: Date.now(),
+    format,
+  };
+}

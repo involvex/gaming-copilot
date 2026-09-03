@@ -134,6 +134,9 @@ export interface AppConfig {
     language: string;
   };
 
+  // Screen Recording
+  recordDuration: number;
+
   // Telemetry
   telemetry: {
     enabled: boolean;
