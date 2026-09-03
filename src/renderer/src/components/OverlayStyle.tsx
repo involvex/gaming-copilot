@@ -134,7 +134,8 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         <p className="text-sm text-gray-400">
           Preview: The overlay will appear in the <strong>{position.replace("-", " ")}</strong>{" "}
           corner with <strong>{(opacity * 100).toFixed(0)}%</strong> opacity and{" "}
-          <strong>{fontSize}px</strong> font size.
+          <strong>{fontSize}px</strong> font size. Click-through is{" "}
+          <strong>{clickThrough ? "enabled" : "disabled"}</strong>.
         </p>
       </div>
     </div>

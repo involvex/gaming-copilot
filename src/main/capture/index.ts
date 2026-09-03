@@ -277,13 +277,11 @@ const MAX_IMAGE_WIDTH = 1024;
 /**
  * Resize an image buffer to a maximum width while maintaining aspect ratio.
  * Uses JPEG compression when quality < 100, otherwise preserves PNG.
- * Returns the resized buffer and actual dimensions.
+ * If quality is 100 (or the image is already small enough), downsizing still
+ * applies but PNG format is used (lossless).
+ * Returns the resized/compressed buffer.
  */
 export function resizeImage(buffer: Buffer, format: "png" | "jpeg", quality: number): Buffer {
-  if (quality < 20) {
-    return buffer;
-  }
-
   const image = nativeImage.createFromBuffer(buffer);
 
   if (image.isEmpty()) {
@@ -291,13 +289,23 @@ export function resizeImage(buffer: Buffer, format: "png" | "jpeg", quality: num
   }
 
   const { width, height } = image.getSize();
-  if (width <= MAX_IMAGE_WIDTH) {
-    return format === "jpeg" ? image.toJPEG(quality) : image.toPNG();
+  const shouldResize = width > MAX_IMAGE_WIDTH;
+  const shouldCompress = format === "jpeg" && quality < 100;
+
+  if (!shouldResize && !shouldCompress) {
+    return buffer;
   }
 
-  const newWidth = MAX_IMAGE_WIDTH;
-  const newHeight = Math.round((height * newWidth) / width);
-  const resized = image.resize({ width: newWidth, height: newHeight });
+  let result = image;
+  if (shouldResize) {
+    const newWidth = MAX_IMAGE_WIDTH;
+    const newHeight = Math.round((height * newWidth) / width);
+    result = image.resize({ width: newWidth, height: newHeight });
+  }
 
-  return format === "jpeg" ? resized.toJPEG(quality) : resized.toPNG();
+  if (shouldCompress) {
+    return result.toJPEG(quality);
+  }
+
+  return result.toPNG();
 }
