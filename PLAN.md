@@ -706,7 +706,7 @@ Format: Use bullet points for multiple observations.
 - **FEAT-034** — MemreaderPlugin tests: config updates, start/stop lifecycle, `parseState()` with various data shapes.
 - **FEAT-045** — Schema validation tests: `validateIPC()` helper, all Zod schemas for IPC input validation (39 tests, including customCSS).
 - **FEAT-055** — RateLimiter tests: increment, minute/day reset, edge cases for remaining count (5 tests).
-- **FEAT-079** — Overlay CSS tests: customCSS default value, setConfigValue round-trip persistence, setPartialConfig with customCSS.
+- **FEAT-089** — Overlay CSS tests: customCSS default value, setConfigValue round-trip persistence, setPartialConfig with customCSS.
 
 ### Integration Tests (planned)
 - End-to-end: capture → resize → AI analyze → overlay display
@@ -764,9 +764,13 @@ Format: Use bullet points for multiple observations.
 - ✅ TECH-002 — Replaced console.error with logger in ProviderManager
 - ✅ FEAT-057 — Added `prebuild` script (format + lint + typecheck before build)
 - ✅ FEAT-058 — CI workflow updated to use `bunx` for tool invocation
+- ✅ FEAT-046 — Auto-update via electron-updater (GitHub provider, IPC handler + UI)
+- ✅ FEAT-059 — Dark mode auto-detect (prefers-color-scheme, 3-state toggle)
+- ✅ FEAT-060 — TypeScript strictness audit (noUnusedLocals, noUncheckedIndexedAccess)
+- ✅ FEAT-089 — Overlay custom CSS editor (CSS textarea, style injection, IPC handler)
+- ✅ FEAT-061 — Settings search/filter bar with keyword matching and tab highlighting
 
 ### Medium Term
-- **FEAT-061** — Settings search/filter bar
 - **FEAT-062** — Config import/export as JSON for backup/migration
 - **FEAT-063** — Screenshot saving to disk with timestamped filenames
 - **FEAT-064** — Visual hotkey picker UI (key combination recorder)
@@ -783,6 +787,7 @@ Format: Use bullet points for multiple observations.
 - Light theme refinement — Audit remaining Tailwind classes for full light-mode support
 - macOS and Linux support (currently Windows-only) — GDI+, PowerShell, and keytar Windows Credential Manager are Windows-specific
 - Ollama provider enhancements (model auto-detection, streaming)
+
 
 
 

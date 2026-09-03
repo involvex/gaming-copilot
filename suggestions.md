@@ -59,7 +59,8 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-046 | Feature | Auto-update via electron-updater — GitHub provider, `app:update` IPC handler, `app:get-version` handler, Settings UI with check/install buttons and live status, `onUpdateStatus` event listener | `6d06e0f` |
 | FEAT-059 | UX | Dark mode auto-detect — `prefers-color-scheme` media query auto-switches Settings theme, 3-state toggle (Dark → Light → System), `theme` field updated to `"dark" | "light" | "system"` | `767ad99` |
 | FEAT-060 | DevEx | TypeScript strictness audit — `noUnusedLocals`, `noUncheckedIndexedAccess`, `noUnusedParameters` enabled; all `any` types in test files eliminated | `48f0dd9` |
-| FEAT-079 | Feature | Overlay custom CSS code editor — CSS textarea in OverlayStyle settings, `<style>` injection in Overlay component, `overlay:set-css` IPC handler, `.overlay-container/.overlay-text/.overlay-provider` class names | `83cd7d7` |
+| FEAT-089 | Feature | Overlay custom CSS code editor — CSS textarea in OverlayStyle settings, `<style>` injection in Overlay component, `overlay:set-css` IPC handler, `.overlay-container/.overlay-text/.overlay-provider` class names | `83cd7d7` |
+| FEAT-061 | UX | Settings search/filter — Search input above tab bar filters tabs by label and keywords, highlights matches, clears on selection | `5ba52c2` |
 
 **Test suites (7 files, 133 tests total):**
 
@@ -108,7 +109,7 @@ Telemetry: `trackEvent()` function for anonymous event tracking
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-061 | UX | Settings search/filter — Add a search bar in Settings that filters tabs and options by keyword, useful as the number of settings grows. | Medium | Low |
+|---|---|
 | FEAT-062 | Feature | Config import/export — Export all settings as JSON for backup/migration, and import with schema validation. | Medium | Low |
 | FEAT-063 | Feature | Screenshot saving — Option to save captured screenshots to a user-specified directory with timestamped filenames. | Medium | Low |
 | FEAT-064 | Feature | Visual hotkey picker — Replace text-input hotkey binding with a visual key combination recorder that captures key events. | Low | Low |
