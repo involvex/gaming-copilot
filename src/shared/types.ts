@@ -64,6 +64,7 @@ export interface AppConfig {
   autoStart: boolean;
   minimizeToTray: boolean;
   notifications: boolean;
+  theme: "dark" | "light";
 
   // Capture
   gameExe: string;
@@ -91,6 +92,7 @@ export interface AppConfig {
     };
   };
   activeProvider: string;
+  useKeychain: boolean;
 
   // Overlay
   overlay: {

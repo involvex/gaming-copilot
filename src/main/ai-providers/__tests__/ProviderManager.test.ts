@@ -103,6 +103,7 @@ function makeConfig(providerNames: string[]): AppConfig {
     autoStart: false,
     minimizeToTray: true,
     notifications: true,
+    theme: "dark",
     gameExe: "",
     captureQuality: 85,
     maxImageWidth: 1024,
@@ -125,6 +126,7 @@ function makeConfig(providerNames: string[]): AppConfig {
       },
     },
     activeProvider: providerNames[0] ?? "gemini",
+    useKeychain: true,
     overlay: {
       position: "bottom-right",
       duration: 8000,

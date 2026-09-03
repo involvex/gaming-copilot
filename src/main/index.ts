@@ -28,6 +28,7 @@ import {
 import { logger } from "./logger";
 import { extractText, terminateOcrWorker } from "./ocr";
 import { MemreaderPlugin } from "./plugins";
+import { deleteKey, getAccount, retrieveKey, storeKey } from "./secure-storage";
 
 export function trackEvent(event: string, metadata?: Record<string, unknown>): void {
   if (!appConfig?.telemetry?.enabled) return;
@@ -123,6 +124,33 @@ function createOverlayWindow(): void {
 function initProviders(): void {
   providerManager = new ProviderManager(appConfig);
   logger.info("Providers", `Initialized with active: ${appConfig.activeProvider}`);
+}
+
+async function loadSecureKeys(): Promise<void> {
+  if (!appConfig.useKeychain) return;
+
+  try {
+    if (appConfig.providers.gemini) {
+      const stored = await retrieveKey("gemini");
+      if (stored) {
+        appConfig.providers.gemini.apiKey = stored;
+        logger.info("Providers", "Loaded Gemini API key from keychain");
+      }
+    }
+
+    if (appConfig.providers.openaiCompat?.endpoints) {
+      for (const endpoint of appConfig.providers.openaiCompat.endpoints) {
+        const account = getAccount("endpoint", endpoint.name);
+        const stored = await retrieveKey(account);
+        if (stored) {
+          endpoint.apiKey = stored;
+          logger.info("Providers", `Loaded ${endpoint.name} API key from keychain`);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("SecureStorage", `Failed to load keys from keychain: ${error}`);
+  }
 }
 
 function registerHotkey(): void {
@@ -293,10 +321,11 @@ function updateAutoStart(): void {
   logger.info("AutoStart", `Auto-start set to: ${appConfig.autoStart}`);
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   logger.info("App", `Starting Gaming Copilot v${app.getVersion()}`);
   createMainWindow();
   createOverlayWindow();
+  await loadSecureKeys();
   initProviders();
   initChatStore();
   registerHotkey();
@@ -511,39 +540,87 @@ ipcMain.handle("config:set-game-exe", (_event, exe: string) => {
   setConfigValue("gameExe", exe);
 });
 
-ipcMain.handle("config:get", () => appConfig);
+ipcMain.handle("config:get", async () => {
+  if (appConfig.useKeychain) {
+    const providersCopy = JSON.parse(
+      JSON.stringify(appConfig.providers),
+    ) as typeof appConfig.providers;
 
-ipcMain.handle("config:set-provider", (_event, name: string, config: Record<string, unknown>) => {
-  if (name === "gemini") {
-    appConfig.providers.gemini = config as AppConfig["providers"]["gemini"];
-  } else {
-    if (!appConfig.providers.openaiCompat) {
-      appConfig.providers.openaiCompat = { endpoints: [] };
+    if (providersCopy.gemini) {
+      const stored = await retrieveKey("gemini");
+      if (stored) providersCopy.gemini.apiKey = stored;
     }
-    const existing = appConfig.providers.openaiCompat.endpoints.findIndex((e) => e.name === name);
-    if (existing >= 0) {
-      appConfig.providers.openaiCompat.endpoints[existing] = {
-        ...appConfig.providers.openaiCompat.endpoints[existing],
-        ...config,
-      };
-    } else {
-      appConfig.providers.openaiCompat.endpoints.push({
-        name: name as string,
-        baseUrl: config.baseUrl as string,
-        apiKey: config.apiKey as string,
-        model: config.model as string,
-      });
+
+    if (providersCopy.openaiCompat?.endpoints) {
+      for (const ep of providersCopy.openaiCompat.endpoints) {
+        const account = getAccount("endpoint", ep.name);
+        const stored = await retrieveKey(account);
+        if (stored) ep.apiKey = stored;
+      }
     }
+
+    return { ...appConfig, providers: providersCopy };
   }
-  setConfigValue("providers", appConfig.providers);
-  initProviders();
+  return appConfig;
 });
 
-ipcMain.handle("config:remove-endpoint", (_event, name: string) => {
+ipcMain.handle(
+  "config:set-provider",
+  async (_event, name: string, config: Record<string, unknown>) => {
+    if (name === "gemini") {
+      appConfig.providers.gemini = config as AppConfig["providers"]["gemini"];
+    } else {
+      if (!appConfig.providers.openaiCompat) {
+        appConfig.providers.openaiCompat = { endpoints: [] };
+      }
+      const existing = appConfig.providers.openaiCompat.endpoints.findIndex((e) => e.name === name);
+      if (existing >= 0) {
+        appConfig.providers.openaiCompat.endpoints[existing] = {
+          ...appConfig.providers.openaiCompat.endpoints[existing],
+          ...config,
+        };
+      } else {
+        appConfig.providers.openaiCompat.endpoints.push({
+          name: name as string,
+          baseUrl: config.baseUrl as string,
+          apiKey: config.apiKey as string,
+          model: config.model as string,
+        });
+      }
+    }
+
+    // Store API keys in OS keychain if enabled
+    if (appConfig.useKeychain) {
+      const apiKey = config.apiKey as string | undefined;
+      if (apiKey) {
+        if (name === "gemini") {
+          await storeKey("gemini", apiKey);
+          appConfig.providers.gemini!.apiKey = "";
+        } else {
+          const account = getAccount("endpoint", name);
+          await storeKey(account, apiKey);
+          const ep = appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === name);
+          if (ep) ep.apiKey = "";
+        }
+      }
+    }
+
+    setConfigValue("providers", appConfig.providers);
+    initProviders();
+  },
+);
+
+ipcMain.handle("config:remove-endpoint", async (_event, name: string) => {
   if (!appConfig.providers.openaiCompat) return;
   appConfig.providers.openaiCompat.endpoints = appConfig.providers.openaiCompat.endpoints.filter(
     (e) => e.name !== name,
   );
+
+  if (appConfig.useKeychain) {
+    const account = getAccount("endpoint", name);
+    await deleteKey(account);
+  }
+
   setConfigValue("providers", appConfig.providers);
   initProviders();
 });

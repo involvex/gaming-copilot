@@ -141,6 +141,24 @@ export default function Overlay() {
 
   useEffect(() => {
     if (!visible) return;
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpacity(0);
+        stop();
+        setStreaming(false);
+        setTimeout(() => {
+          setVisible(false);
+          window.electronAPI.hideOverlay();
+        }, 300);
+      }
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
     const timer = setTimeout(() => {
       setOpacity(0);
       stop();

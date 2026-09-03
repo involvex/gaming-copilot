@@ -15,6 +15,7 @@ export default function ChatHistory() {
   const [analyzing, setAnalyzing] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<PendingRequest | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
     window.electronAPI.loadChatHistory().then((saved) => {
@@ -150,9 +151,12 @@ export default function ChatHistory() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && (e.ctrlKey || !e.shiftKey)) {
       e.preventDefault();
       handleSend();
+    }
+    if (e.key === "?" && e.shiftKey) {
+      setShowShortcuts(true);
     }
   };
 
@@ -314,6 +318,43 @@ export default function ChatHistory() {
           </button>
         )}
       </div>
+
+      {showShortcuts && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+G</kbd>
+                <span className="text-gray-400">Capture &amp; analyze screenshot</span>
+              </div>
+              <div className="flex justify-between">
+                <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Enter</kbd>
+                <span className="text-gray-400">Send message (in chat)</span>
+              </div>
+              <div className="flex justify-between">
+                <kbd className="bg-gray-700 px-2 py-1 rounded">Escape</kbd>
+                <span className="text-gray-400">Dismiss overlay</span>
+              </div>
+              <div className="flex justify-between">
+                <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+1–6</kbd>
+                <span className="text-gray-400">Switch Settings tab</span>
+              </div>
+              <div className="flex justify-between">
+                <kbd className="bg-gray-700 px-2 py-1 rounded">?</kbd>
+                <span className="text-gray-400">Show this help (in chat)</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowShortcuts(false)}
+              className="mt-4 w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

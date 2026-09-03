@@ -10,9 +10,14 @@ type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts" | "general";
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("providers");
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
-    window.electronAPI.getConfig().then((cfg) => setConfig(cfg as Record<string, unknown>));
+    window.electronAPI.getConfig().then((cfg) => {
+      const c = cfg as Record<string, unknown>;
+      setConfig(c);
+      setTheme((c.theme as "dark" | "light") || "dark");
+    });
   }, []);
 
   const tabs: Array<{ id: Tab; label: string }> = [
@@ -43,10 +48,33 @@ export default function Settings() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div
+      className={`min-h-screen p-6 transition-colors ${
+        theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
+      }`}
+    >
+      {theme === "light" && (
+        <style>{`
+          [data-light] .bg-gray-800 { background-color: #f3f4f6; }
+          [data-light] .bg-gray-700 { background-color: #e5e7eb; }
+          [data-light] .bg-gray-600 { background-color: #d1d5db; }
+          [data-light] .bg-gray-700\\/50 { background-color: #e5e7eb; }
+          [data-light] .border-gray-600 { border-color: #9ca3af; }
+          [data-light] .border-gray-700 { border-color: #d1d5db; }
+          [data-light] .text-gray-300 { color: #6b7280; }
+          [data-light] .text-gray-400 { color: #6b7280; }
+          [data-light] .text-gray-500 { color: #4b5563; }
+          [data-light] .text-gray-100 { color: #111827; }
+          [data-light] input { background-color: #f9fafb; border-color: #9ca3af; color: #111827; }
+          [data-light] select { background-color: #f9fafb; border-color: #9ca3af; color: #111827; }
+        `}</style>
+      )}
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-      <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1">
+      <div
+        className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1"
+        data-light={theme === "light" ? "" : undefined}
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -63,13 +91,15 @@ export default function Settings() {
         ))}
       </div>
 
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-gray-800 rounded-lg p-6" data-light={theme === "light" ? "" : undefined}>
         {activeTab === "providers" && <ProviderConfig config={config} />}
         {activeTab === "capture" && <CaptureConfig config={config} />}
         {activeTab === "overlay" && <OverlayStyle config={config} />}
         {activeTab === "tts" && <TTSConfig config={config} />}
         {activeTab === "prompts" && <PromptEditor config={config} />}
-        {activeTab === "general" && <GeneralConfig config={config} />}
+        {activeTab === "general" && (
+          <GeneralConfig config={config} theme={theme} onThemeChange={setTheme} />
+        )}
       </div>
     </div>
   );
@@ -508,7 +538,15 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   );
 }
 
-function GeneralConfig({ config }: { config: Record<string, unknown> | null }) {
+function GeneralConfig({
+  config,
+  theme,
+  onThemeChange,
+}: {
+  config: Record<string, unknown> | null;
+  theme: "dark" | "light";
+  onThemeChange: (theme: "dark" | "light") => void;
+}) {
   const [telemetry, setTelemetry] = useState<boolean>(
     ((config?.telemetry as Record<string, unknown>)?.enabled as boolean) ?? false,
   );
@@ -517,6 +555,12 @@ function GeneralConfig({ config }: { config: Record<string, unknown> | null }) {
     const newValue = !telemetry;
     setTelemetry(newValue);
     await window.electronAPI.setTelemetry(newValue);
+  };
+
+  const handleThemeToggle = async () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    onThemeChange(newTheme);
+    await window.electronAPI.setSetting("theme", newTheme);
   };
 
   const handleExport = async (format: "markdown" | "json") => {
@@ -565,6 +609,70 @@ function GeneralConfig({ config }: { config: Record<string, unknown> | null }) {
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
                 telemetry ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+      </div>
+
+      <div>
+        <label
+          htmlFor="theme-toggle"
+          className="flex items-center justify-between cursor-pointer"
+          data-light={theme === "light" ? "" : undefined}
+        >
+          <div>
+            <span className="text-sm font-medium text-gray-300">Color Theme</span>
+            <p className="text-xs text-gray-500 mt-1">
+              Current: <strong>{theme}</strong>. Toggle between dark and light mode for the Settings
+              window. The overlay has its own separate theme settings.
+            </p>
+          </div>
+          <button
+            id="theme-toggle"
+            type="button"
+            onClick={handleThemeToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              theme === "dark" ? "bg-gray-700" : "bg-blue-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                theme === "dark" ? "translate-x-1" : "translate-x-5"
+              }`}
+            />
+          </button>
+        </label>
+      </div>
+
+      <div>
+        <label
+          htmlFor="keychain-toggle"
+          className="flex items-center justify-between cursor-pointer"
+          data-light={theme === "light" ? "" : undefined}
+        >
+          <div>
+            <span className="text-sm font-medium text-gray-300">Encrypt API Keys</span>
+            <p className="text-xs text-gray-500 mt-1">
+              Store API keys in your OS keychain (Windows Credential Manager) instead of plaintext
+              config. Toggling off will move keys back to the config file.
+            </p>
+          </div>
+          <button
+            id="keychain-toggle"
+            type="button"
+            onClick={async () => {
+              const useKc = !((config?.useKeychain as boolean) ?? true);
+              await window.electronAPI.setSetting("useKeychain", useKc);
+              window.location.reload();
+            }}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              ((config?.useKeychain as boolean) ?? true) ? "bg-blue-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                ((config?.useKeychain as boolean) ?? true) ? "translate-x-5" : "translate-x-1"
               }`}
             />
           </button>

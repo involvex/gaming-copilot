@@ -25,6 +25,11 @@ AI-powered gaming assistant that captures screenshots of any game, sends them to
 - **Auto-start with Windows** — Launch Gaming Copilot automatically on Windows startup
 - **Configurable Hotkey** — Rebind the screenshot hotkey at runtime, toggle on/off
 - **Plugin System** — bun-memreader sidecar for game-specific memory reading (Dragon Crusade)
+- **Active Provider Switching** — Select primary AI provider with automatic fallback to others
+- **Capture Mode Selection** — Choose auto, window-only, fullscreen-only, or GDI+ fallback capture
+- **API Key Encryption** — API keys stored in OS keyring (Windows Credential Manager) instead of plaintext
+- **Light/Dark Theme** — Toggle between dark and light mode for the Settings window
+- **Keyboard Shortcuts** — Ctrl+1–6 for Settings tabs, Ctrl+Enter to send, Escape to dismiss overlay, ? for help
 
 ## Prerequisites
 

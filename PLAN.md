@@ -454,7 +454,9 @@ interface AppConfig {
   hotkey: string;                    // Default: 'CommandOrControl+Shift+G'
   autoStart: boolean;                // Default: false
   minimizeToTray: boolean;           // Default: true
-  notifications: boolean;            // Default: true
+   notifications: boolean;            // Default: true
+   theme: "dark" | "light";            // Default: "dark"
+   useKeychain: boolean;               // Default: true — store API keys in OS keyring
 
   // Capture
   gameExe: string;                   // e.g., 'Neuz.exe'
@@ -586,8 +588,8 @@ Format: Use bullet points for multiple observations.
 | `ai:get-providers` | R → M | List available providers |
 | `ai:clear-cache` | R → M | Clear AI response cache |
 | `config:get` | R → M | Read full config |
-| `config:set-provider` | R → M | Add/update provider config |
-| `config:remove-endpoint` | R → M | Remove custom OpenAI endpoint |
+| `config:set-provider` | R → M | Add/update provider config (API key stored in OS keyring if useKeychain=true) |
+| `config:remove-endpoint` | R → M | Remove custom OpenAI endpoint (deletes key from keyring) |
 | `config:set-overlay` | R → M | Update overlay config |
 | `config:set-tts` | R → M | Update TTS config |
 | `config:set-prompts` | R → M | Update prompt config |
@@ -598,6 +600,7 @@ Format: Use bullet points for multiple observations.
 | `config:set-telemetry` | R → M | Toggle telemetry |
 | `config:set-active-provider` | R → M | Set active AI provider (calls setActiveProvider) |
 | `config:set-capture-mode` | R → M | Set capture mode (auto/window/fullscreen/gdi) |
+| `config:set-generic` | R → M | Set any config key (used for theme, useKeychain toggles) |
 | `config:set-game-exe` | R → M | Set game exe name |
 | `overlay:show` | R → M | Show overlay with text |
 | `overlay:hide` | R → M | Hide overlay |
@@ -622,10 +625,11 @@ Format: Use bullet points for multiple observations.
 ### Production
 ```json
 {
-  "@electron-toolkit/utils": "^4.0.0",
-  "@google/genai": "^1.1.0",
-  "electron-store": "^10.0.1",
-  "tesseract.js": "^7.0.0"
+   "@electron-toolkit/utils": "^4.0.0",
+   "@google/genai": "^1.1.0",
+   "electron-store": "^10.0.1",
+   "keytar": "^7.9.0",
+   "tesseract.js": "^7.0.0"
 }
 ```
 
@@ -689,7 +693,7 @@ Format: Use bullet points for multiple observations.
 |------|-----------|--------|
 | Exclusive fullscreen games show black screenshot | GDI+ fallback + user notification to switch to borderless windowed | ✅ Mitigated |
 | Gemini free tier rate limits | Fallback to OpenAI-compatible provider + rate limit tracking + caching | ✅ Mitigated |
-| API key security | Stored in electron-store (plaintext — consider keytar or encryption) | ⚠️ Partial |
+| API key security | Stored in OS keyring via `keytar` (Windows Credential Manager), `useKeychain` toggle in Settings | ✅ Done |
 | Command injection via exe name | `SAFE_EXE_PATTERN` validation in `findProcessByExe` and `capture:check-game` IPC handler | ✅ Fixed |
 | Game anti-cheat false positive | Screenshot capture is 100% external, no memory reading of game process | ✅ Mitigated |
 | Overlay blocks gameplay | Click-through mode + configurable position + quick dismiss | ✅ Mitigated |
@@ -702,20 +706,25 @@ Format: Use bullet points for multiple observations.
 ### Near Term
 - **Code signing** (Windows) — Add `CSC_LINK` and `CSC_KEY_PASSWORD` to build config
 - **Auto-update** — Integrate `electron-updater` with GitHub releases provider
-- **API key encryption** — Migrate to `keytar` or electron-store encryption
-- **Memreader unit tests** — Complete test coverage for plugin module
-- **Settings keyboard shortcuts** — `Ctrl+1` through `Ctrl+6` for tab navigation
-- **Active provider selection UI** — Dropdown to switch primary provider at runtime
+- **Zod-based IPC validation** — Replace manual type guards with schema validation
+- **TypeScript strictness audit** — `noUnusedLocals`, `noUncheckedIndexedAccess`, etc.
+- **Active provider badge in overlay** — Show which provider generated the response
+
+### Completed (was Near Term)
+- ✅ API key encryption via `keytar` (OS keyring)
+- ✅ Memreader unit tests (5 test suite, 88 tests total)
+- ✅ Settings keyboard shortcuts (`Ctrl+1` through `Ctrl+6`)
+- ✅ Active provider selection UI (dropdown in ProviderConfig)
+- ✅ Light/dark mode toggle for Settings window
+- ✅ Overlay navigation security (`will-navigate` + `setWindowOpenHandler`)
+- ✅ Explicit `contextIsolation: true` in BrowserWindow configs
+- ✅ Dynamic GDI+ image dimensions (via `nativeImage.getSize()`)
+- ✅ Rate limiter shared class (extracted from Gemini/OpenAI provider)
+- ✅ Capture mode selection (auto/window/fullscreen/gdi)
+- ✅ ChatHistory keyboard shortcuts (Ctrl+Enter, Escape, ? help)
 
 ### Medium Term
-- **Zod-based IPC validation** — Replace manual type guards with schema validation
-- **Light/dark mode toggle** for Settings window
-- **Overlay navigation security** — `will-navigate` and `new-window` event handlers
-- **Explicit `contextIsolation: true`** in BrowserWindow configs (defense in depth)
-- **Dynamic GDI+ image dimensions** — Replace hardcoded 1920×1080 with actual values
-- **Shared rate-limit base class** — Extract duplicate logic from Gemini/OpenAI providers
-
-### Long Term
-- Full integration test suite (capture → AI → overlay pipeline)
+- **Full integration test suite** (capture → AI → overlay pipeline)
+- **Light theme refinement** — Audit remaining Tailwind classes for full light-mode support
 - macOS and Linux support (currently Windows-only)
 - Ollama provider enhancements (model auto-detection, streaming)

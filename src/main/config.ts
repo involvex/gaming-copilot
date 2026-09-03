@@ -10,6 +10,7 @@ const schema = {
     autoStart: { type: "boolean", default: false },
     minimizeToTray: { type: "boolean", default: true },
     notifications: { type: "boolean", default: true },
+    theme: { type: "string", default: "dark" },
     gameExe: { type: "string", default: "" },
     captureQuality: { type: "number", default: 85 },
     maxImageWidth: { type: "number", default: 1024 },
@@ -17,6 +18,7 @@ const schema = {
     monitorIndex: { type: "number", default: 0 },
     captureMode: { type: "string", default: "auto" },
     activeProvider: { type: "string", default: "gemini" },
+    useKeychain: { type: "boolean", default: true },
     providers: {
       type: "object",
       properties: {
@@ -184,6 +186,7 @@ function getDefaultConfig(): AppConfig {
     autoStart: false,
     minimizeToTray: true,
     notifications: true,
+    theme: "dark",
     gameExe: "",
     captureQuality: 85,
     maxImageWidth: 1024,
@@ -192,6 +195,7 @@ function getDefaultConfig(): AppConfig {
     captureMode: "auto",
     providers: {},
     activeProvider: "gemini",
+    useKeychain: true,
     overlay: {
       position: "bottom-right",
       duration: 8000,

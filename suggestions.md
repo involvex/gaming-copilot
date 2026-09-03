@@ -31,6 +31,7 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-019 | Feature | Multiple monitor selection dropdown — `monitorIndex` config, `capture:get-screens` IPC, dropdown in CaptureConfig | `2ae8069` |
 | FEAT-020 | Feature | Toggle hotkey registration at runtime via `hotkeyEnabled` config + IPC handler | `a45629b` |
 | FEAT-021 | Feature | Custom CSS theme for overlay — background color, text color, border color, border radius, padding controls with live preview | `c1c4b03` |
+| FEAT-022 | UX | Settings window is dark-themed by default; keyboard navigation works via tabbing | `e480f0c` |
 | FEAT-023 | Feature | Export chat history as Markdown or JSON via download link | `a6ec947` |
 | FEAT-025 | Feature | TTS voice preview button — plays sample text with current voice/rate/pitch/volume settings | `7e6f4d5` |
 | FEAT-027 | Feature | OCR text extraction using Tesseract.js — on-screen text is extracted and passed as context to AI providers | `4cd006e` |
@@ -38,21 +39,21 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-030 | Feature | Anonymous telemetry toggle — events for hotkey usage, analysis completion, provider status | `a6ec947` |
 | FEAT-035 | DevEx | Added GitHub Actions CI workflow with format, lint, typecheck, build, and test steps | `d643341` |
 | FEAT-039 | Security | Added exe name validation (`SAFE_EXE_PATTERN`) in `findProcessByExe` and `capture:check-game` IPC handler | `1de1d1b` |
-
-### Newly Completed Items (since last suggestions.md update)
-
-| ID | Category | Description | Commit |
-|----|----------|-------------|--------|
-| FEAT-022 | UX | Settings window is dark-themed by default; keyboard navigation works via tabbing | `e480f0c`+ |
 | FEAT-040 | Infrastructure | `electron-store` configured with JSON schema validation for all config keys | `9ed6c01` |
 | FEAT-041 | DevEx | File logging with daily rotation (max 7 files) in `%APPDATA%\gaming-copilot\logs\` | `e669f59` |
 | FEAT-042 | DevEx | Region selector UI component (`RegionSelector.tsx`) for capture region selection | `a45629b` |
 | FEAT-048 | DevEx | Memreader plugin unit tests — `src/main/plugins/__tests__/memreader.test.ts` covering config updates, start/stop lifecycle, and `parseState()` with various data shapes | `1de1d1b` |
 | FEAT-051 | Security | Added `will-navigate` and `setWindowOpenHandler` blockers on overlay window to prevent protocol handler exploits | `3d7e069` |
 | FEAT-052 | DevEx | Added explicit `contextIsolation: true` to both BrowserWindow configs for defense in depth | `3d7e069` |
-| FEAT-043 | Feature | Active provider switching UI — added dropdown in ProviderConfig, wired to `config:set-active-provider` IPC handler that calls `ProviderManager.setActiveProvider()` | `3d7e069` |
-| FEAT-053 | Feature | Capture mode selection UI — added `captureMode` config field (`auto`/`window`/`fullscreen`/`gdi`), dropdown in CaptureConfig, `CaptureMode` type, IPC handler `config:set-capture-mode`, and passed to `smartCapture()` | `3d7e069` |
-| FEAT-049 | UX | Settings keyboard shortcuts — Ctrl+1 through Ctrl+6 tab navigation in Settings window | `3d7e069` |
+| FEAT-043 | Feature | Active provider switching UI — dropdown in ProviderConfig, wired to `config:set-active-provider` IPC handler | `3d7e069` |
+| FEAT-053 | Feature | Capture mode selection UI — `captureMode` config field, IPC handler, `CaptureMode` type, `smartCapture()` dispatch | `3d7e069` |
+| FEAT-049 | UX | Settings keyboard shortcuts — Ctrl+1 through Ctrl+6 tab navigation | `3d7e069` |
+| FEAT-054 | UX | ChatHistory keyboard shortcuts — Ctrl+Enter to send, Shift+? for help overlay, Escape dismisses overlay | `3d7e069` |
+| FEAT-050 | UX | Light/dark mode toggle for Settings window — `theme` config field, toggle in GeneralConfig, CSS overrides | `3d7e069` |
+| FEAT-044 | Security | API key encryption via `keytar` — keys stored in OS keyring, `useKeychain` config toggle, `SecureStorage` module | `3d7e069` |
+| TECH-001 | DevEx | Fixed hardcoded `width: 1920, height: 1080` in `captureWithGDI()` — now reads actual dimensions from `nativeImage.getSize()` | `3d7e069` |
+| TECH-002 | DevEx | Extracted duplicate rate limiting logic into shared `RateLimiter` class (`rate-limiter.ts`, 5 unit tests) | `3d7e069` |
+| TECH-003 | DevEx | Replaced `console.error` with `logger.error` in `ProviderManager.analyze()` and `streamAnalyze()` | `3d7e069` |
 
 ---
 
@@ -62,19 +63,16 @@ This document catalogs opportunities for improvement, new features, and optimiza
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-044 | Security | **Encrypt API keys at rest** — API keys for Gemini, Zen, Kilo, and custom endpoints are stored in plaintext JSON via `electron-store`. Use `keytar` (OS keyring) or electron-store's encryption capability to protect credentials. | High | Medium |
-| FEAT-045 | Security | **Add Zod-based IPC input validation** — Several IPC handlers accept untyped `Record<string, unknown>` payloads (e.g., `config:set-provider`, `config:set-generic`, `capture:set-region`). Replace manual type guards with Zod schema validation at the IPC boundary. | Medium | Medium |
-| FEAT-046 | Feature | **Implement auto-update** — Add `electron-updater` and configure GitHub releases as the update provider. Add IPC handler for `app:update` and a UI indicator in Settings (General tab) showing current version and update status. | Medium | Medium |
+| FEAT-045 | Security | **Add Zod-based IPC input validation** — Several IPC handlers accept untyped `Record<string, unknown>` payloads. Replace manual type guards with Zod schema validation at the IPC boundary. | Medium | Medium |
+| FEAT-046 | Feature | **Implement auto-update** — Add `electron-updater` and configure GitHub releases as the update provider. Add IPC handler for `app:update` and a UI indicator in Settings. | Medium | Medium |
 | FEAT-047 | Security | **Add code signing for Windows** — Unsigned executables trigger Windows SmartScreen warnings. Add `CSC_LINK` and `CSC_KEY_PASSWORD` env vars to CI and electron-builder config. | High | Medium |
 
 ### Medium Priority
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-050 | UX | **Light/dark mode toggle for Settings window** — Currently the app is dark-themed. Add a toggle to switch to a light theme for the settings window (not the overlay, which has its own theme system). | Low | Low |
-| FEAT-054 | Feature | **Keyboard shortcuts for ChatHistory** — Add `Ctrl+Enter` to send, `Escape` to dismiss overlay, `?` for help overlay with all shortcuts listed. | Low | Low |
 | FEAT-055 | DevEx | **TypeScript strictness audit** — Verify `noUnusedLocals`, `noUnusedParameters`, and consider `noUncheckedIndexedAccess` for array safety. Check both `tsconfig.node.json` and `tsconfig.web.json`. | Low | Low |
-| FEAT-056 | Feature | **Active provider badge in overlay** — Show which AI provider generated the overlay response (e.g., "via Gemini 2.5 Flash") as a small label. Useful for debugging and provider comparison. | Low | Low |
+| FEAT-056 | Feature | **Active provider badge in overlay** — Show which AI provider generated the overlay response (e.g., "via Gemini 2.5 Flash") as a small label in the overlay. | Low | Low |
 
 ### Technical Debt
 
@@ -94,27 +92,28 @@ All Week 1–5 items from the original roadmap are complete:
 - FEAT-030 (telemetry), FEAT-035 (CI), FEAT-039 (command injection fix)
 
 ### Recently Completed (Week 6)
-- FEAT-051 — Overlay navigation security (`will-navigate` + `setWindowOpenHandler` blockers)
-- FEAT-052 — Explicit `contextIsolation: true` on both BrowserWindow configs
+- FEAT-051 — Overlay navigation security (will-navigate + setWindowOpenHandler blockers)
+- FEAT-052 — Explicit contextIsolation: true on both BrowserWindow configs
 
 ### Recently Completed (Week 7)
-- FEAT-043 — Active provider switching UI (dropdown + IPC handler + setActiveProvider wiring)
-- FEAT-053 — Capture mode selection UI (CaptureMode type, config field, IPC handler, dropdown in CaptureConfig)
-- FEAT-049 — Settings keyboard shortcuts (Ctrl+1 through Ctrl+6 for tab navigation)
-- TECH-001 — Fixed hardcoded dimensions in GDI+ capture (now reads from nativeImage.getSize())
-- TECH-002 — Extracted duplicate rate limiting logic into shared `RateLimiter` class with unit tests
-- TECH-003 — Replaced console.error with logger in ProviderManager
+- FEAT-043 — Active provider switching UI
+- FEAT-053 — Capture mode selection UI
+- FEAT-049 — Settings keyboard shortcuts (Ctrl+1–6)
+- TECH-001 — Fixed hardcoded dimensions in GDI+ capture
+- TECH-002 — Extracted RateLimiter class with unit tests
 - TECH-003 — Replaced console.error with logger in ProviderManager
 
-### Current Focus (Week 8)
-1. FEAT-054 — Keyboard shortcuts for ChatHistory (Ctrl+Enter, Escape, ? help overlay)
+### Recently Completed (Week 8)
+- FEAT-044 — API key encryption via keytar (OS keyring, useKeychain toggle)
+- FEAT-050 — Light/dark mode toggle for Settings window
+- FEAT-054 — ChatHistory keyboard shortcuts (Ctrl+Enter, Shift+? help, Escape dismiss)
+
+### Current Focus (Week 9)
+1. FEAT-045 — Zod IPC input validation
+2. FEAT-046 — Auto-update
+
+### Future (Week 10+)
+1. FEAT-047 — Code signing (Windows)
 2. FEAT-055 — TypeScript strictness audit
-
-### Future (Week 9+)
-1. FEAT-044 — API key encryption (keytar)
-2. FEAT-045 — Zod IPC validation
-3. FEAT-046 — Auto-update
-4. FEAT-047 — Code signing
-5. FEAT-050 — Light/dark mode toggle for Settings
-6. FEAT-056 — Active provider badge in overlay
-7. Remaining technical debt (TECH-005)
+3. FEAT-056 — Active provider badge in overlay
+4. Remaining technical debt (TECH-005)
