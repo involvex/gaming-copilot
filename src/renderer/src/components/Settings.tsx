@@ -65,7 +65,15 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     (config?.captureQuality as number) || 85,
   );
   const [hotkey, setHotkey] = useState((config?.hotkey as string) || "CommandOrControl+Shift+G");
+  const [hotkeyEnabled, setHotkeyEnabled] = useState<boolean>(
+    (config?.hotkeyEnabled as boolean) ?? true,
+  );
+  const [maxImageWidth, setMaxImageWidth] = useState<number>(
+    (config?.maxImageWidth as number) || 1024,
+  );
   const [hotkeyInput, setHotkeyInput] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [gameStatus, setGameStatus] = useState<"idle" | "checking" | "running" | "not-found">(
     "idle",
   );
@@ -80,6 +88,18 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     }
   };
 
+  const handlePreview = async () => {
+    setPreviewLoading(true);
+    try {
+      const result = await window.electronAPI.capturePreview();
+      setPreview(result);
+    } catch {
+      setPreview(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleAutoStartToggle = async () => {
     const newValue = !autoStart;
     setAutoStart(newValue);
@@ -90,6 +110,12 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     const newValue = !notifications;
     setNotifications(newValue);
     await window.electronAPI.setSetting("notifications", newValue);
+  };
+
+  const handleHotkeyToggle = async () => {
+    const newValue = !hotkeyEnabled;
+    setHotkeyEnabled(newValue);
+    await window.electronAPI.setHotkeyEnabled(newValue);
   };
 
   const handleHotkeyChange = async () => {
@@ -129,6 +155,15 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
           >
             Check
           </button>
+          <button
+            type="button"
+            onClick={handlePreview}
+            disabled={previewLoading}
+            className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+            title="Capture a preview thumbnail"
+          >
+            {previewLoading ? "…" : "Preview"}
+          </button>
         </div>
         {gameStatus === "running" && (
           <p className="text-green-400 text-sm mt-2">Game detected and running</p>
@@ -137,6 +172,13 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
           <p className="text-yellow-400 text-sm mt-2">
             Game not found — screenshot will use fullscreen
           </p>
+        )}
+        {preview && (
+          <img
+            src={preview}
+            alt="Capture preview"
+            className="mt-3 rounded border border-gray-600 max-w-full max-h-40 object-contain"
+          />
         )}
       </div>
 
@@ -169,6 +211,32 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
       </div>
 
       <div>
+        <label
+          htmlFor="hotkey-enabled"
+          className="flex items-center justify-between cursor-pointer"
+        >
+          <span className="text-sm font-medium text-gray-300">Enable Hotkey</span>
+          <button
+            id="hotkey-enabled"
+            type="button"
+            onClick={handleHotkeyToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              hotkeyEnabled ? "bg-blue-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                hotkeyEnabled ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+        <p className="text-xs text-gray-500 mt-1">
+          Disable to temporarily stop the global hotkey from triggering.
+        </p>
+      </div>
+
+      <div>
         <label htmlFor="capture-quality" className="block text-sm font-medium text-gray-300 mb-2">
           Capture Quality: {captureQuality}
         </label>
@@ -187,6 +255,30 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
             const v = Number(e.target.value);
             setCaptureQuality(v);
             window.electronAPI.setSetting("captureQuality", v);
+          }}
+          className="w-full"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="max-image-width" className="block text-sm font-medium text-gray-300 mb-2">
+          Max Image Width: {maxImageWidth}px
+        </label>
+        <p className="text-xs text-gray-400 mb-2">
+          Resizes screenshots to this maximum width before sending to AI. Lower values reduce token
+          cost.
+        </p>
+        <input
+          id="max-image-width"
+          type="range"
+          min={256}
+          max={2048}
+          step={64}
+          value={maxImageWidth}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setMaxImageWidth(v);
+            window.electronAPI.setSetting("maxImageWidth", v);
           }}
           className="w-full"
         />

@@ -272,7 +272,7 @@ export async function smartCapture(
   return result;
 }
 
-const MAX_IMAGE_WIDTH = 1024;
+const DEFAULT_MAX_IMAGE_WIDTH = 1024;
 
 /**
  * Resize an image buffer to a maximum width while maintaining aspect ratio.
@@ -281,7 +281,12 @@ const MAX_IMAGE_WIDTH = 1024;
  * applies but PNG format is used (lossless).
  * Returns the resized/compressed buffer.
  */
-export function resizeImage(buffer: Buffer, format: "png" | "jpeg", quality: number): Buffer {
+export function resizeImage(
+  buffer: Buffer,
+  format: "png" | "jpeg",
+  quality: number,
+  maxWidth: number = DEFAULT_MAX_IMAGE_WIDTH,
+): Buffer {
   const image = nativeImage.createFromBuffer(buffer);
 
   if (image.isEmpty()) {
@@ -289,7 +294,7 @@ export function resizeImage(buffer: Buffer, format: "png" | "jpeg", quality: num
   }
 
   const { width, height } = image.getSize();
-  const shouldResize = width > MAX_IMAGE_WIDTH;
+  const shouldResize = width > maxWidth;
   const shouldCompress = format === "jpeg" && quality < 100;
 
   if (!shouldResize && !shouldCompress) {
@@ -298,9 +303,8 @@ export function resizeImage(buffer: Buffer, format: "png" | "jpeg", quality: num
 
   let result = image;
   if (shouldResize) {
-    const newWidth = MAX_IMAGE_WIDTH;
-    const newHeight = Math.round((height * newWidth) / width);
-    result = image.resize({ width: newWidth, height: newHeight });
+    const newHeight = Math.round((height * maxWidth) / width);
+    result = image.resize({ width: maxWidth, height: newHeight });
   }
 
   if (shouldCompress) {

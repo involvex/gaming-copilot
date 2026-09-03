@@ -22,7 +22,14 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-016 | Performance | AI response caching with 60s TTL (SHA-1 keyed, clear cache button) | `#10` |
 | FEAT-024 | Feature | Overlay click-through toggle UI + IPC handler | `#8` |
 | FEAT-011 | Feature | Custom OpenAI-compatible endpoint management (add/remove/test) | `#12` |
-| FEAT-012 | Feature | Per-game system prompts UI with config wiring in hotkey/IPI handlers | `#13` |
+| FEAT-012 | Feature | Per-game system prompts UI with config wiring in hotkey/IPC handlers | `#13` |
+| FEAT-017 | Feature | Added `maxImageWidth` config (default 1024) — `resizeImage()` now accepts configurable max width; slider in CaptureConfig | `#15` |
+| FEAT-018 | Feature | Copy-to-clipboard button on assistant messages with visual confirmation | `#14` |
+| FEAT-010 | Feature | Windows system notifications on analysis complete via `Notification` API | `#14` |
+| FEAT-013 | Feature | Capture quality slider in CaptureConfig settings | `#14` |
+| FEAT-014 | UX | ChatHistory error handling with retry button and visual error styling | `#15` |
+| FEAT-015 | Feature | Capture region preview thumbnail in Settings — "Preview" button captures a 256px thumbnail | `#15` |
+| FEAT-020 | Feature | Toggle hotkey registration at runtime via `hotkeyEnabled` config + IPC handler | `#15` |
 
 ---
 

@@ -105,6 +105,10 @@ function initProviders(): void {
 }
 
 function registerHotkey(): void {
+  if (!appConfig.hotkeyEnabled) {
+    logger.info("Hotkey", "Hotkey registration skipped (disabled)");
+    return;
+  }
   const hotkey = appConfig.hotkey;
   globalShortcut.register(hotkey, async () => {
     logger.info("Hotkey", `${hotkey} triggered`);
@@ -115,7 +119,12 @@ function registerHotkey(): void {
       return;
     }
 
-    const resizedBuffer = resizeImage(result.buffer, result.format, appConfig.captureQuality);
+    const resizedBuffer = resizeImage(
+      result.buffer,
+      result.format,
+      appConfig.captureQuality,
+      appConfig.maxImageWidth,
+    );
     const resizedMimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
     const resizedBase64 = resizedBuffer.toString("base64");
     const resizedDataUrl = `data:${resizedMimeType};base64,${resizedBase64}`;
@@ -174,7 +183,13 @@ function registerHotkey(): void {
   logger.info("Hotkey", `Registered: ${hotkey}`);
 }
 
+function unregisterHotkey(): void {
+  globalShortcut.unregisterAll();
+  logger.info("Hotkey", "Unregistered all shortcuts");
+}
+
 function setHotkey(newHotkey: string): void {
+  if (!appConfig.hotkeyEnabled) return;
   globalShortcut.unregisterAll();
   appConfig.hotkey = newHotkey;
   setConfigValue("hotkey", newHotkey);
@@ -265,11 +280,24 @@ ipcMain.handle("capture:screenshot", async () => {
   const region = appConfig.captureRegion;
   const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
   if (!result) return null;
-  const resizedBuffer = resizeImage(result.buffer, result.format, appConfig.captureQuality);
+  const resizedBuffer = resizeImage(
+    result.buffer,
+    result.format,
+    appConfig.captureQuality,
+    appConfig.maxImageWidth,
+  );
   const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
   return `data:${mimeType};base64,${resizedBuffer.toString("base64")}`;
 });
 
+ipcMain.handle("capture:preview", async () => {
+  const region = appConfig.captureRegion;
+  const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
+  if (!result) return null;
+  const resizedBuffer = resizeImage(result.buffer, result.format, appConfig.captureQuality, 256);
+  const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
+  return `data:${mimeType};base64,${resizedBuffer.toString("base64")}`;
+});
 ipcMain.handle("capture:check-game", (_event, exeName: string) => {
   if (!exeName || !/^[\w.-]+\.exe$/.test(exeName.endsWith(".exe") ? exeName : `${exeName}.exe`)) {
     return { running: false, pid: null };
@@ -430,10 +458,22 @@ ipcMain.handle("config:set-generic", (_event, key: string, value: unknown) => {
 });
 
 ipcMain.handle("config:set-hotkey", (_event, hotkey: string) => {
-  if (!hotkey || !/^\w+([+^-]+.+)/.test(hotkey)) {
+  if (!hotkey || !/^\w+([+-].+)*$/.test(hotkey)) {
     return false;
   }
   setHotkey(hotkey);
+  return true;
+});
+
+ipcMain.handle("config:set-hotkey-enabled", (_event, enabled: boolean) => {
+  appConfig.hotkeyEnabled = enabled;
+  setConfigValue("hotkeyEnabled", enabled);
+  if (enabled) {
+    registerHotkey();
+  } else {
+    unregisterHotkey();
+  }
+  logger.info("Hotkey", `Hotkey enabled: ${enabled}`);
   return true;
 });
 

@@ -12,6 +12,8 @@ const schema = {
     notifications: { type: "boolean", default: true },
     gameExe: { type: "string", default: "" },
     captureQuality: { type: "number", default: 85 },
+    maxImageWidth: { type: "number", default: 1024 },
+    hotkeyEnabled: { type: "boolean", default: true },
     activeProvider: { type: "string", default: "gemini" },
     providers: {
       type: "object",
@@ -127,6 +129,8 @@ function getDefaultConfig(): AppConfig {
     notifications: true,
     gameExe: "",
     captureQuality: 85,
+    maxImageWidth: 1024,
+    hotkeyEnabled: true,
     providers: {},
     activeProvider: "gemini",
     overlay: {

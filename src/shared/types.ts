@@ -67,7 +67,9 @@ export interface AppConfig {
   // Capture
   gameExe: string;
   captureQuality: number;
+  maxImageWidth: number;
   captureRegion?: RegionBounds;
+  hotkeyEnabled: boolean;
 
   // Providers
   providers: {
