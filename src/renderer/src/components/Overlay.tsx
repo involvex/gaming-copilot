@@ -62,7 +62,18 @@ export default function Overlay() {
   }, []);
 
   useEffect(() => {
-    window.electronAPI.onOverlayData((data) => {
+    window.electronAPI.onOverlayData(async (data) => {
+      const cfg = await window.electronAPI.getConfig();
+      const config = cfg as Record<string, unknown>;
+      const overlay = config?.overlay as Record<string, unknown> | undefined;
+      if (overlay) {
+        setOverlayConfig({
+          duration: (overlay.duration as number) || DEFAULT_OVERLAY.duration,
+          opacity: (overlay.opacity as number) || DEFAULT_OVERLAY.opacity,
+          fontSize: (overlay.fontSize as number) || DEFAULT_OVERLAY.fontSize,
+          position: (overlay.position as OverlayConfig["position"]) || DEFAULT_OVERLAY.position,
+        });
+      }
       setText(data);
       setVisible(true);
       setStreaming(true);
