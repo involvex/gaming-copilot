@@ -28,10 +28,11 @@
 | 22: OCR Text Extraction | ✅ Done | `4cd006e` | Tesseract.js, optional, 3 languages |
 | 23: Chat History Persistence | ✅ Done | `e363b8b` | electron-store backed, export MD/JSON |
 | 24: Telemetry | ✅ Done | `a6ec947` | Anonymous opt-in toggle, event tracking |
-| 25: CI/CD | ✅ Done | `d643341` | GitHub Actions on Windows (biome, tsc, build, test) |
-| 26: Unit Tests | ✅ Done | `1de1d1b` | vitest: capture, config, ProviderManager, memreader (81 tests) |
+| 25: CI/CD | ✅ Done | `d643341` | GitHub Actions on Windows (biome, tsc, build, test) using bunx |
+| 26: Unit Tests | ✅ Done | `1de1d1b` | vitest: 128 tests across 6 suites (schemas, capture, config, ProviderManager, memreader, rate-limiter) |
 | 27: Code Signing | ❌ Not done | — | Windows SmartScreen will warn on unsigned exe |
 | 28: Auto-update | ❌ Not done | — | electron-updater not yet integrated |
+| 29: TypeScript Strictness Audit | ❌ Not done | — | Enable noUnusedLocals, noUncheckedIndexedAccess, fix any types |
 
 **Repository**: https://github.com/involvex/gaming-copilot (private)
 
@@ -67,6 +68,15 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
   - **Image resizing** to configurable max width (default 1024px)
   - **Active provider switching** — dropdown to select primary AI provider at runtime with fallback chain
   - **Capture mode selection** — choose auto (window → GDI+ → fullscreen), window-only, fullscreen-only, or GDI+ fallback-only
+  - **API key encryption** — keys stored in OS keyring (Windows Credential Manager) via `keytar`, with `useKeychain` toggle
+  - **Light/dark theme toggle** for Settings window with CSS overrides
+  - **Keyboard shortcuts** — Ctrl+1–6 for Settings tabs, Ctrl+Enter to send, Escape to dismiss, Shift+?</ for help
+  - **Zod-based IPC input validation** — `validateIPC()` helper with typed schemas at every IPC boundary
+  - **Active provider badge** in overlay showing which provider generated the response
+  - **Region selector UI** with preview thumbnail for capture region selection
+  - **File logging** with daily rotation (max 7 files) in `%APPDATA%\gaming-copilot\logs\`
+  - **Overlay security** — `will-navigate` and `setWindowOpenHandler` blockers, explicit `contextIsolation: true`
+  - **`prebuild` script** — format + lint + typecheck chained before build
 
 ---
 
@@ -392,6 +402,22 @@ E:\Game\gaming-copilot\gaming-copilot\
    - GitHub publish config for auto-update (not yet enabled)
    - 256x256 app icon (gamepad design)
 
+### Phase 10: Security & Code Quality (Post-Polish)
+**Status**: ✅ Complete
+
+1. **IPC input validation**: Zod schemas for all IPC handlers via `validateIPC()` helper (`src/main/schemas.ts`, 37 tests)
+2. **API key encryption**: `keytar` + `SecureStorage` module, OS keyring, `useKeychain` config toggle
+3. **Overlay security**: `will-navigate` + `setWindowOpenHandler` blockers, explicit `contextIsolation: true`
+4. **Command injection prevention**: `SAFE_EXE_PATTERN` validation for exe names in PowerShell commands
+5. **Rate limit abstraction**: Extracted `RateLimiter` class shared across Gemini and OpenAI providers
+6. **File logging**: Daily rotation, max 7 files, structured format
+7. **Dynamic GDI+ dimensions**: Read actual window dimensions from `nativeImage.getSize()` instead of hardcoded
+
+### Phase 11: TypeScript Strictness Audit
+**Status**: ❌ Not started
+
+Enable `noUnusedLocals`, `noUncheckedIndexedAccess`, `noUnusedParameters`. Fix remaining `any` types in test mocks and renderer component casts.
+
 ---
 
 ## 6. Advanced Feature Details
@@ -596,16 +622,16 @@ Format: Use bullet points for multiple observations.
 | `config:set-auto-start` | R → M | Toggle Windows auto-start |
 | `config:set-hotkey` | R → M | Change hotkey at runtime |
 | `config:set-hotkey-enabled` | R → M | Enable/disable hotkey |
-| `config:set-generic` | R → M | Set any config key |
+| `config:set-generic` | R → M | Set any config key (theme, useKeychain, recordDuration, etc.) |
 | `config:set-telemetry` | R → M | Toggle telemetry |
 | `config:set-active-provider` | R → M | Set active AI provider (calls setActiveProvider) |
 | `config:set-capture-mode` | R → M | Set capture mode (auto/window/fullscreen/gdi) |
-| `config:set-generic` | R → M | Set any config key (used for theme, useKeychain toggles) |
 | `config:set-game-exe` | R → M | Set game exe name |
 | `overlay:show` | R → M | Show overlay with text |
 | `overlay:hide` | R → M | Hide overlay |
 | `overlay:set-click-through` | R → M | Toggle click-through mode |
 | `overlay:data` | M → R | Push text to overlay (streaming) |
+| `overlay:provider` | M → R | Push active provider info to overlay |
 | `overlay:stream-done` | M → R | Signal overlay stream complete |
 | `chat:save` | R → M | Save chat history |
 | `chat:load` | R → M | Load chat history |
@@ -626,10 +652,11 @@ Format: Use bullet points for multiple observations.
 ```json
 {
    "@electron-toolkit/utils": "^4.0.0",
-   "@google/genai": "^1.1.0",
-   "electron-store": "^10.0.1",
-   "keytar": "^7.9.0",
-   "tesseract.js": "^7.0.0"
+    "@google/genai": "^1.1.0",
+    "electron-store": "^10.0.1",
+    "keytar": "^7.9.0",
+    "tesseract.js": "^7.0.0",
+    "zod": "^4.5.4"
 }
 ```
 
@@ -659,18 +686,23 @@ Format: Use bullet points for multiple observations.
 ## 11. Testing Strategy
 
 ### Unit Tests (vitest)
-| Module | File | Status | Coverage |
-|--------|------|--------|----------|
-| Capture | `src/main/capture/__tests__/capture.test.ts` | ✅ Exists | Smart capture, resize, crop, GDI |
-| Config | `src/main/__tests__/config.test.ts` | ✅ Exists | initConfig, setConfigValue, defaults |
-| ProviderManager | `src/main/ai-providers/__tests__/ProviderManager.test.ts` | ✅ Exists | Fallback chain, caching, rate limits |
-| Memreader | `src/main/plugins/__tests__/memreader.test.ts` | ⚠️ Planned | Config, start/stop lifecycle, parseState |
+| Module | File | Status | Tests | Coverage |
+|--------|------|--------|-------|----------|
+| Schemas | `src/main/__tests__/schemas.test.ts` | ✅ Exists | 37 | validateIPC, all input schemas |
+| Capture | `src/main/capture/__tests__/capture.test.ts` | ✅ Exists | 30 | Smart capture, resize, crop, GDI, screen recording |
+| Config | `src/main/__tests__/config.test.ts` | ✅ Exists | 13 | initConfig, setConfigValue, defaults, chat store |
+| ProviderManager | `src/main/ai-providers/__tests__/ProviderManager.test.ts` | ✅ Exists | 20 | Fallback chain, caching, rate limits, testProvider |
+| Memreader | `src/main/plugins/__tests__/memreader.test.ts` | ✅ Exists | 23 | Config, start/stop lifecycle, parseState, updateConfig |
+| Rate Limiter | `src/main/ai-providers/__tests__/rate-limiter.test.ts` | ✅ Exists | 5 | Increment, minute/day reset logic |
+| **Total** | **6 suites** | | **128** | |
 
 ### Test Coverage Plan
 - **FEAT-031** — Capture logic tests: `cropBuffer()`, `smartCapture()` fallback chain, region bounding box validation. Mocking `desktopCapturer` and `execSync`.
 - **FEAT-032** — ProviderManager tests: fallback chain, rate limit checking, cache hit/miss, error propagation.
 - **FEAT-033** — Config tests: `initConfig()`, `setConfigValue()`, `setPartialConfig()`, `getDefaultConfig()`.
 - **FEAT-034** — MemreaderPlugin tests: config updates, start/stop lifecycle, `parseState()` with various data shapes.
+- **FEAT-045** — Schema validation tests: `validateIPC()` helper, all Zod schemas for IPC input validation (37 tests).
+- **FEAT-055** — RateLimiter tests: increment, minute/day reset, edge cases for remaining count (5 tests).
 
 ### Integration Tests (planned)
 - End-to-end: capture → resize → AI analyze → overlay display
@@ -680,10 +712,13 @@ Format: Use bullet points for multiple observations.
 
 ## 12. Open Questions
 
-1. **API key encryption**: Consider migrating from plaintext electron-store to `keytar` or encrypted electron-store for API key storage at rest.
+1. **API key encryption**: ✅ Resolved — Migrated to `keytar` (OS keyring) with `useKeychain` toggle in Settings. API keys are never stored in plaintext config when keychain is enabled. See `src/main/secure-storage.ts`.
 2. **Overlay interaction**: Should users be able to type follow-up questions in the overlay, or is it strictly display-only?
-3. **Active provider switching UI**: `ProviderManager.setActiveProvider()` exists but there's no UI to select the active provider at runtime — only `ProviderConfig` shows which is active.
-4. **Light/dark mode for Settings**: Should the settings window itself support a light theme toggle?
+3. **Active provider switching UI**: ✅ Resolved — Dropdown in `ProviderConfig.tsx` wired to `config:set-active-provider` IPC handler. Fallback chain (primary → secondary → tertiary) implemented in `ProviderManager.analyze()`.
+4. **Light/dark mode for Settings**: ✅ Resolved — `theme` config field with toggle in `GeneralConfig` component. Light mode CSS overrides for Tailwind classes applied via `data-light` attribute.
+5. **Auto-update strategy**: electron-updater not yet integrated. Should it be opt-in or always-on? The `publish` config in `electron-builder.yml` is already set to GitHub.
+6. **Code signing approach**: Should use EV code signing or standard? GitHub Actions `windows-latest` runner needs `CSC_LINK`/`CSC_KEY_PASSWORD` secrets.
+7. **TypeScript strictness**: Should we enable `noUnusedLocals`, `noUncheckedIndexedAccess`, and other strict compiler options? Some `any` types remain in test mocks and renderer component casts.
 
 ---
 
@@ -704,27 +739,43 @@ Format: Use bullet points for multiple observations.
 ## 14. Remaining Roadmap
 
 ### Near Term
-- **Code signing** (Windows) — Add `CSC_LINK` and `CSC_KEY_PASSWORD` to build config
-- **Auto-update** — Integrate `electron-updater` with GitHub releases provider
-- **TypeScript strictness audit** — `noUnusedLocals`, `noUncheckedIndexedAccess`, etc.
-- **Active provider badge in overlay** — Show which provider generated the response
+- **FEAT-046** — Auto-update: Integrate `electron-updater` with GitHub releases provider. IPC handler `app:update`, UI indicator in Settings. `publish` config already set in `electron-builder.yml`.
+- **FEAT-047** — Code signing (Windows): Add `CSC_LINK` and `CSC_KEY_PASSWORD` to build config and CI secrets. Without this, Windows SmartScreen will warn users.
+- **FEAT-060** — TypeScript strictness audit: Enable `noUnusedLocals`, `noUncheckedIndexedAccess`, `noUnusedParameters`. Fix remaining `any` types in test mocks and renderer component casts.
+- **FEAT-059** — Dark mode auto-detect: CSS `prefers-color-scheme` media query + manual override toggle.
 
 ### Completed (was Near Term)
-- ✅ Zod-based IPC input validation (`validateIPC` helper, 37 schema tests)
-- ✅ API key encryption via `keytar` (OS keyring)
-- ✅ Memreader unit tests (5 test suite, 88 tests total)
-- ✅ Settings keyboard shortcuts (`Ctrl+1` through `Ctrl+6`)
-- ✅ Active provider selection UI (dropdown in ProviderConfig)
-- ✅ Light/dark mode toggle for Settings window
-- ✅ Overlay navigation security (`will-navigate` + `setWindowOpenHandler`)
-- ✅ Explicit `contextIsolation: true` in BrowserWindow configs
-- ✅ Dynamic GDI+ image dimensions (via `nativeImage.getSize()`)
-- ✅ Rate limiter shared class (extracted from Gemini/OpenAI provider)
-- ✅ Capture mode selection (auto/window/fullscreen/gdi)
-- ✅ ChatHistory keyboard shortcuts (Ctrl+Enter, Escape, ? help)
+- ✅ FEAT-045 — Zod-based IPC input validation (`validateIPC` helper, 37 schema tests)
+- ✅ FEAT-056 — Active provider badge in overlay (`overlay:provider` IPC channel)
+- ✅ FEAT-048 — Memreader plugin unit tests (23 tests)
+- ✅ FEAT-044 — API key encryption via `keytar` (OS keyring)
+- ✅ FEAT-049 — Settings keyboard shortcuts (`Ctrl+1` through `Ctrl+6`)
+- ✅ FEAT-050 — Light/dark mode toggle for Settings window
+- ✅ FEAT-051 — Overlay navigation security (`will-navigate` + `setWindowOpenHandler`)
+- ✅ FEAT-052 — Explicit `contextIsolation: true` in BrowserWindow configs
+- ✅ FEAT-053 — Capture mode selection (auto/window/fullscreen/gdi)
+- ✅ FEAT-054 — ChatHistory keyboard shortcuts (Ctrl+Enter, Escape, ? help)
+- ✅ FEAT-055 — Rate limiter shared class (extracted from Gemini/OpenAI providers, 5 unit tests)
+- ✅ TECH-001 — Dynamic GDI+ image dimensions (via `nativeImage.getSize()`)
+- ✅ TECH-002 — Replaced console.error with logger in ProviderManager
+- ✅ FEAT-057 — Added `prebuild` script (format + lint + typecheck before build)
+- ✅ FEAT-058 — CI workflow updated to use `bunx` for tool invocation
 
 ### Medium Term
-- **Full integration test suite** (capture → AI → overlay pipeline)
-- **Light theme refinement** — Audit remaining Tailwind classes for full light-mode support
-- macOS and Linux support (currently Windows-only)
+- **FEAT-061** — Settings search/filter bar
+- **FEAT-062** — Config import/export as JSON for backup/migration
+- **FEAT-063** — Screenshot saving to disk with timestamped filenames
+- **FEAT-064** — Visual hotkey picker UI (key combination recorder)
+- **FEAT-065** — Overlay text selection/copy from overlay
+- **FEAT-066** — Markdown rendering in overlay (bold, lists, code blocks)
+- **FEAT-067** — Overlay pin/freeze toggle (prevent auto-dismiss)
+- **FEAT-068** — Debug mode toggle in Settings UI
+- **FEAT-069** — Clickable system notifications
+- **FEAT-070** — Config schema versioning/migration for future upgrades
+- **FEAT-071** — AI provider usage statistics (token tracking, cost estimation)
+- **FEAT-072** — App icon badge for unread analyses
+- **FEAT-073** — Settings window always-on-top toggle
+- Full integration test suite (capture → AI → overlay pipeline)
+- Light theme refinement — Audit remaining Tailwind classes for full light-mode support
+- macOS and Linux support (currently Windows-only) — GDI+, PowerShell, and keytar Windows Credential Manager are Windows-specific
 - Ollama provider enhancements (model auto-detection, streaming)
