@@ -16,6 +16,7 @@ export default function Settings() {
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
   const [theme, setTheme] = useState<"dark" | "light" | "system">("system");
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const updateResolved = () => {
@@ -43,14 +44,97 @@ export default function Settings() {
     });
   }, []);
 
-  const tabs: Array<{ id: Tab; label: string }> = [
-    { id: "providers", label: "AI Providers" },
-    { id: "capture", label: "Capture" },
-    { id: "overlay", label: "Overlay" },
-    { id: "tts", label: "TTS" },
-    { id: "prompts", label: "Prompts" },
-    { id: "general", label: "General" },
+  const tabs: Array<{ id: Tab; label: string; keywords: string[] }> = [
+    {
+      id: "providers",
+      label: "AI Providers",
+      keywords: [
+        "api key",
+        "model",
+        "provider",
+        "endpoint",
+        "openai",
+        "gemini",
+        "cache",
+        "fallback",
+        "test connection",
+        "active provider",
+      ],
+    },
+    {
+      id: "capture",
+      label: "Capture",
+      keywords: [
+        "screenshot",
+        "quality",
+        "region",
+        "monitor",
+        "fullscreen",
+        "game exe",
+        "recording",
+        "ocr",
+        "language",
+        "gdi",
+        "jpeg",
+        "image",
+      ],
+    },
+    {
+      id: "overlay",
+      label: "Overlay",
+      keywords: [
+        "position",
+        "opacity",
+        "duration",
+        "font size",
+        "click-through",
+        "theme",
+        "background",
+        "text color",
+        "border",
+        "css",
+        "custom css",
+        "radius",
+        "padding",
+        "transparency",
+      ],
+    },
+    {
+      id: "tts",
+      label: "TTS",
+      keywords: ["voice", "rate", "pitch", "volume", "speech", "text-to-speech", "speed"],
+    },
+    {
+      id: "prompts",
+      label: "Prompts",
+      keywords: ["system prompt", "game-specific", "prompt", "instruction"],
+    },
+    {
+      id: "general",
+      label: "General",
+      keywords: [
+        "theme",
+        "hotkey",
+        "auto-start",
+        "notification",
+        "telemetry",
+        "keychain",
+        "update",
+        "minimize",
+        "tray",
+        "windows",
+      ],
+    },
   ];
+
+  const filteredTabs = tabs.filter((tab) => {
+    if (!search) return true;
+    const query = search.toLowerCase();
+    return (
+      tab.label.toLowerCase().includes(query) ||
+      tab.keywords.some((kw) => kw.toLowerCase().includes(query))
+    );
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,24 +179,58 @@ export default function Settings() {
       )}
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
+      <div className="mb-6">
+        <label htmlFor="settings-search" className="sr-only">
+          Search settings
+        </label>
+        <input
+          id="settings-search"
+          type="text"
+          placeholder="Search settings..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-sm transition-colors ${
+            resolvedTheme === "dark"
+              ? "border-gray-600 focus:border-blue-500 text-white"
+              : "border-gray-300 focus:border-blue-500 text-gray-900"
+          }}`}
+          data-light={resolvedTheme === "light" ? "" : undefined}
+        />
+      </div>
+
       <div
-        className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1"
+        className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 flex-wrap"
         data-light={resolvedTheme === "light" ? "" : undefined}
       >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === tab.id
-                ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-white hover:bg-gray-700"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {filteredTabs.length === 0 && search ? (
+          <div className="w-full text-center py-4 text-gray-500 text-sm">
+            No settings found matching "{search}"
+          </div>
+        ) : (
+          filteredTabs.map((tab) => {
+            const matchesSearch =
+              search &&
+              (tab.label.toLowerCase().includes(search.toLowerCase()) ||
+                tab.keywords.some((kw) => kw.toLowerCase().includes(search.toLowerCase())));
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (search) setSearch("");
+                }}
+                className={`relative flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                } ${matchesSearch ? "ring-2 ring-blue-400" : ""}`}
+              >
+                {tab.label}
+              </button>
+            );
+          })
+        )}
       </div>
 
       <div
