@@ -18,7 +18,7 @@
 | 12: Image Preprocessing | ✅ Done | `5cdb103` | Resize to max 1024px, JPEG quality control |
 | 13: Streaming AI | ✅ Done | `fd7c2c4` | AsyncGenerator + SSE parsing + typewriter overlay |
 | 14: AI Response Caching | ✅ Done | `4041919` | 60s TTL SHA-1 cache + clear-cache IPC |
-| 15: Custom CSS Overlay Theme | ✅ Done | `c1c4b03` | Color pickers, border radius, padding, live preview |
+| 15: Custom CSS overlay theme — color pickers for colors, border radius, padding, plus a CSS code editor for advanced customization | ✅ Done | `c1c4b03` | Color pickers, border radius, padding, live preview |
 | 16: System Notifications | ✅ Done | `a79b195` | electron.Notification on analysis complete |
 | 17: Per-game System Prompts | ✅ Done | `d2aeb33` | Game-specific prompt mapping in config + UI |
 | 18: Custom OpenAI Endpoints | ✅ Done | `23ed403` | Add/remove/test arbitrary OpenAI-compatible endpoints |
@@ -60,7 +60,7 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
 - **Windows system notifications** when analysis completes
 - **Capture region selection** and preview thumbnail
 - **Multiple monitor selection**
-- **Custom CSS overlay theme** — color pickers for background/text/border, border radius, padding controls with live preview, plus a CSS code editor for advanced customization
+- **Custom CSS overlay theme — color pickers for colors, border radius, padding, plus a CSS code editor for advanced customization** — color pickers for background/text/border, border radius, padding controls with live preview, plus a CSS code editor for advanced customization
 - **Chat history persistence** with export to Markdown/JSON
 - **Anonymous telemetry** (opt-in)
 - **Configurable hotkey** with runtime toggle
@@ -446,7 +446,7 @@ Captures keyframe burst over a configurable duration (default: 10 seconds) at co
 
 Uses Tesseract.js to extract on-screen text from screenshots. Worker is lazily initialized and reused across calls. Language is configurable (`eng`, `eng+osd`, `universal`). OCR results are appended as context to AI prompts. The worker is terminated on app quit via `terminateOcrWorker()`.
 
-### 6.5 Custom CSS Overlay Theme
+### 6.5 Custom CSS overlay theme — color pickers for colors, border radius, padding, plus a CSS code editor for advanced customization
 
 **File**: `src/renderer/src/components/OverlayStyle.tsx`
 
@@ -632,6 +632,8 @@ Format: Use bullet points for multiple observations.
 | `overlay:set-click-through` | R → M | Toggle click-through mode |
 | `overlay:set-css` | R → M | Set custom CSS for overlay |
 | `overlay:set-css` | M → R | Push CSS updates to overlay window at runtime |
+| `capture:pick-directory` | R → M | Open directory picker for screenshot saving |
+| `capture:save-screenshot` | R → M | Save a screenshot data URL to disk |
 | `overlay:data` | M → R | Push text to overlay (streaming) |
 | `overlay:provider` | M → R | Push active provider info to overlay |
 | `overlay:stream-done` | M → R | Signal overlay stream complete |
@@ -769,11 +771,10 @@ Format: Use bullet points for multiple observations.
 - ✅ FEAT-060 — TypeScript strictness audit (noUnusedLocals, noUncheckedIndexedAccess)
 - ✅ FEAT-089 — Overlay custom CSS editor (CSS textarea, style injection, IPC handler)
 - ✅ FEAT-061 — Settings search/filter bar with keyword matching and tab highlighting
+- ✅ FEAT-063 — Screenshot saving to disk with timestamped filenames (auto-save in hotkey, directory picker, directory browser)
 
 ### Medium Term
 - **FEAT-062** — Config import/export as JSON for backup/migration
-- **FEAT-063** — Screenshot saving to disk with timestamped filenames
-- **FEAT-064** — Visual hotkey picker UI (key combination recorder)
 - **FEAT-065** — Overlay text selection/copy from overlay
 - **FEAT-066** — Markdown rendering in overlay (bold, lists, code blocks)
 - **FEAT-067** — Overlay pin/freeze toggle (prevent auto-dismiss)
@@ -787,6 +788,8 @@ Format: Use bullet points for multiple observations.
 - Light theme refinement — Audit remaining Tailwind classes for full light-mode support
 - macOS and Linux support (currently Windows-only) — GDI+, PowerShell, and keytar Windows Credential Manager are Windows-specific
 - Ollama provider enhancements (model auto-detection, streaming)
+
+
 
 
 
