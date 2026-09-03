@@ -102,6 +102,7 @@ export interface AppConfig {
     fontSize: number;
     theme: "dark" | "light" | "game";
     clickThrough: boolean;
+    customCSS: string;
   };
 
   // Overlay Custom Theme

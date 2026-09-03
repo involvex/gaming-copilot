@@ -32,6 +32,7 @@ export default function Overlay() {
   const [visible, setVisible] = useState(false);
   const [opacity, setOpacity] = useState(0);
   const [_streaming, setStreaming] = useState(false);
+  const [customCSS, setCustomCSS] = useState<string>("");
   const [providerInfo, setProviderInfo] = useState<{
     displayName: string;
     model: string;
@@ -82,6 +83,7 @@ export default function Overlay() {
           theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
           clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
         }));
+        setCustomCSS((overlay.customCSS as string) || "");
       }
       const theme = config?.overlayCustomTheme as Record<string, unknown> | undefined;
       if (theme) {
@@ -110,6 +112,7 @@ export default function Overlay() {
           theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
           clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
         }));
+        setCustomCSS((overlay.customCSS as string) || "");
         const theme = config?.overlayCustomTheme as Record<string, unknown> | undefined;
         if (theme) {
           setCustomTheme({
@@ -128,6 +131,13 @@ export default function Overlay() {
     });
     return () => {
       window.electronAPI.removeAllListeners("overlay:data");
+    };
+  }, []);
+
+  useEffect(() => {
+    window.electronAPI.onOverlayCSS(setCustomCSS);
+    return () => {
+      window.electronAPI.removeAllListeners("overlay:set-css");
     };
   }, []);
 
@@ -209,8 +219,9 @@ export default function Overlay() {
       className={getPositionClasses()}
       style={{ opacity, transition: "opacity 300ms ease-in-out" }}
     >
+      {customCSS && <style>{customCSS}</style>}
       <div
-        className="max-w-xs backdrop-blur-sm shadow-2xl border"
+        className="overlay-container max-w-xs backdrop-blur-sm shadow-2xl border"
         style={{
           backgroundColor: customTheme.backgroundColor,
           opacity: overlayConfig.opacity,
@@ -222,14 +233,17 @@ export default function Overlay() {
       >
         {providerInfo && (
           <div
-            className="mb-2 text-xs font-medium opacity-70"
+            className="overlay-provider mb-2 text-xs font-medium opacity-70"
             style={{ color: customTheme.textColor }}
           >
             via {providerInfo.displayName}
             {providerInfo.model && ` · ${providerInfo.model}`}
           </div>
         )}
-        <p className="leading-relaxed whitespace-pre-wrap" style={{ color: customTheme.textColor }}>
+        <p
+          className="overlay-text leading-relaxed whitespace-pre-wrap"
+          style={{ color: customTheme.textColor }}
+        >
           {text}
         </p>
       </div>

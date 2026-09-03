@@ -46,6 +46,7 @@ export interface ElectronAPI {
   removeEndpoint: (name: string) => Promise<void>;
   setActiveProvider: (name: string) => Promise<void>;
   setOverlayConfig: (config: Record<string, unknown>) => Promise<void>;
+  setOverlayCSS: (css: string) => Promise<void>;
   setTTSConfig: (config: Record<string, unknown>) => Promise<void>;
   setPromptsConfig: (config: Record<string, unknown>) => Promise<void>;
   setAutoStart: (enable: boolean) => Promise<void>;
@@ -73,6 +74,7 @@ export interface ElectronAPI {
   // Events
   onCaptureResult: (callback: (dataUrl: string) => void) => void;
   onOverlayData: (callback: (text: string) => void) => void;
+  onOverlayCSS: (callback: (css: string) => void) => void;
   onOverlayStreamDone: (callback: (text: string) => void) => void;
   onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => void;
   onNavigateSettings: (callback: () => void) => void;
@@ -130,6 +132,7 @@ const electronAPI: ElectronAPI = {
   setActiveProvider: (name: string) => ipcRenderer.invoke("config:set-active-provider", name),
   setOverlayConfig: (config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-overlay", config),
+  setOverlayCSS: (css: string) => ipcRenderer.invoke("overlay:set-css", css),
   setTTSConfig: (config: Record<string, unknown>) => ipcRenderer.invoke("config:set-tts", config),
   setPromptsConfig: (config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-prompts", config),
@@ -160,6 +163,9 @@ const electronAPI: ElectronAPI = {
   },
   onOverlayData: (callback: (text: string) => void) => {
     ipcRenderer.on("overlay:data", (_event, text) => callback(text));
+  },
+  onOverlayCSS: (callback: (css: string) => void) => {
+    ipcRenderer.on("overlay:set-css", (_event, css) => callback(css));
   },
   onOverlayStreamDone: (callback: (text: string) => void) => {
     ipcRenderer.on("overlay:stream-done", (_event, text) => callback(text));

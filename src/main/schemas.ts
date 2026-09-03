@@ -38,6 +38,7 @@ export const overlayConfigSchema = z.object({
   fontSize: z.number().positive().optional(),
   theme: overlayThemeSchema.optional(),
   clickThrough: z.boolean().optional(),
+  customCSS: z.string().optional(),
 });
 
 export const ttsConfigSchema = z.object({

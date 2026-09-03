@@ -203,6 +203,7 @@ function getDefaultConfig(): AppConfig {
       fontSize: 14,
       theme: "dark",
       clickThrough: true,
+      customCSS: "",
     },
     overlayCustomTheme: {
       backgroundColor: "#111827",

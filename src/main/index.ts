@@ -827,6 +827,13 @@ ipcMain.handle("overlay:set-click-through", (_event, enable: unknown) => {
   overlayWindow?.setIgnoreMouseEvents(parsed);
 });
 
+ipcMain.handle("overlay:set-css", (_event, css: unknown) => {
+  const validCss = validateIPC(z.string(), css);
+  appConfig.overlay.customCSS = validCss;
+  setConfigValue("overlay", appConfig.overlay);
+  overlayWindow?.webContents.send("overlay:set-css", validCss);
+});
+
 // IPC Handlers — Window
 ipcMain.handle("window:open-settings", () => {
   mainWindow?.show();

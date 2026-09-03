@@ -9,6 +9,7 @@ export const DEFAULT_OVERLAY = {
   fontSize: 14,
   theme: "dark" as const,
   clickThrough: true,
+  customCSS: "",
 };
 
 export const DEFAULT_TTS = {

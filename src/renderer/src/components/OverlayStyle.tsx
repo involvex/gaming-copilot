@@ -10,6 +10,7 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
   const [clickThrough, setClickThrough] = useState<boolean>(
     (overlay.clickThrough as boolean) || true,
   );
+  const [customCSS, setCustomCSS] = useState<string>((overlay.customCSS as string) || "");
   const [backgroundColor, setBackgroundColor] = useState<string>(
     (customTheme.backgroundColor as string) || "#111827",
   );
@@ -291,6 +292,35 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
             className="w-full"
           />
         </div>
+      </div>
+
+      <div className="border-t border-gray-600 pt-4">
+        <h3 className="text-sm font-medium text-gray-300 mb-3">Custom CSS</h3>
+
+        <label
+          htmlFor="overlay-custom-css"
+          className="block text-sm font-medium text-gray-300 mb-1"
+        >
+          CSS Editor
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          Write custom CSS to style the overlay. Use selectors like{" "}
+          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-container</code>,{" "}
+          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-text</code>,{" "}
+          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-provider</code>.
+        </p>
+        <textarea
+          id="overlay-custom-css"
+          value={customCSS}
+          onChange={(e) => {
+            const v = e.target.value;
+            setCustomCSS(v);
+            window.electronAPI.setOverlayCSS(v);
+          }}
+          placeholder={"/* e.g. */\n.overlay-text {\n  font-weight: bold;\n}"}
+          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500 resize-y"
+          rows={8}
+        />
       </div>
 
       <div className="bg-gray-700/50 rounded-lg p-4">
