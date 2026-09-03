@@ -32,6 +32,10 @@ export default function Overlay() {
   const [visible, setVisible] = useState(false);
   const [opacity, setOpacity] = useState(0);
   const [_streaming, setStreaming] = useState(false);
+  const [providerInfo, setProviderInfo] = useState<{
+    displayName: string;
+    model: string;
+  } | null>(null);
   const [ttsConfig, setTtsConfig] = useState<TtsConfig>({
     enabled: false,
     voice: "",
@@ -128,6 +132,15 @@ export default function Overlay() {
   }, []);
 
   useEffect(() => {
+    window.electronAPI.onOverlayProvider((info) => {
+      setProviderInfo(info);
+    });
+    return () => {
+      window.electronAPI.removeAllListeners("overlay:provider");
+    };
+  }, []);
+
+  useEffect(() => {
     window.electronAPI.onOverlayStreamDone((finalText) => {
       setStreaming(false);
       if (ttsConfig.enabled && finalText && !finalText.startsWith("Error:")) {
@@ -147,6 +160,7 @@ export default function Overlay() {
         setOpacity(0);
         stop();
         setStreaming(false);
+        setProviderInfo(null);
         setTimeout(() => {
           setVisible(false);
           window.electronAPI.hideOverlay();
@@ -163,6 +177,7 @@ export default function Overlay() {
       setOpacity(0);
       stop();
       setStreaming(false);
+      setProviderInfo(null);
       setTimeout(() => {
         setVisible(false);
         window.electronAPI.hideOverlay();
@@ -205,6 +220,15 @@ export default function Overlay() {
           borderColor: customTheme.borderColor,
         }}
       >
+        {providerInfo && (
+          <div
+            className="mb-2 text-xs font-medium opacity-70"
+            style={{ color: customTheme.textColor }}
+          >
+            via {providerInfo.displayName}
+            {providerInfo.model && ` · ${providerInfo.model}`}
+          </div>
+        )}
         <p className="leading-relaxed whitespace-pre-wrap" style={{ color: customTheme.textColor }}>
           {text}
         </p>

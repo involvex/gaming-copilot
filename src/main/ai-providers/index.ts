@@ -55,6 +55,16 @@ export class ProviderManager {
     return this.providers.find((p) => p.name === name);
   }
 
+  getActiveProviderName(): string {
+    return this.activeProviderName;
+  }
+
+  getActiveProviderInfo(): { displayName: string; model: string } | undefined {
+    const provider = this.providers.find((p) => p.name === this.activeProviderName);
+    if (!provider?.isConfigured()) return undefined;
+    return { displayName: provider.displayName, model: provider.getModel() };
+  }
+
   setActiveProvider(name: string): void {
     this.activeProviderName = name;
   }

@@ -24,6 +24,10 @@ export class OpenAICompatProvider implements AIProvider {
     return !!this.config.apiKey && !!this.config.baseUrl;
   }
 
+  getModel(): string {
+    return this.config.model;
+  }
+
   getRateLimitInfo(): RateLimitInfo {
     return RATE_LIMITER.getInfo();
   }

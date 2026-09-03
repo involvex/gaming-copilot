@@ -20,6 +20,7 @@ export interface AIProvider {
 
   isConfigured(): boolean;
   getRateLimitInfo(): RateLimitInfo;
+  getModel(): string;
 }
 
 export interface StreamChunk {

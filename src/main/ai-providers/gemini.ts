@@ -19,6 +19,10 @@ export class GeminiProvider implements AIProvider {
     return !!this.config.apiKey;
   }
 
+  getModel(): string {
+    return this.config.model;
+  }
+
   getRateLimitInfo(): RateLimitInfo {
     return RATE_LIMITER.getInfo();
   }

@@ -70,7 +70,7 @@ This document catalogs opportunities for improvement, new features, and optimiza
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-056 | Feature | Active provider badge in overlay — Show which AI provider generated the overlay response (e.g., "via Gemini 2.5 Flash") as a small label in the overlay. | Low | Low |
+| FEAT-056 | Feature | Active provider badge in overlay — Show which AI provider generated the overlay response (e.g., "via Gemini 2.5 Flash") as a small label in the overlay. | Low | Low | `4a1e2c3` |
 | FEAT-045 | Security | Add Zod-based IPC input validation — Several IPC handlers accept untyped `unknown` payloads. Replaced manual type guards with Zod schema validation at the IPC boundary via `validateIPC()` helper. Added `src/main/schemas.ts` with typed schemas. | `e92fc53` |
 
 ### Technical Debt
@@ -108,11 +108,14 @@ All Week 1–5 items from the original roadmap are complete:
 - FEAT-054 — ChatHistory keyboard shortcuts (Ctrl+Enter, Shift+? help, Escape dismiss)
 
 ### Current Focus (Week 9)
-1. FEAT-045 — Zod IPC input validation
-2. FEAT-046 — Auto-update
+1. FEAT-046 — Auto-update
+2. FEAT-047 — Code signing (Windows)
+3. FEAT-055 — TypeScript strictness audit
+
+### Completed
+- FEAT-045 — Zod IPC input validation (`e92fc53`)
+- FEAT-056 — Active provider badge in overlay (`4a1e2c3`)
 
 ### Future (Week 10+)
-1. FEAT-047 — Code signing (Windows)
-2. FEAT-055 — TypeScript strictness audit
-3. FEAT-056 — Active provider badge in overlay
-4. Remaining technical debt (TECH-005)
+1. Remaining technical debt (TECH-005)
+2. Any new suggestions from usage feedback

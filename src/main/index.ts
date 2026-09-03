@@ -205,6 +205,11 @@ function registerHotkey(): void {
     overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
     overlayWindow?.show();
 
+    const providerInfo = providerManager?.getActiveProviderInfo();
+    if (providerInfo) {
+      overlayWindow?.webContents.send("overlay:provider", providerInfo);
+    }
+
     let ocrContext: string | undefined;
     if (appConfig.ocr.enabled) {
       try {

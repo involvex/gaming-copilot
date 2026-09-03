@@ -41,6 +41,10 @@ class MockProvider implements AIProvider {
     return this._rateLimit;
   }
 
+  getModel(): string {
+    return `${this.name}-model`;
+  }
+
   private requestCount = { minute: 0, day: 0 };
   private lastMinuteReset = Date.now();
   private lastDayReset = Date.now();
