@@ -60,7 +60,8 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-059 | UX | Dark mode auto-detect — `prefers-color-scheme` media query auto-switches Settings theme, 3-state toggle (Dark → Light → System), `theme` field updated to `"dark" | "light" | "system"` | `767ad99` |
 | FEAT-060 | DevEx | TypeScript strictness audit — `noUnusedLocals`, `noUncheckedIndexedAccess`, `noUnusedParameters` enabled; all `any` types in test files eliminated | `48f0dd9` |
 | FEAT-089 | Feature | Overlay custom CSS code editor — CSS textarea in OverlayStyle settings, `<style>` injection in Overlay component, `overlay:set-css` IPC handler, `.overlay-container/.overlay-text/.overlay-provider` class names | `83cd7d7` |
-| FEAT-063 | Feature | Screenshot saving to disk with timestamped filenames — auto-save in hotkey capture flow, directory picker UI in CaptureConfig, `capture:pick-directory` and `capture:save-screenshot` IPC handlers | `5623e94` |
+| FEAT-062 | Feature | Config import/export — export all settings as JSON for backup/migration, import with Zod schema validation, API keys redacted in export | `5623e94` |
+FEAT-063 | Feature | Screenshot saving to disk with timestamped filenames — auto-save in hotkey capture flow, directory picker UI in CaptureConfig, `capture:pick-directory` and `capture:save-screenshot` IPC handlers with timestamped filenames — auto-save in hotkey capture flow, directory picker UI in CaptureConfig, `capture:pick-directory` and `capture:save-screenshot` IPC handlers | `5623e94` |
 
 **Test suites (7 files, 133 tests total):**
 
@@ -109,7 +110,6 @@ Telemetry: `trackEvent()` function for anonymous event tracking
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-062 | Feature | Config import/export — Export all settings as JSON for backup/migration, and import with schema validation. | Medium | Low |
 | FEAT-064 | Feature | Visual hotkey picker — Replace text-input hotkey binding with a visual key combination recorder that captures key events. | Low | Low |
 | FEAT-065 | Feature | Overlay text selection — Allow selecting and copying text from the overlay for follow-up questions or reference. | Low | Low |
 | FEAT-066 | Feature | Overlay markdown rendering — Render AI responses as markdown (bold, lists, code blocks) in the overlay for better readability. | Medium | Low |
@@ -192,6 +192,7 @@ All Week 1–5 items from the original roadmap are complete:
 ---
 
 _Generated from codebase analysis. Updated: 2026-09-03_
+
 
 
 

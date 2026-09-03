@@ -771,6 +771,7 @@ Format: Use bullet points for multiple observations.
 - ✅ FEAT-060 — TypeScript strictness audit (noUnusedLocals, noUncheckedIndexedAccess)
 - ✅ FEAT-089 — Overlay custom CSS editor (CSS textarea, style injection, IPC handler)
 - ✅ FEAT-061 — Settings search/filter bar with keyword matching and tab highlighting
+- ✅ FEAT-062 — Config import/export (JSON backup/migration with schema validation, API key redaction)
 - ✅ FEAT-063 — Screenshot saving to disk with timestamped filenames (auto-save in hotkey, directory picker, directory browser)
 
 ### Medium Term
@@ -788,6 +789,7 @@ Format: Use bullet points for multiple observations.
 - Light theme refinement — Audit remaining Tailwind classes for full light-mode support
 - macOS and Linux support (currently Windows-only) — GDI+, PowerShell, and keytar Windows Credential Manager are Windows-specific
 - Ollama provider enhancements (model auto-detection, streaming)
+
 
 
 
