@@ -373,6 +373,33 @@ describe("ProviderManager", () => {
     });
   });
 
+  describe("getActiveProviderInfo", () => {
+    it("should return display name and model for active provider", () => {
+      const config = makeConfig(["openai1"]);
+      manager = new ProviderManager(config);
+
+      const info = manager.getActiveProviderInfo();
+      expect(info).toEqual({ displayName: "Mock", model: "openai1-model" });
+    });
+
+    it("should return undefined when provider is not configured", () => {
+      const config = makeConfig([]);
+      config.providers.gemini!.apiKey = "";
+      manager = new ProviderManager(config);
+
+      expect(manager.getActiveProviderInfo()).toBeUndefined();
+    });
+  });
+
+  describe("getActiveProviderName", () => {
+    it("should return the name of the active provider", () => {
+      const config = makeConfig(["openai1"]);
+      manager = new ProviderManager(config);
+
+      expect(manager.getActiveProviderName()).toBe("openai1");
+    });
+  });
+
   describe("streamAnalyze", () => {
     it("should yield cached response on cache hit", async () => {
       const config = makeConfig([]);
