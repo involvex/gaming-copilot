@@ -17,6 +17,8 @@ const schema = {
     hotkeyEnabled: { type: "boolean", default: true },
     monitorIndex: { type: "number", default: 0 },
     captureMode: { type: "string", default: "auto" },
+    saveScreenshots: { type: "boolean", default: false },
+    screenshotDir: { type: "string", default: null },
     activeProvider: { type: "string", default: "gemini" },
     useKeychain: { type: "boolean", default: true },
     providers: {
@@ -193,6 +195,8 @@ function getDefaultConfig(): AppConfig {
     hotkeyEnabled: true,
     monitorIndex: 0,
     captureMode: "auto",
+    saveScreenshots: false,
+    screenshotDir: null,
     providers: {},
     activeProvider: "gemini",
     useKeychain: true,

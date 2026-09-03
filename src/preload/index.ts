@@ -15,6 +15,9 @@ export interface ElectronAPI {
   setRecordDuration: (duration: number) => Promise<void>;
   exportConfig: () => Promise<AppConfig>;
   importConfig: (config: unknown) => Promise<boolean>;
+  pickScreenshotDir: () => Promise<string | null>;
+  setSaveScreenshots: (enabled: boolean, dir?: string | null) => Promise<void>;
+  saveScreenshot: (dataUrl: string) => Promise<boolean>;
 
   // AI
   analyze: (
@@ -98,6 +101,12 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke("config:set-generic", "recordDuration", duration),
   exportConfig: () => ipcRenderer.invoke("config:export"),
   importConfig: (config: unknown) => ipcRenderer.invoke("config:import", config),
+  pickScreenshotDir: () => ipcRenderer.invoke("capture:pick-directory"),
+  setSaveScreenshots: async (enabled: boolean, dir?: string | null) => {
+    await ipcRenderer.invoke("config:set-generic", "saveScreenshots", enabled);
+    await ipcRenderer.invoke("config:set-generic", "screenshotDir", dir ?? null);
+  },
+  saveScreenshot: (dataUrl: string) => ipcRenderer.invoke("capture:save-screenshot", dataUrl),
 
   // AI
   analyze: (imageBase64: string, userMessage?: string) =>

@@ -1,9 +1,11 @@
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
 import {
   app,
   BrowserWindow,
+  dialog,
   globalShortcut,
   ipcMain,
   Menu,
@@ -203,6 +205,19 @@ function registerHotkey(): void {
     const resizedMimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
     const resizedBase64 = resizedBuffer.toString("base64");
     const resizedDataUrl = `data:${resizedMimeType};base64,${resizedBase64}`;
+
+    if (appConfig.saveScreenshots && appConfig.screenshotDir) {
+      try {
+        const ext = result.format;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `gaming-copilot_${timestamp}.${ext}`;
+        await writeFile(join(appConfig.screenshotDir, filename), result.buffer);
+        logger.info("Capture", `Screenshot saved: ${join(appConfig.screenshotDir, filename)}`);
+        trackEvent("screenshot_saved", { format: ext });
+      } catch (error) {
+        logger.error("Capture", `Failed to save screenshot: ${error}`);
+      }
+    }
 
     overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
     overlayWindow?.show();
@@ -820,6 +835,46 @@ ipcMain.handle("config:import", async (_event, config: unknown) => {
   setConfigValue("prompts", appConfig.prompts);
   logger.info("Config", "Configuration imported successfully");
   return true;
+});
+
+// IPC Handlers — Screenshot Saving
+ipcMain.handle("capture:pick-directory", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory", "createDirectory"],
+    title: "Select screenshot save directory",
+  });
+  if (!result.canceled && result.filePaths[0]) {
+    appConfig.screenshotDir = result.filePaths[0];
+    setConfigValue("screenshotDir", appConfig.screenshotDir);
+    return appConfig.screenshotDir;
+  }
+  return null;
+});
+
+ipcMain.handle("capture:save-screenshot", async (_event, dataUrl: unknown) => {
+  const validUrl = validateIPC(z.string().url(), dataUrl);
+  if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
+    return false;
+  }
+  try {
+    const base64Match = validUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!base64Match?.[1] || !base64Match[2]) {
+      logger.warn("Capture", "Failed to save screenshot: invalid data URL format");
+      return false;
+    }
+    const mimeType = base64Match[1];
+    const ext = mimeType.replace("image/", "");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `gaming-copilot_${timestamp}.${ext}`;
+    const filepath = join(appConfig.screenshotDir, filename);
+    const buffer = Buffer.from(base64Match[2], "base64");
+    await writeFile(filepath, buffer);
+    logger.info("Capture", `Screenshot saved: ${filepath}`);
+    return true;
+  } catch (error) {
+    logger.error("Capture", `Failed to save screenshot: ${error}`);
+    return false;
+  }
 });
 
 // IPC Handlers — Chat History

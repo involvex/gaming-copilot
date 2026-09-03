@@ -74,6 +74,8 @@ export interface AppConfig {
   hotkeyEnabled: boolean;
   monitorIndex: number;
   captureMode: "auto" | "window" | "fullscreen" | "gdi";
+  saveScreenshots: boolean;
+  screenshotDir: string | null;
 
   // Providers
   providers: {

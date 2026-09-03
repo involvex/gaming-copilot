@@ -77,6 +77,9 @@ export default function Settings() {
         "gdi",
         "jpeg",
         "image",
+        "save",
+        "directory",
+        "auto-start",
       ],
     },
     {
@@ -288,6 +291,12 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   const [recordDuration, setRecordDuration] = useState<number>(
     (config?.recordDuration as number) || 10,
   );
+  const [saveScreenshots, setSaveScreenshots] = useState<boolean>(
+    (config?.saveScreenshots as boolean) ?? false,
+  );
+  const [screenshotDir, setScreenshotDir] = useState<string>(
+    (config?.screenshotDir as string) || "",
+  );
   const [screens, setScreens] = useState<Array<{ index: number; name: string; primary: boolean }>>(
     [],
   );
@@ -367,6 +376,31 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         setHotkey(hotkeyInput.trim());
         setHotkeyInput("");
       }
+    }
+  };
+
+  const handleSaveScreenshotsToggle = async () => {
+    const newValue = !saveScreenshots;
+    setSaveScreenshots(newValue);
+    if (newValue && !screenshotDir) {
+      const dir = await window.electronAPI.pickScreenshotDir();
+      if (dir) {
+        setScreenshotDir(dir);
+        await window.electronAPI.setSaveScreenshots(newValue, dir);
+      } else {
+        setSaveScreenshots(false);
+        await window.electronAPI.setSaveScreenshots(false, null);
+      }
+    } else {
+      await window.electronAPI.setSaveScreenshots(newValue, screenshotDir || null);
+    }
+  };
+
+  const handleScreenshotDirChange = async () => {
+    const dir = await window.electronAPI.pickScreenshotDir();
+    if (dir) {
+      setScreenshotDir(dir);
+      await window.electronAPI.setSaveScreenshots(saveScreenshots, dir);
     }
   };
 
@@ -602,6 +636,59 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
           }}
           className="w-full"
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor="save-screenshots"
+          className="flex items-center justify-between cursor-pointer"
+        >
+          <span className="text-sm font-medium text-gray-300">Save Screenshots</span>
+          <button
+            id="save-screenshots"
+            type="button"
+            onClick={handleSaveScreenshotsToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              saveScreenshots ? "bg-blue-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                saveScreenshots ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+        <p className="text-xs text-gray-500 mt-1">
+          When enabled, captured screenshots are automatically saved to the selected directory with
+          timestamped filenames.
+        </p>
+        {saveScreenshots && (
+          <div className="mt-3 space-y-2">
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={screenshotDir}
+                onChange={(e) => setScreenshotDir(e.target.value)}
+                placeholder="C:\Screenshots"
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handleScreenshotDirChange}
+                className="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+              >
+                Browse
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Files will be saved as{" "}
+              <code className="bg-gray-700 px-1 rounded">
+                gaming-copilot_yyyy-mm-dd-hh-mm-ss.jpg
+              </code>
+            </p>
+          </div>
+        )}
       </div>
 
       <div>
