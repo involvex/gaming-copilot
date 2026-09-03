@@ -22,6 +22,7 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-016 | Performance | AI response caching with 60s TTL (SHA-1 keyed, clear cache button) | `#10` |
 | FEAT-024 | Feature | Overlay click-through toggle UI + IPC handler | `#8` |
 | FEAT-011 | Feature | Custom OpenAI-compatible endpoint management (add/remove/test) | `#12` |
+| FEAT-012 | Feature | Per-game system prompts UI with config wiring in hotkey/IPI handlers | `#13` |
 
 ---
 
