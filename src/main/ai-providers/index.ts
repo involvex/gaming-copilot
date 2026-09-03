@@ -1,11 +1,21 @@
+import { createHash } from "node:crypto";
+
 import type { AppConfig } from "../../shared/types";
 import { GeminiProvider } from "./gemini";
 import { OpenAICompatProvider } from "./openai-compat";
 import type { AIProvider, AIResponse, StreamChunk } from "./types";
 
+const CACHE_TTL_MS = 60_000;
+
+interface CacheEntry {
+  response: AIResponse;
+  expiresAt: number;
+}
+
 export class ProviderManager {
   private providers: AIProvider[] = [];
   private activeProviderName: string;
+  private cache: Map<string, CacheEntry> = new Map();
 
   constructor(config: AppConfig) {
     this.activeProviderName = config.activeProvider;
@@ -48,6 +58,33 @@ export class ProviderManager {
     this.activeProviderName = name;
   }
 
+  private getCacheKey(imageBase64: string, systemPrompt: string, userMessage: string): string {
+    return createHash("sha1")
+      .update(imageBase64 + systemPrompt + userMessage)
+      .digest("hex");
+  }
+
+  private getCachedResponse(cacheKey: string): AIResponse | undefined {
+    const entry = this.cache.get(cacheKey);
+    if (!entry) return undefined;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(cacheKey);
+      return undefined;
+    }
+    return entry.response;
+  }
+
+  private setCachedResponse(cacheKey: string, response: AIResponse): void {
+    this.cache.set(cacheKey, {
+      response,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
+
   async analyze(
     imageBase64: string,
     mimeType: "image/png" | "image/jpeg",
@@ -55,6 +92,12 @@ export class ProviderManager {
     userMessage: string,
     context?: string,
   ): Promise<AIResponse> {
+    const cacheKey = this.getCacheKey(imageBase64, systemPrompt, userMessage);
+    const cached = this.getCachedResponse(cacheKey);
+    if (cached) {
+      return { ...cached, timestamp: Date.now() };
+    }
+
     const available = this.getAvailableProviders();
     if (available.length === 0) {
       throw new Error("No AI providers configured. Add an API key in Settings.");
@@ -71,13 +114,15 @@ export class ProviderManager {
       if (rateLimit.remaining.minute <= 0) continue;
 
       try {
-        return await provider.analyze({
+        const response = await provider.analyze({
           imageBase64,
           mimeType,
           systemPrompt,
           userMessage,
           context,
         });
+        this.setCachedResponse(cacheKey, response);
+        return response;
       } catch (error) {
         console.error(`Provider ${provider.name} failed:`, error);
       }
@@ -112,6 +157,14 @@ export class ProviderManager {
     userMessage: string,
     context?: string,
   ): AsyncGenerator<StreamChunk> {
+    const cacheKey = this.getCacheKey(imageBase64, systemPrompt, userMessage);
+    const cached = this.getCachedResponse(cacheKey);
+    if (cached) {
+      yield { text: cached.text, done: false };
+      yield { text: "", done: true };
+      return;
+    }
+
     const available = this.getAvailableProviders();
     if (available.length === 0) {
       throw new Error("No AI providers configured. Add an API key in Settings.");
@@ -128,13 +181,30 @@ export class ProviderManager {
       if (rateLimit.remaining.minute <= 0) continue;
 
       try {
-        yield* provider.streamAnalyze({
+        let fullText = "";
+        for await (const chunk of provider.streamAnalyze({
           imageBase64,
           mimeType,
           systemPrompt,
           userMessage,
           context,
-        });
+        })) {
+          if (!chunk.done) {
+            fullText += chunk.text;
+            yield chunk;
+          }
+        }
+        if (fullText) {
+          this.setCachedResponse(cacheKey, {
+            text: fullText,
+            provider: provider.name,
+            model: provider.name,
+            tokens: { input: 0, output: 0 },
+            latencyMs: 0,
+            timestamp: Date.now(),
+          });
+        }
+        yield { text: "", done: true };
         return;
       } catch (error) {
         lastError = error;

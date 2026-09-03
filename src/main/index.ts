@@ -328,6 +328,12 @@ ipcMain.handle("ai:get-providers", () => {
   }));
 });
 
+ipcMain.handle("ai:clear-cache", () => {
+  if (!providerManager) return false;
+  providerManager.clearCache();
+  return true;
+});
+
 // IPC Handlers — Config
 ipcMain.handle("config:set-game-exe", (_event, exe: string) => {
   gameExe = exe;

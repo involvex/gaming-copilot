@@ -226,6 +226,19 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
           {testing === "kilo" ? "Testing..." : "Test Connection"}
         </button>
       </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={async () => {
+            await window.electronAPI.clearCache();
+          }}
+          className="bg-gray-600 hover:bg-gray-500 px-3 py-1.5 rounded text-sm transition-colors"
+        >
+          Clear Response Cache
+        </button>
+        <p className="text-xs text-gray-500 mt-1">Cached AI responses expire after 60 seconds.</p>
+      </div>
     </div>
   );
 }

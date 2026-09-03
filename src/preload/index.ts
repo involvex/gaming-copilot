@@ -22,6 +22,7 @@ export interface ElectronAPI {
     onError: (error: string) => void,
   ) => void;
   testProvider: (name: string) => Promise<boolean>;
+  clearCache: () => Promise<boolean>;
   getProviders: () => Promise<Array<{ name: string; displayName: string; rateLimit: unknown }>>;
 
   // Overlay
@@ -79,6 +80,7 @@ const electronAPI: ElectronAPI = {
   },
   testProvider: (name: string) => ipcRenderer.invoke("ai:test-provider", name),
   getProviders: () => ipcRenderer.invoke("ai:get-providers"),
+  clearCache: () => ipcRenderer.invoke("ai:clear-cache"),
 
   // Overlay
   showOverlay: (text: string) => ipcRenderer.invoke("overlay:show", text),
