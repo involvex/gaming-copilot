@@ -4,120 +4,117 @@ import type { AppConfig, ChatMessage } from "../shared/types";
 import { logger } from "./logger";
 
 const schema = {
-  type: "object",
-  properties: {
-    hotkey: { type: "string", default: "CommandOrControl+Shift+G" },
-    autoStart: { type: "boolean", default: false },
-    minimizeToTray: { type: "boolean", default: true },
-    notifications: { type: "boolean", default: true },
-    theme: { type: "string", default: "dark" },
-    gameExe: { type: "string", default: "" },
-    captureQuality: { type: "number", default: 85 },
-    maxImageWidth: { type: "number", default: 1024 },
-    hotkeyEnabled: { type: "boolean", default: true },
-    monitorIndex: { type: "number", default: 0 },
-    captureMode: { type: "string", default: "auto" },
-    saveScreenshots: { type: "boolean", default: false },
-    screenshotDir: { type: ["string", "null"], default: null },
-    activeProvider: { type: "string", default: "gemini" },
-    useKeychain: { type: "boolean", default: true },
-    providers: {
-      type: "object",
-      properties: {
-        gemini: {
-          type: "object",
-          properties: {
-            apiKey: { type: "string", default: "" },
-            model: { type: "string", default: "gemini-2.5-flash" },
-            grounding: { type: "boolean", default: true },
-          },
-          default: {},
+  hotkey: { type: "string", default: "CommandOrControl+Shift+G" },
+  autoStart: { type: "boolean", default: false },
+  minimizeToTray: { type: "boolean", default: true },
+  notifications: { type: "boolean", default: true },
+  theme: { type: "string", default: "dark" },
+  gameExe: { type: "string", default: "" },
+  captureQuality: { type: "number", default: 85 },
+  maxImageWidth: { type: "number", default: 1024 },
+  hotkeyEnabled: { type: "boolean", default: true },
+  monitorIndex: { type: "number", default: 0 },
+  captureMode: { type: "string", default: "auto" },
+  saveScreenshots: { type: "boolean", default: false },
+  activeProvider: { type: "string", default: "gemini" },
+  useKeychain: { type: "boolean", default: true },
+  providers: {
+    type: "object",
+    properties: {
+      gemini: {
+        type: "object",
+        properties: {
+          apiKey: { type: "string", default: "" },
+          model: { type: "string", default: "gemini-2.5-flash" },
+          grounding: { type: "boolean", default: true },
         },
-        openaiCompat: {
-          type: "object",
-          properties: {
-            endpoints: { type: "array", default: [] },
-          },
-          default: { endpoints: [] },
+        default: {},
+      },
+      openaiCompat: {
+        type: "object",
+        properties: {
+          endpoints: { type: "array", default: [] },
         },
+        default: { endpoints: [] },
       },
-      default: {},
     },
-    overlay: {
-      type: "object",
-      properties: {
-        position: { type: "string", default: "bottom-right" },
-        duration: { type: "number", default: 8000 },
-        opacity: { type: "number", default: 0.9 },
-        fontSize: { type: "number", default: 14 },
-        theme: { type: "string", default: "system" },
-        clickThrough: { type: "boolean", default: true },
-      },
-      default: {},
-    },
-    overlayCustomTheme: {
-      type: "object",
-      properties: {
-        backgroundColor: { type: "string", default: "#111827" },
-        textColor: { type: "string", default: "#ffffff" },
-        borderRadius: { type: "number", default: 8 },
-        padding: { type: "number", default: 16 },
-        borderColor: { type: "string", default: "#374151" },
-      },
-      default: {},
-    },
-    tts: {
-      type: "object",
-      properties: {
-        enabled: { type: "boolean", default: false },
-        voice: { type: "string", default: "" },
-        rate: { type: "number", default: 1.0 },
-        pitch: { type: "number", default: 1.0 },
-        volume: { type: "number", default: 0.8 },
-      },
-      default: {},
-    },
-    plugins: {
-      type: "object",
-      properties: {
-        bunMemreader: {
-          type: "object",
-          properties: {
-            enabled: { type: "boolean", default: false },
-            port: { type: "number", default: 31337 },
-            autoStart: { type: "boolean", default: false },
-          },
-          default: {},
-        },
-      },
-      default: {},
-    },
-    prompts: {
-      type: "object",
-      properties: {
-        system: { type: "string", default: DEFAULT_SYSTEM_PROMPT },
-        gameSpecific: { type: "object", default: {} },
-      },
-      default: {},
-    },
-    ocr: {
-      type: "object",
-      properties: {
-        enabled: { type: "boolean", default: true },
-        language: { type: "string", default: "eng" },
-      },
-      default: {},
-    },
-    recordDuration: { type: "number", default: 10 },
-    telemetry: {
-      type: "object",
-      properties: {
-        enabled: { type: "boolean", default: false },
-      },
-      default: {},
-    },
+    default: {},
   },
-  default: {},
+  overlay: {
+    type: "object",
+    properties: {
+      position: { type: "string", default: "bottom-right" },
+      duration: { type: "number", default: 8000 },
+      opacity: { type: "number", default: 0.9 },
+      fontSize: { type: "number", default: 14 },
+      theme: { type: "string", default: "system" },
+      clickThrough: { type: "boolean", default: true },
+      customCSS: { type: "string", default: "" },
+    },
+    default: {},
+  },
+  overlayCustomTheme: {
+    type: "object",
+    properties: {
+      backgroundColor: { type: "string", default: "#111827" },
+      textColor: { type: "string", default: "#ffffff" },
+      borderRadius: { type: "number", default: 8 },
+      padding: { type: "number", default: 16 },
+      borderColor: { type: "string", default: "#374151" },
+    },
+    default: {},
+  },
+  tts: {
+    type: "object",
+    properties: {
+      enabled: { type: "boolean", default: false },
+      voice: { type: "string", default: "" },
+      rate: { type: "number", default: 1.0 },
+      pitch: { type: "number", default: 1.0 },
+      volume: { type: "number", default: 0.8 },
+    },
+    default: {},
+  },
+  plugins: {
+    type: "object",
+    properties: {
+      bunMemreader: {
+        type: "object",
+        properties: {
+          enabled: { type: "boolean", default: false },
+          port: { type: "number", default: 31337 },
+          autoStart: { type: "boolean", default: false },
+        },
+        default: {},
+      },
+    },
+    default: {},
+  },
+  prompts: {
+    type: "object",
+    properties: {
+      system: { type: "string", default: DEFAULT_SYSTEM_PROMPT },
+      gameSpecific: { type: "object", default: {} },
+    },
+    default: {},
+  },
+  ocr: {
+    type: "object",
+    properties: {
+      enabled: { type: "boolean", default: true },
+      language: { type: "string", default: "eng" },
+    },
+    default: {},
+  },
+  recordDuration: { type: "number", default: 10 },
+  telemetry: {
+    type: "object",
+    properties: {
+      enabled: { type: "boolean", default: false },
+    },
+    default: {},
+  },
+  screenshotDir: { type: ["string", "null"], default: null },
 } as const;
 
 let store: Store<AppConfig>;
@@ -196,7 +193,6 @@ function getDefaultConfig(): AppConfig {
     monitorIndex: 0,
     captureMode: "auto",
     saveScreenshots: false,
-    screenshotDir: null,
     providers: {},
     activeProvider: "gemini",
     useKeychain: true,
