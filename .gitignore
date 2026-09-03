@@ -6,5 +6,3 @@ out/
 .DS_Store
 Thumbs.db
 eng.traineddata
-# Husky internals are not needed in the repo
-.husky/_/
