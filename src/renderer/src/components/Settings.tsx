@@ -46,11 +46,10 @@ export default function Settings() {
     };
     loadConfig();
 
-    const stopListening = window.electronAPI.onConfigUpdated(() => {
+    window.electronAPI.onConfigUpdated(() => {
       loadConfig();
     });
     return () => {
-      stopListening();
       window.electronAPI.removeAllListeners("config:updated");
     };
   }, []);
