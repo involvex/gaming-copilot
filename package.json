@@ -13,6 +13,7 @@
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
+    "format:check": "biome check src/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -19,17 +19,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Format check
-        run: biome format --check src/
-
-      - name: Lint
-        run: biome check src/
+      - name: Lint and format check
+        run: bunx biome check src/
 
       - name: Type check
-        run: tsc --noEmit
+        run: bunx tsc --noEmit
 
       - name: Build
-        run: electron-vite build
+        run: bunx electron-vite build
 
       - name: Run tests
         run: bun run test
