@@ -123,6 +123,11 @@ export default function Settings() {
         "minimize",
         "tray",
         "windows",
+        "export",
+        "import",
+        "config",
+        "backup",
+        "restore",
       ],
     },
   ];
@@ -743,6 +748,31 @@ function GeneralConfig({
     await window.electronAPI.checkForUpdates("install");
   };
 
+  const [importStatus, setImportStatus] = useState<{
+    message: string;
+    success: boolean;
+  } | null>(null);
+
+  const handleImportConfig = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const config = JSON.parse(text) as Record<string, unknown>;
+      await window.electronAPI.importConfig(config);
+      setImportStatus({
+        message: "Configuration imported successfully! Please restart the app.",
+        success: true,
+      });
+    } catch (error) {
+      setImportStatus({
+        message: `Import failed: ${error instanceof Error ? error.message : String(error)}`,
+        success: false,
+      });
+    }
+  };
+
   const handleExport = async (format: "markdown" | "json") => {
     try {
       const content = await window.electronAPI.exportChatHistory(format);
@@ -895,6 +925,75 @@ function GeneralConfig({
             >
               Check for Updates
             </button>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="config-export">
+          Configuration Backup &amp; Restore
+        </label>
+        <p className="text-xs text-gray-500 mb-3">
+          Export your app settings to a JSON file for backup or migration. API keys are redacted in
+          the exported file for security — re-enter them after importing.
+        </p>
+        <div className="flex flex-col gap-3">
+          <button
+            id="config-export"
+            type="button"
+            onClick={async () => {
+              try {
+                const cfg = await window.electronAPI.exportConfig();
+                const blob = new Blob([JSON.stringify(cfg, null, 2)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "gaming-copilot-config.json";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error("Config export failed:", error);
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start"
+          >
+            Export Config
+          </button>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              id="config-import"
+              accept=".json,application/json"
+              onChange={handleImportConfig}
+              className="hidden"
+            />
+            <label
+              htmlFor="config-import"
+              className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors inline-block"
+              data-light={resolvedTheme === "light" ? "" : undefined}
+            >
+              Choose Config File
+            </label>
+            <button
+              id="config-import-btn"
+              type="button"
+              onClick={() => document.getElementById("config-import")?.click()}
+              className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              data-light={resolvedTheme === "light" ? "" : undefined}
+            >
+              Import
+            </button>
+          </div>
+
+          {importStatus?.message && (
+            <p className={`text-xs ${importStatus.success ? "text-green-400" : "text-red-400"}`}>
+              {importStatus.message}
+            </p>
           )}
         </div>
       </div>

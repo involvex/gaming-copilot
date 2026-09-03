@@ -35,6 +35,7 @@ import {
   captureModeSchema,
   chatFormatSchema,
   chatMessageSchema,
+  configImportSchema,
   endpointConfigSchema,
   exeNameSchema,
   geminiProviderConfigSchema,
@@ -771,6 +772,53 @@ ipcMain.handle("config:set-hotkey-enabled", (_event, enabled: unknown) => {
     unregisterHotkey();
   }
   logger.info("Hotkey", `Hotkey enabled: ${enabled}`);
+  return true;
+});
+
+ipcMain.handle("config:export", () => {
+  const safeCopy = JSON.parse(JSON.stringify(appConfig)) as typeof appConfig;
+  safeCopy.providers = { gemini: undefined, openaiCompat: undefined };
+  if (appConfig.providers.gemini) {
+    safeCopy.providers.gemini = {
+      ...appConfig.providers.gemini,
+      apiKey: "[REDACTED]",
+    };
+  }
+  if (appConfig.providers.openaiCompat?.endpoints) {
+    safeCopy.providers.openaiCompat = {
+      endpoints: appConfig.providers.openaiCompat.endpoints.map((ep) => ({
+        ...ep,
+        apiKey: "[REDACTED]",
+      })),
+    };
+  }
+  return safeCopy;
+});
+
+ipcMain.handle("config:import", async (_event, config: unknown) => {
+  const parsed = validateIPC(configImportSchema, config);
+  const overlayParsed = validateIPC(overlayConfigSchema, parsed.overlay || {});
+  const ttsParsed = validateIPC(ttsConfigSchema, parsed.tts || {});
+  const promptsParsed = validateIPC(promptsConfigSchema, parsed.prompts || {});
+  for (const [key, value] of Object.entries(parsed)) {
+    if (
+      key !== "providers" &&
+      key !== "telemetry" &&
+      key !== "overlay" &&
+      key !== "tts" &&
+      key !== "prompts"
+    ) {
+      appConfig[key] = value;
+      setConfigValue(key, value);
+    }
+  }
+  appConfig.overlay = { ...appConfig.overlay, ...overlayParsed };
+  setConfigValue("overlay", appConfig.overlay);
+  appConfig.tts = { ...appConfig.tts, ...ttsParsed };
+  setConfigValue("tts", appConfig.tts);
+  appConfig.prompts = { ...appConfig.prompts, ...promptsParsed };
+  setConfigValue("prompts", appConfig.prompts);
+  logger.info("Config", "Configuration imported successfully");
   return true;
 });
 

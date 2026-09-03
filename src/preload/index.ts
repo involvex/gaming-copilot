@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { AppConfig } from "../shared/types";
 
 export interface ElectronAPI {
   // Capture
@@ -12,6 +13,8 @@ export interface ElectronAPI {
     region: { x: number; y: number; width: number; height: number } | null,
   ) => Promise<void>;
   setRecordDuration: (duration: number) => Promise<void>;
+  exportConfig: () => Promise<AppConfig>;
+  importConfig: (config: unknown) => Promise<boolean>;
 
   // AI
   analyze: (
@@ -93,6 +96,8 @@ const electronAPI: ElectronAPI = {
   setCaptureRegion: (region) => ipcRenderer.invoke("capture:set-region", region),
   setRecordDuration: (duration: number) =>
     ipcRenderer.invoke("config:set-generic", "recordDuration", duration),
+  exportConfig: () => ipcRenderer.invoke("config:export"),
+  importConfig: (config: unknown) => ipcRenderer.invoke("config:import", config),
 
   // AI
   analyze: (imageBase64: string, userMessage?: string) =>
