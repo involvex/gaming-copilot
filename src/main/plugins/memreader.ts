@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { logger } from "../logger";
 
 export interface GameState {
   hp: number;
@@ -50,7 +51,7 @@ export class MemreaderPlugin {
 
     const binPath = join(this.memreaderPath, "bin/memreader.ts");
     if (!existsSync(binPath)) {
-      console.error(`[Memreader] bun-memreader not found at ${binPath}`);
+      logger.error("Memreader", `bun-memreader not found at ${binPath}`);
       return;
     }
 
@@ -62,16 +63,16 @@ export class MemreaderPlugin {
 
       this.process.stdout?.on("data", (data: Buffer) => {
         const line = data.toString().trim();
-        if (line) console.log(`[Memreader] ${line}`);
+        if (line) logger.info("Memreader", line);
       });
 
       this.process.stderr?.on("data", (data: Buffer) => {
         const line = data.toString().trim();
-        if (line) console.error(`[Memreader] ${line}`);
+        if (line) logger.error("Memreader", line);
       });
 
       this.process.on("exit", (code) => {
-        console.log(`[Memreader] Process exited with code ${code}`);
+        logger.info("Memreader", `Process exited with code ${code}`);
         this.process = null;
         this.stopPolling();
       });
@@ -79,9 +80,9 @@ export class MemreaderPlugin {
       // Wait briefly for server to start, then begin polling
       await new Promise((r) => setTimeout(r, 1500));
       this.startPolling();
-      console.log(`[Memreader] Started on port ${this.config.port}`);
+      logger.info("Memreader", `Started on port ${this.config.port}`);
     } catch (error) {
-      console.error("[Memreader] Failed to start:", error);
+      logger.errorWithStack("Memreader", "Failed to start", error);
     }
   }
 
@@ -107,6 +108,7 @@ export class MemreaderPlugin {
   }
 
   updateConfig(config: Partial<MemreaderConfig>): void {
+    const oldPort = this.config.port;
     this.config = { ...this.config, ...config };
     if (config.enabled !== undefined) {
       if (config.enabled && !this.process) {
@@ -114,6 +116,11 @@ export class MemreaderPlugin {
       } else if (!config.enabled && this.process) {
         this.stop();
       }
+    }
+    if (config.port !== undefined && oldPort !== config.port && this.pollTimer) {
+      this.stopPolling();
+      this.startPolling();
+      logger.info("Memreader", `Polling restarted on port ${config.port}`);
     }
   }
 
