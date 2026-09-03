@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemreaderPlugin } from "../memreader";
@@ -98,7 +98,7 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       expect(spawnMock).toHaveBeenCalledTimes(1);
@@ -139,7 +139,7 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
 
@@ -158,7 +158,7 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
 
@@ -175,12 +175,12 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ hp: 100, mp: 50, level: 5 }),
-      } as any);
+      } as unknown as Response);
 
       await startPlugin(plugin);
       vi.advanceTimersByTime(2000);
@@ -202,7 +202,7 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       plugin.stop();
@@ -228,10 +228,10 @@ describe("MemreaderPlugin", () => {
             mapName: "TestMap",
             className: "Warrior",
           }),
-      } as any);
+      } as unknown as Response);
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       vi.advanceTimersByTime(2000);
@@ -300,10 +300,10 @@ describe("MemreaderPlugin", () => {
             pos: { x: 10.5, y: 20.3, z: 5.0 },
             targets: [{ name: "Goblin", hp: 30, distance: 5 }],
           }),
-      } as any);
+      } as unknown as Response);
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       vi.advanceTimersByTime(2000);
@@ -353,10 +353,10 @@ describe("MemreaderPlugin", () => {
       vi.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ hp: 100, mp: 50 }),
-      } as any);
+      } as unknown as Response);
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       vi.advanceTimersByTime(2000);
@@ -379,7 +379,7 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       plugin.updateConfig({ enabled: true });
 
@@ -397,7 +397,7 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       expect(plugin.isConnected()).toBe(true);
@@ -415,12 +415,12 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       vi.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ hp: 100 }),
-      } as any);
+      } as unknown as Response);
 
       await startPlugin(plugin);
 
@@ -449,7 +449,7 @@ describe("MemreaderPlugin", () => {
       });
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       expect(plugin.isConnected()).toBe(true);
@@ -472,10 +472,10 @@ describe("MemreaderPlugin", () => {
             mp: undefined,
             level: 0,
           }),
-      } as any);
+      } as unknown as Response);
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       vi.advanceTimersByTime(2000);
@@ -504,10 +504,10 @@ describe("MemreaderPlugin", () => {
             hp: 100,
             mp: 50,
           }),
-      } as any);
+      } as unknown as Response);
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       vi.advanceTimersByTime(2000);
@@ -536,10 +536,10 @@ describe("MemreaderPlugin", () => {
               { name: "", hp: null, distance: undefined },
             ],
           }),
-      } as any);
+      } as unknown as Response);
 
       const mockChild = makeMockChild();
-      spawnMock.mockReturnValue(mockChild as any);
+      spawnMock.mockReturnValue(mockChild as unknown as ChildProcess);
 
       await startPlugin(plugin);
       vi.advanceTimersByTime(2000);

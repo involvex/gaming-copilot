@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "../../../shared/types";
 import { ProviderManager } from "../index";
-import type { AIProvider, AIResponse, RateLimitInfo, StreamChunk } from "../types";
+import type {
+  AIProvider,
+  AIResponse,
+  OpenAICompatConfig,
+  RateLimitInfo,
+  StreamChunk,
+} from "../types";
 
 const DEFAULT_RATE_LIMIT: RateLimitInfo = {
   rpm: 60,
@@ -97,7 +103,7 @@ vi.mock("../openai-compat", () => {
   return {
     OpenAICompatProvider: vi
       .fn()
-      .mockImplementation((config: any) => new MockProvider(config.name)),
+      .mockImplementation((config: OpenAICompatConfig) => new MockProvider(config.name)),
   };
 });
 

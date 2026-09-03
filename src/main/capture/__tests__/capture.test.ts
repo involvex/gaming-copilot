@@ -41,13 +41,13 @@ const makeMockImage = (opts: { isEmpty?: boolean; width?: number; height?: numbe
 });
 
 describe("capture module", () => {
-  let resizeImage: any;
-  let captureFullScreen: any;
-  let captureWindowByExe: any;
-  let captureWithGDI: any;
-  let recordScreen: any;
-  let smartCapture: any;
-  let compositeFrames: any;
+  let resizeImage: typeof import("../index").resizeImage;
+  let captureFullScreen: typeof import("../index").captureFullScreen;
+  let captureWindowByExe: typeof import("../index").captureWindowByExe;
+  let captureWithGDI: typeof import("../index").captureWithGDI;
+  let recordScreen: typeof import("../index").recordScreen;
+  let smartCapture: typeof import("../index").smartCapture;
+  let compositeFrames: typeof import("../index").compositeFrames;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -409,10 +409,12 @@ describe("capture module", () => {
 
       mockNativeImage.createFromBuffer.mockReturnValue(makeMockImage({ width: 320, height: 180 }));
 
-      vi.spyOn(global, "setTimeout").mockImplementation((cb: any) => {
-        if (typeof cb === "function") cb();
-        return 0 as any;
-      });
+      vi.spyOn(global, "setTimeout").mockImplementation(
+        (cb: () => void, _ms?: number): NodeJS.Timeout => {
+          if (typeof cb === "function") cb();
+          return 0 as unknown as NodeJS.Timeout;
+        },
+      );
 
       const result = await recordScreen(2, 90, 0, 2);
       expect(result).not.toBeNull();
