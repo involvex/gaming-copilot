@@ -15,15 +15,13 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-006 | Bug Fix | Wired up `captureQuality` config — JPEG compression for screenshots, dynamic MIME types | `#4` |
 | FEAT-035 | DevEx | Added GitHub Actions CI workflow with format, lint, typecheck, build, and test steps | `#2` |
 | FEAT-039 | Security | Added exe name validation (`SAFE_EXE_PATTERN`) in `findProcessByExe` and `capture:check-game` IPC handler | `#4` |
-| FEAT-005 | Feature | Wire up auto-start with Windows (`app.setLoginItemSettings` + IPC handler + UI toggle) | `#5` |
-| FEAT-006 | Bug Fix | Wire up `captureQuality` config (JPEG compression via `resizeImage`) | `#4` |
 | FEAT-007 | Performance | Resize screenshots to max 1024px width before sending to AI | `#4` |
 | TECH-008 | Refactor | Fixed `Overlay.tsx` to read `duration`, `position`, `opacity`, `fontSize` from config | `#3` |
 | FEAT-003 | Feature | Configurable hotkey (runtime re-registration via IPC) | `#8` |
-| FEAT-004 | Bug Fix | Fixed Overlay config values (duration, position, opacity, fontSize) | `#3` |
 | FEAT-009 | Feature | Streaming AI responses (AsyncGenerator, typewriter effect, SSE parsing) | `#8` |
 | FEAT-016 | Performance | AI response caching with 60s TTL (SHA-1 keyed, clear cache button) | `#10` |
 | FEAT-024 | Feature | Overlay click-through toggle UI + IPC handler | `#8` |
+| FEAT-011 | Feature | Custom OpenAI-compatible endpoint management (add/remove/test) | `#12` |
 
 ---
 

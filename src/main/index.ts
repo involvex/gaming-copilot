@@ -124,11 +124,17 @@ function registerHotkey(): void {
 
     if (providerManager && providerManager.getAvailableProviders().length > 0) {
       try {
+        const systemPrompt = appConfig.prompts.system;
+        const gameSpecificPrompt = gameExe ? appConfig.prompts.gameSpecific?.[gameExe] : undefined;
+        const finalPrompt = gameSpecificPrompt
+          ? `${systemPrompt}\n\n${gameSpecificPrompt}`
+          : systemPrompt;
+
         let fullText = "";
         for await (const chunk of providerManager.streamAnalyze(
           resizedBase64,
           resizedMimeType,
-          appConfig.prompts.system,
+          finalPrompt,
           "Analyze this game screenshot.",
         )) {
           if (chunk.done) {
@@ -299,12 +305,17 @@ ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?:
     return;
   }
 
+  const gameSpecificPrompt = gameExe ? appConfig.prompts.gameSpecific?.[gameExe] : undefined;
+  const finalPrompt = gameSpecificPrompt
+    ? `${appConfig.prompts.system}\n\n${gameSpecificPrompt}`
+    : appConfig.prompts.system;
+
   try {
     let fullText = "";
     for await (const chunk of providerManager.streamAnalyze(
       imageBase64,
       "image/png",
-      appConfig.prompts.system,
+      finalPrompt,
       userMessage || "Analyze this game screenshot.",
     )) {
       if (!chunk.done) {
