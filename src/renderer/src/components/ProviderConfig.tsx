@@ -30,6 +30,16 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
   );
 
   const [testing, setTesting] = useState<string | null>(null);
+  const [customProviders, setCustomProviders] = useState<Array<Record<string, unknown>>>([]);
+  const [newCustomName, setNewCustomName] = useState("");
+  const [newCustomBaseUrl, setNewCustomBaseUrl] = useState("");
+  const [newCustomKey, setNewCustomKey] = useState("");
+  const [newCustomModel, setNewCustomModel] = useState("gpt-4-vision-preview");
+
+  useEffect(() => {
+    const custom = endpoints.filter((e) => !["zen", "kilo"].includes(e.name as string));
+    setCustomProviders(custom);
+  }, [endpoints]);
 
   useEffect(() => {
     const geminiProvider_ = providers.gemini as Record<string, unknown> | undefined;
@@ -79,6 +89,24 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     const ok = await window.electronAPI.testProvider(name);
     setTesting(null);
     alert(ok ? `${name} connected successfully!` : `${name} failed. Check your API key.`);
+  };
+
+  const handleAddCustomProvider = async () => {
+    if (!newCustomName.trim() || !newCustomBaseUrl.trim() || !newCustomKey.trim()) return;
+    await window.electronAPI.setProvider(newCustomName.trim(), {
+      apiKey: newCustomKey,
+      baseUrl: newCustomBaseUrl.trim(),
+      model: newCustomModel,
+    });
+    setNewCustomName("");
+    setNewCustomBaseUrl("");
+    setNewCustomKey("");
+    setNewCustomModel("gpt-4-vision-preview");
+  };
+
+  const handleRemoveCustomProvider = (name: string) => {
+    if (!confirm(`Remove custom provider "${name}"?`)) return;
+    window.electronAPI.removeEndpoint(name);
   };
 
   return (
@@ -226,6 +254,109 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
           {testing === "kilo" ? "Testing..." : "Test Connection"}
         </button>
       </div>
+
+      {/* Custom OpenAI-Compatible Provider */}
+      <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+        <h3 className="font-medium">Custom OpenAI-Compatible Provider</h3>
+        <p className="text-xs text-gray-400">
+          Add your own OpenAI-compatible API endpoint (e.g., Ollama, LMStudio, local proxies).
+        </p>
+        <div>
+          <label htmlFor="custom-name" className="block text-xs text-gray-400 mb-1">
+            Name
+          </label>
+          <input
+            id="custom-name"
+            type="text"
+            value={newCustomName}
+            onChange={(e) => setNewCustomName(e.target.value)}
+            placeholder="ollama"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="custom-base-url" className="block text-xs text-gray-400 mb-1">
+            Base URL
+          </label>
+          <input
+            id="custom-base-url"
+            type="url"
+            value={newCustomBaseUrl}
+            onChange={(e) => setNewCustomBaseUrl(e.target.value)}
+            placeholder="http://localhost:11434/v1"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="custom-key" className="block text-xs text-gray-400 mb-1">
+            API Key
+          </label>
+          <input
+            id="custom-key"
+            type="password"
+            value={newCustomKey}
+            onChange={(e) => setNewCustomKey(e.target.value)}
+            placeholder="Leave empty if not required"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="custom-model" className="block text-xs text-gray-400 mb-1">
+            Model
+          </label>
+          <input
+            id="custom-model"
+            type="text"
+            value={newCustomModel}
+            onChange={(e) => setNewCustomModel(e.target.value)}
+            placeholder="gpt-4-vision-preview"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleAddCustomProvider}
+          disabled={!newCustomName.trim() || !newCustomBaseUrl.trim()}
+          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+        >
+          Add Provider
+        </button>
+      </div>
+
+      {/* List of custom providers */}
+      {customProviders.length > 0 && (
+        <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+          <h3 className="font-medium">Configured Custom Providers</h3>
+          {customProviders.map((ep) => {
+            const name = ep.name as string;
+            return (
+              <div key={name} className="flex items-center justify-between py-2">
+                <div>
+                  <span className="font-medium text-sm">{name}</span>
+                  <p className="text-xs text-gray-400">{ep.baseUrl as string}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleTest(name)}
+                    disabled={testing === name}
+                    className="bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded text-xs transition-colors"
+                  >
+                    {testing === name ? "..." : "Test"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCustomProvider(name)}
+                    className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div>
         <button

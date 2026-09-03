@@ -33,6 +33,7 @@ export interface ElectronAPI {
   // Config
   getConfig: () => Promise<unknown>;
   setProvider: (name: string, config: Record<string, unknown>) => Promise<void>;
+  removeEndpoint: (name: string) => Promise<void>;
   setOverlayConfig: (config: Record<string, unknown>) => Promise<void>;
   setTTSConfig: (config: Record<string, unknown>) => Promise<void>;
   setPromptsConfig: (config: Record<string, unknown>) => Promise<void>;
@@ -91,6 +92,7 @@ const electronAPI: ElectronAPI = {
   getConfig: () => ipcRenderer.invoke("config:get"),
   setProvider: (name: string, config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-provider", name, config),
+  removeEndpoint: (name: string) => ipcRenderer.invoke("config:remove-endpoint", name),
   setOverlayConfig: (config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-overlay", config),
   setTTSConfig: (config: Record<string, unknown>) => ipcRenderer.invoke("config:set-tts", config),

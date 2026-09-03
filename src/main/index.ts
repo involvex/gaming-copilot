@@ -369,6 +369,15 @@ ipcMain.handle("config:set-provider", (_event, name: string, config: Record<stri
   initProviders();
 });
 
+ipcMain.handle("config:remove-endpoint", (_event, name: string) => {
+  if (!appConfig.providers.openaiCompat) return;
+  appConfig.providers.openaiCompat.endpoints = appConfig.providers.openaiCompat.endpoints.filter(
+    (e) => e.name !== name,
+  );
+  setConfigValue("providers", appConfig.providers);
+  initProviders();
+});
+
 ipcMain.handle("config:set-overlay", (_event, overlay: Partial<AppConfig["overlay"]>) => {
   appConfig.overlay = { ...appConfig.overlay, ...overlay };
   setConfigValue("overlay", appConfig.overlay);
