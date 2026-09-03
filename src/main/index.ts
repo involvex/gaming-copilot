@@ -121,7 +121,12 @@ function registerHotkey(): void {
   globalShortcut.register(hotkey, async () => {
     logger.info("Hotkey", `${hotkey} triggered`);
     const region = appConfig.captureRegion;
-    const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
+    const result = await smartCapture(
+      gameExe || undefined,
+      region,
+      appConfig.captureQuality,
+      appConfig.monitorIndex,
+    );
     if (!result) {
       logger.warn("Hotkey", "No capture result");
       return;
@@ -304,9 +309,25 @@ app.on("window-all-closed", () => {
 });
 
 // IPC Handlers — Capture
+ipcMain.handle("capture:get-screens", () => {
+  const displays = screen.getAllDisplays();
+  return displays.map((d, index) => ({
+    index,
+    name: d.name || `Display ${index + 1}`,
+    bounds: d.bounds,
+    workArea: d.workArea,
+    primary: d.primary,
+  }));
+});
+
 ipcMain.handle("capture:screenshot", async () => {
   const region = appConfig.captureRegion;
-  const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
+  const result = await smartCapture(
+    gameExe || undefined,
+    region,
+    appConfig.captureQuality,
+    appConfig.monitorIndex,
+  );
   if (!result) return null;
   const resizedBuffer = resizeImage(
     result.buffer,
@@ -320,7 +341,12 @@ ipcMain.handle("capture:screenshot", async () => {
 
 ipcMain.handle("capture:preview", async () => {
   const region = appConfig.captureRegion;
-  const result = await smartCapture(gameExe || undefined, region, appConfig.captureQuality);
+  const result = await smartCapture(
+    gameExe || undefined,
+    region,
+    appConfig.captureQuality,
+    appConfig.monitorIndex,
+  );
   if (!result) return null;
   const resizedBuffer = resizeImage(result.buffer, result.format, appConfig.captureQuality, 256);
   const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";

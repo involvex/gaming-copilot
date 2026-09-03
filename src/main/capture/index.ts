@@ -101,21 +101,25 @@ export async function captureWindowByExe(
 }
 
 /**
- * Capture the primary screen using Electron desktopCapturer.
+ * Capture a specific screen using Electron desktopCapturer.
  * @param quality - JPEG quality (1-100). PNG used if 100 or undefined.
+ * @param screenIndex - Index of the screen to capture (0 = primary).
  */
-export async function captureFullScreen(quality?: number): Promise<CaptureResult> {
+export async function captureFullScreen(
+  quality?: number,
+  screenIndex: number = 0,
+): Promise<CaptureResult> {
   const sources = await desktopCapturer.getSources({
     types: ["screen"],
     thumbnailSize: { width: 1920, height: 1080 },
   });
 
-  const primaryScreen = sources[0];
-  if (!primaryScreen) {
+  const screen = sources[screenIndex];
+  if (!screen) {
     throw new Error("No screen found");
   }
 
-  const thumbnail = primaryScreen.thumbnail;
+  const thumbnail = screen.thumbnail;
   const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
   const buffer = format === "jpeg" ? thumbnail.toJPEG(quality ?? 80) : thumbnail.toPNG();
   return {
@@ -234,11 +238,13 @@ if ($width -gt 0 -and $height -gt 0) {
  * @param exeName - Process exe name to capture (e.g. "Neuz.exe")
  * @param region - Optional crop region bounds
  * @param quality - Optional JPEG quality (1-100). PNG used if 100 or undefined.
+ * @param monitorIndex - Screen index for fullscreen fallback (0 = primary).
  */
 export async function smartCapture(
   gameExe?: string,
   region?: RegionBounds,
   quality?: number,
+  monitorIndex: number = 0,
 ): Promise<CaptureResult> {
   let result: CaptureResult;
 
@@ -251,11 +257,11 @@ export async function smartCapture(
       if (gdiCapture) {
         result = gdiCapture;
       } else {
-        result = await captureFullScreen(quality);
+        result = await captureFullScreen(quality, monitorIndex);
       }
     }
   } else {
-    result = await captureFullScreen(quality);
+    result = await captureFullScreen(quality, monitorIndex);
   }
 
   if (region && region.width > 0 && region.height > 0) {

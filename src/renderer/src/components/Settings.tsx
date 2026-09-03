@@ -78,11 +78,21 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   const [ocrLanguage, setOcrLanguage] = useState<string>(
     ((config?.ocr as Record<string, unknown>)?.language as string) || "eng",
   );
+  const [monitorIndex, setMonitorIndex] = useState<number>((config?.monitorIndex as number) || 0);
+  const [screens, setScreens] = useState<Array<{ index: number; name: string; primary: boolean }>>(
+    [],
+  );
   const [preview, setPreview] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [gameStatus, setGameStatus] = useState<"idle" | "checking" | "running" | "not-found">(
     "idle",
   );
+
+  useEffect(() => {
+    window.electronAPI.getScreens().then((screens) => {
+      setScreens(screens);
+    });
+  }, []);
 
   const handleCheckGame = async () => {
     if (!gameExe) return;
@@ -305,6 +315,35 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
           }}
           className="w-full"
         />
+      </div>
+
+      <div>
+        <label htmlFor="monitor-select" className="block text-sm font-medium text-gray-300 mb-2">
+          Monitor
+        </label>
+        <p className="text-xs text-gray-400 mb-2">
+          Select which monitor to capture when the game is not detectable.
+        </p>
+        {screens.length > 0 ? (
+          <select
+            id="monitor-select"
+            value={monitorIndex}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setMonitorIndex(v);
+              window.electronAPI.setSetting("monitorIndex", v);
+            }}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          >
+            {screens.map((s) => (
+              <option key={s.index} value={s.index}>
+                {s.name} {s.primary ? "(Primary)" : ""}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="text-xs text-gray-500">Loading displays...</p>
+        )}
       </div>
 
       <div>

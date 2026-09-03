@@ -4,6 +4,7 @@ export interface ElectronAPI {
   // Capture
   captureScreenshot: () => Promise<string | null>;
   capturePreview: () => Promise<string | null>;
+  getScreens: () => Promise<Array<{ index: number; name: string; primary: boolean }>>;
   checkGame: (exeName: string) => Promise<{ running: boolean; pid: number | null }>;
   setGameExe: (exe: string) => Promise<void>;
   setCaptureRegion: (
@@ -69,6 +70,7 @@ const electronAPI: ElectronAPI = {
   // Capture
   captureScreenshot: () => ipcRenderer.invoke("capture:screenshot"),
   capturePreview: () => ipcRenderer.invoke("capture:preview"),
+  getScreens: () => ipcRenderer.invoke("capture:get-screens"),
   checkGame: (exeName: string) => ipcRenderer.invoke("capture:check-game", exeName),
   setGameExe: (exe: string) => ipcRenderer.invoke("config:set-game-exe", exe),
   setCaptureRegion: (region) => ipcRenderer.invoke("capture:set-region", region),

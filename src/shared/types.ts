@@ -71,6 +71,7 @@ export interface AppConfig {
   maxImageWidth: number;
   captureRegion?: RegionBounds;
   hotkeyEnabled: boolean;
+  monitorIndex: number;
 
   // Providers
   providers: {
