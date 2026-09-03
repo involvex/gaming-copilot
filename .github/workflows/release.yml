@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  BUN_VERSION: 1.4
+
+jobs:
+  build:
+    name: Build for Release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          version: ${{ env.BUN_VERSION }}
+
+      - name: Cache bun modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.Bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint, typecheck, test
+        run: |
+          bunx biome format --check src/
+          bunx biome check src/
+          bunx tsc --noEmit
+          bun run test
+
+      - name: Build and package
+        run: bun run package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          files: dist/*
+          generate_release_notes: true

@@ -13,9 +13,22 @@
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
-    "format:check": "biome check src/",
-    "typecheck": "tsc --noEmit"
+    "format:check": "biome format --check src/",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "biome check --write",
+      "biome format --write"
+    ]
+  },
+  "lint-staged-ignore": [
+    "node_modules/**",
+    "dist/**",
+    "out/**",
+    "*.lock"
+  ],
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
     "@google/genai": "^1.1.0",
@@ -34,6 +47,8 @@
     "electron-builder": "^26.0.12",
     "electron-store": "^9",
     "electron-vite": "^4.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.7",
