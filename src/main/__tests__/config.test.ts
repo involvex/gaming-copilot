@@ -1,0 +1,196 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ChatMessage } from "../../shared/types";
+
+const mockStore: Record<string, unknown> = {};
+
+vi.mock("electron-store", () => {
+  return {
+    default: class MockStore {
+      path = "/fake/path/config.json";
+      store: Record<string, unknown> = {};
+
+      constructor(opts?: { defaults?: Record<string, unknown> }) {
+        this.store = opts?.defaults ? { ...opts.defaults } : {};
+        mockStore.path = this.path;
+      }
+
+      get(key: string, defaultValue?: unknown) {
+        if (!(key in this.store)) return defaultValue;
+        return this.store[key];
+      }
+
+      set(key: string, value: unknown) {
+        this.store[key] = value;
+        mockStore[key] = value;
+      }
+    },
+  };
+});
+
+vi.mock("../logger", () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    errorWithStack: vi.fn(),
+  },
+}));
+
+vi.mock("electron", () => ({
+  app: {
+    getPath: vi.fn(() => "/fake/path"),
+  },
+}));
+
+vi.mock("../../../shared/constants", () => ({
+  DEFAULT_SYSTEM_PROMPT: "You are a helpful AI assistant.",
+}));
+
+describe("config module", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    const keys = Object.keys(mockStore);
+    for (const key of keys) {
+      delete mockStore[key];
+    }
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("initConfig", () => {
+    it("should initialize config and return store data", async () => {
+      const { initConfig } = await import("../config");
+
+      const config = initConfig();
+
+      expect(config).toBeDefined();
+      expect(config.hotkey).toBe("CommandOrControl+Shift+G");
+      expect(config.captureQuality).toBe(85);
+      expect(config.overlay.position).toBe("bottom-right");
+    });
+  });
+
+  describe("getConfig", () => {
+    it("should return config after init", async () => {
+      const { initConfig, getConfig } = await import("../config");
+
+      initConfig();
+      const config = getConfig();
+
+      expect(config).toBeDefined();
+      expect(config.maxImageWidth).toBe(1024);
+    });
+
+    it("should return default config if not initialized", async () => {
+      const { getConfig } = await import("../config");
+
+      const config = getConfig();
+      expect(config).toBeDefined();
+      expect(config.captureQuality).toBe(85);
+    });
+  });
+
+  describe("setConfigValue", () => {
+    it("should set config value", async () => {
+      const { initConfig, setConfigValue, getConfig } = await import("../config");
+
+      initConfig();
+      setConfigValue("captureQuality", 50);
+
+      expect(getConfig().captureQuality).toBe(50);
+    });
+
+    it("should set gameExe value", async () => {
+      const { initConfig, setConfigValue, getConfig } = await import("../config");
+
+      initConfig();
+      setConfigValue("gameExe", "Neuz.exe");
+
+      expect(getConfig().gameExe).toBe("Neuz.exe");
+    });
+  });
+
+  describe("setPartialConfig", () => {
+    it("should set multiple config values", async () => {
+      const { initConfig, setPartialConfig, getConfig } = await import("../config");
+
+      initConfig();
+      setPartialConfig({ captureQuality: 60, maxImageWidth: 512 });
+
+      expect(getConfig().captureQuality).toBe(60);
+      expect(getConfig().maxImageWidth).toBe(512);
+    });
+  });
+
+  describe("getConfigPath", () => {
+    it("should return store path", async () => {
+      const { initConfig, getConfigPath } = await import("../config");
+
+      initConfig();
+      const path = getConfigPath();
+
+      expect(path).toBe("/fake/path/config.json");
+    });
+
+    it("should return empty string if not initialized", async () => {
+      const { getConfigPath } = await import("../config");
+
+      const path = getConfigPath();
+      expect(path).toBe("");
+    });
+  });
+
+  describe("chat store", () => {
+    it("should initialize chat store", async () => {
+      const { initConfig, initChatStore, getChatHistory } = await import("../config");
+
+      initConfig();
+      initChatStore();
+
+      expect(getChatHistory()).toEqual([]);
+    });
+
+    it("should save and retrieve chat history", async () => {
+      const { initConfig, initChatStore, saveChatHistory, getChatHistory } = await import(
+        "../config"
+      );
+
+      initConfig();
+      initChatStore();
+
+      const messages: ChatMessage[] = [
+        { id: "1", role: "user", text: "Hello", timestamp: 12345 },
+        { id: "2", role: "assistant", text: "Hi there", timestamp: 12346 },
+      ];
+
+      saveChatHistory(messages);
+      const history = getChatHistory();
+      expect(history).toHaveLength(2);
+      expect(history[0]?.text).toBe("Hello");
+    });
+
+    it("should clear chat history", async () => {
+      const { initConfig, initChatStore, saveChatHistory, getChatHistory, clearChatHistory } =
+        await import("../config");
+
+      initConfig();
+      initChatStore();
+
+      const clearMessage: ChatMessage = {
+        id: "1",
+        role: "user",
+        text: "Hello",
+        timestamp: 12345,
+      };
+      saveChatHistory([clearMessage]);
+      expect(getChatHistory()).toHaveLength(1);
+
+      clearChatHistory();
+      expect(getChatHistory()).toEqual([]);
+    });
+  });
+});

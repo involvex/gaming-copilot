@@ -33,10 +33,39 @@ function validateExeName(exeName: string): boolean {
 }
 
 /**
+ * Validate that a numeric value is a safe finite integer for interpolation
+ * into PowerShell scripts.
+ */
+function validateNumericValue(value: number, name: string): void {
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
+    throw new Error(`Invalid ${name}: must be a non-negative integer, got ${value}`);
+  }
+}
+
+/**
+ * Validate all region bounds before interpolating into PowerShell scripts.
+ * Throws if any value is not a safe non-negative integer.
+ */
+function validateRegion(region: RegionBounds): void {
+  validateNumericValue(region.x, "region.x");
+  validateNumericValue(region.y, "region.y");
+  validateNumericValue(region.width, "region.width");
+  validateNumericValue(region.height, "region.height");
+}
+
+/**
+ * Validate a PID before interpolating into PowerShell scripts.
+ */
+function validatePid(pid: number): void {
+  validateNumericValue(pid, "pid");
+}
+
+/**
  * Crop a buffer to the specified region using GDI+.
  * Preserves the original format (PNG or JPEG).
  */
 function cropBuffer(buffer: Buffer, region: RegionBounds, format: "png" | "jpeg"): Buffer {
+  validateRegion(region);
   const imageFormat = format === "jpeg" ? "Jpeg" : "Png";
   try {
     const script = `
@@ -143,7 +172,11 @@ export async function captureWithGDI(
   const { findProcessByExe, getWindowTitleByPid } = await import("./win32");
   const pid = findProcessByExe(exeName);
   if (!pid) return null;
-
+  try {
+    validatePid(pid);
+  } catch {
+    return null;
+  }
   const title = getWindowTitleByPid(pid);
   if (!title) return null;
 
@@ -350,19 +383,12 @@ export async function recordScreen(
 
   for (let i = 0; i < totalFrames; i++) {
     try {
-      const updatedSources = await desktopCapturer.getSources({
-        types: ["screen"],
-        thumbnailSize: { width: 1920, height: 1080 },
-      });
-      const updatedScreen = updatedSources[monitorIndex];
-      if (updatedScreen) {
-        const thumbnail = updatedScreen.thumbnail;
-        const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
-        const buffer = format === "jpeg" ? thumbnail.toJPEG(quality ?? 80) : thumbnail.toPNG();
+      const thumbnail = screen.thumbnail;
+      const format: "png" | "jpeg" = quality && quality < 100 ? "jpeg" : "png";
+      const buffer = format === "jpeg" ? thumbnail.toJPEG(quality ?? 80) : thumbnail.toPNG();
 
-        if (i === 0 || i === totalFrames - 1 || i % 2 === 0) {
-          frames.push(buffer);
-        }
+      if (i === 0 || i === totalFrames - 1 || i % 2 === 0) {
+        frames.push(buffer);
       }
     } catch {
       // Skip frame on error
@@ -380,7 +406,7 @@ export async function recordScreen(
   return compositeFrames(frames.slice(0, gridCols * gridRows), gridCols, gridRows, quality);
 }
 
-function compositeFrames(
+export function compositeFrames(
   frames: Buffer[],
   cols: number,
   rows: number,
