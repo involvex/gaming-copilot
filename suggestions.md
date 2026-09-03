@@ -37,6 +37,7 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-021 | Feature | Custom CSS theme for overlay — background color, text color, border color, border radius, padding controls with live preview | `#18` |
 | FEAT-023 | Feature | Export chat history as Markdown or JSON via download link | `#19` |
 | FEAT-030 | Feature | Anonymous telemetry toggle — events for hotkey usage, analysis completion, provider status | `#19` |
+| FEAT-025 | Feature | TTS voice preview button — plays sample text with current voice/rate/pitch/volume settings | `#20` |
 
 ---
 

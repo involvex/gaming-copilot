@@ -47,3 +47,10 @@ export function getAvailableVoices(): Array<{ name: string; lang: string }> {
 export function isSpeaking(): boolean {
   return window.speechSynthesis.speaking;
 }
+
+export function preview(config: TTSConfig): void {
+  const sampleText =
+    "This is a preview of your text-to-speech settings. Adjust voice, speed, pitch, and volume as needed.";
+  const previewConfig: TTSConfig = { ...config, enabled: true };
+  speak(sampleText, previewConfig);
+}

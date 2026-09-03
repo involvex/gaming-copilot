@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAvailableVoices } from "../tts";
+import { getAvailableVoices, preview, stop } from "../tts";
 
 export default function TTSConfig({ config }: { config: Record<string, unknown> | null }) {
   const tts = (config?.tts as Record<string, unknown>) || {};
@@ -129,6 +129,40 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
               }}
               className="w-full"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="tts-preview">
+              Preview
+            </label>
+            <p className="text-xs text-gray-400 mb-2">
+              Hear a sample of the current voice, speed, pitch, and volume settings.
+            </p>
+            <div className="flex gap-2">
+              <button
+                id="tts-preview"
+                type="button"
+                onClick={() =>
+                  preview({
+                    enabled: true,
+                    voice,
+                    rate,
+                    pitch,
+                    volume,
+                  })
+                }
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Preview Voice
+              </button>
+              <button
+                type="button"
+                onClick={() => stop()}
+                className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Stop
+              </button>
+            </div>
           </div>
         </>
       )}
