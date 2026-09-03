@@ -35,6 +35,8 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-027 | Feature | OCR text extraction using Tesseract.js — on-screen text is extracted and passed as context to AI providers | `#16` |
 | FEAT-019 | Feature | Multiple monitor selection dropdown — `monitorIndex` config, `capture:get-screens` IPC, dropdown in CaptureConfig | `#17` |
 | FEAT-021 | Feature | Custom CSS theme for overlay — background color, text color, border color, border radius, padding controls with live preview | `#18` |
+| FEAT-023 | Feature | Export chat history as Markdown or JSON via download link | `#19` |
+| FEAT-030 | Feature | Anonymous telemetry toggle — events for hotkey usage, analysis completion, provider status | `#19` |
 
 ---
 

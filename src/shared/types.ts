@@ -134,6 +134,11 @@ export interface AppConfig {
     language: string;
   };
 
+  // Telemetry
+  telemetry: {
+    enabled: boolean;
+  };
+
   // Prompts
   prompts: {
     system: string;

@@ -5,7 +5,7 @@ import PromptEditor from "./PromptEditor";
 import ProviderConfig from "./ProviderConfig";
 import TTSConfig from "./TTSConfig";
 
-type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts";
+type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts" | "general";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("providers");
@@ -21,6 +21,7 @@ export default function Settings() {
     { id: "overlay", label: "Overlay" },
     { id: "tts", label: "TTS" },
     { id: "prompts", label: "Prompts" },
+    { id: "general", label: "General" },
   ];
 
   return (
@@ -50,6 +51,7 @@ export default function Settings() {
         {activeTab === "overlay" && <OverlayStyle config={config} />}
         {activeTab === "tts" && <TTSConfig config={config} />}
         {activeTab === "prompts" && <PromptEditor config={config} />}
+        {activeTab === "general" && <GeneralConfig config={config} />}
       </div>
     </div>
   );
@@ -430,6 +432,97 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
             </select>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function GeneralConfig({ config }: { config: Record<string, unknown> | null }) {
+  const [telemetry, setTelemetry] = useState<boolean>(
+    ((config?.telemetry as Record<string, unknown>)?.enabled as boolean) ?? false,
+  );
+
+  const handleTelemetryToggle = async () => {
+    const newValue = !telemetry;
+    setTelemetry(newValue);
+    await window.electronAPI.setTelemetry(newValue);
+  };
+
+  const handleExport = async (format: "markdown" | "json") => {
+    try {
+      const content = await window.electronAPI.exportChatHistory(format);
+      const blob = new Blob([content], {
+        type: format === "markdown" ? "text/markdown" : "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `gaming-copilot-history.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold">General</h2>
+
+      <div>
+        <label
+          htmlFor="telemetry-toggle"
+          className="flex items-center justify-between cursor-pointer"
+        >
+          <div>
+            <span className="text-sm font-medium text-gray-300">Anonymous Usage Analytics</span>
+            <p className="text-xs text-gray-500 mt-1">
+              Send anonymous usage data (hotkey usage, capture frequency, provider success rates) to
+              help improve Gaming Copilot. No screenshots or personal data are ever sent.
+            </p>
+          </div>
+          <button
+            id="telemetry-toggle"
+            type="button"
+            onClick={handleTelemetryToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              telemetry ? "bg-blue-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                telemetry ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="export-markdown">
+          Export Chat History
+        </label>
+        <p className="text-xs text-gray-500 mb-3">
+          Export all chat messages to a file for saving or sharing.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleExport("markdown")}
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Export as Markdown
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport("json")}
+            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Export as JSON
+          </button>
+        </div>
       </div>
     </div>
   );

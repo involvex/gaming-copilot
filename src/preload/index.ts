@@ -36,6 +36,7 @@ export interface ElectronAPI {
   saveChatHistory: (messages: import("../shared/types").ChatMessage[]) => Promise<boolean>;
   loadChatHistory: () => Promise<import("../shared/types").ChatMessage[]>;
   clearChatHistory: () => Promise<void>;
+  exportChatHistory: (format: "markdown" | "json") => Promise<string>;
 
   // Config
   getConfig: () => Promise<unknown>;
@@ -48,6 +49,7 @@ export interface ElectronAPI {
   setHotkey: (hotkey: string) => Promise<boolean>;
   setHotkeyEnabled: (enabled: boolean) => Promise<boolean>;
   setSetting: (key: string, value: unknown) => Promise<void>;
+  setTelemetry: (enabled: boolean) => Promise<void>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -103,6 +105,7 @@ const electronAPI: ElectronAPI = {
   saveChatHistory: (messages) => ipcRenderer.invoke("chat:save", messages),
   loadChatHistory: () => ipcRenderer.invoke("chat:load"),
   clearChatHistory: () => ipcRenderer.invoke("chat:clear"),
+  exportChatHistory: (format: "markdown" | "json") => ipcRenderer.invoke("chat:export", format),
 
   // Config
   getConfig: () => ipcRenderer.invoke("config:get"),
@@ -118,6 +121,7 @@ const electronAPI: ElectronAPI = {
   setHotkey: (hotkey: string) => ipcRenderer.invoke("config:set-hotkey", hotkey),
   setHotkeyEnabled: (enabled: boolean) => ipcRenderer.invoke("config:set-hotkey-enabled", enabled),
   setSetting: (key: string, value: unknown) => ipcRenderer.invoke("config:set-generic", key, value),
+  setTelemetry: (enabled: boolean) => ipcRenderer.invoke("config:set-telemetry", enabled),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),

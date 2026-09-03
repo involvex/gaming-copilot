@@ -103,6 +103,13 @@ const schema = {
       },
       default: {},
     },
+    telemetry: {
+      type: "object",
+      properties: {
+        enabled: { type: "boolean", default: false },
+      },
+      default: {},
+    },
   },
   default: {},
 } as const;
@@ -218,6 +225,9 @@ function getDefaultConfig(): AppConfig {
     ocr: {
       enabled: true,
       language: "eng",
+    },
+    telemetry: {
+      enabled: false,
     },
   };
 }

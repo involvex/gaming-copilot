@@ -29,6 +29,14 @@ import { logger } from "./logger";
 import { extractText, terminateOcrWorker } from "./ocr";
 import { MemreaderPlugin } from "./plugins";
 
+export function trackEvent(event: string, metadata?: Record<string, unknown>): void {
+  if (!appConfig?.telemetry?.enabled) return;
+  logger.info(
+    "Telemetry",
+    `${event}${metadata ? ` ${JSON.stringify(metadata).slice(0, 200)}` : ""}`,
+  );
+}
+
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -120,6 +128,7 @@ function registerHotkey(): void {
   const hotkey = appConfig.hotkey;
   globalShortcut.register(hotkey, async () => {
     logger.info("Hotkey", `${hotkey} triggered`);
+    trackEvent("hotkey_triggered", { hotkey });
     const region = appConfig.captureRegion;
     const result = await smartCapture(
       gameExe || undefined,
@@ -180,6 +189,10 @@ function registerHotkey(): void {
         )) {
           if (chunk.done) {
             logger.info("Hotkey", `AI streaming complete, total: ${fullText.length} chars`);
+            trackEvent("analysis_complete", {
+              textLength: fullText.length,
+              provider: "unknown",
+            });
           } else {
             fullText += chunk.text;
             overlayWindow?.webContents.send("overlay:data", fullText);
@@ -313,10 +326,10 @@ ipcMain.handle("capture:get-screens", () => {
   const displays = screen.getAllDisplays();
   return displays.map((d, index) => ({
     index,
-    name: d.name || `Display ${index + 1}`,
+    name: d.label || `Display ${index + 1}`,
     bounds: d.bounds,
     workArea: d.workArea,
-    primary: d.primary,
+    primary: screen.getPrimaryDisplay().displayId === d.displayId,
   }));
 });
 
@@ -541,6 +554,17 @@ ipcMain.handle("config:set-generic", (_event, key: string, value: unknown) => {
   }
 });
 
+ipcMain.handle("config:set-telemetry", (_event, enabled: boolean) => {
+  appConfig.telemetry = { enabled };
+  setConfigValue("telemetry", { enabled });
+  if (enabled) {
+    logger.info("Telemetry", "Telemetry enabled — anonymous usage data will be collected");
+    trackEvent("telemetry_enabled", { enabled });
+  } else {
+    logger.info("Telemetry", "Telemetry disabled");
+  }
+});
+
 ipcMain.handle("config:set-hotkey", (_event, hotkey: string) => {
   if (!hotkey || !/^\w+([+-].+)*$/.test(hotkey)) {
     return false;
@@ -574,6 +598,22 @@ ipcMain.handle("chat:load", () => {
 ipcMain.handle("chat:clear", () => {
   clearChatHistory();
   return true;
+});
+
+ipcMain.handle("chat:export", (_event, format: "markdown" | "json") => {
+  const messages = getChatHistory();
+  if (format === "markdown") {
+    let md = "# Gaming Copilot Chat History\n\n";
+    for (const msg of messages) {
+      if (msg.role === "user") {
+        md += `## 💬 User (${new Date(msg.timestamp).toLocaleString()})\n\n${msg.text}\n\n`;
+      } else {
+        md += `## 🤖 Assistant (${new Date(msg.timestamp).toLocaleString()}${msg.provider ? ` · ${msg.provider}` : ""})\n\n${msg.text}\n\n`;
+      }
+    }
+    return md;
+  }
+  return JSON.stringify(messages, null, 2);
 });
 
 // IPC Handlers — Overlay
