@@ -21,6 +21,7 @@ export interface AIProvider {
   isConfigured(): boolean;
   getRateLimitInfo(): RateLimitInfo;
   getModel(): string;
+  fetchModels?(): Promise<string[]>;
 }
 
 export interface StreamChunk {

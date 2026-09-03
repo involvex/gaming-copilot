@@ -15,6 +15,7 @@ export const geminiProviderConfigSchema = z.object({
 });
 
 export const endpointConfigSchema = z.object({
+  name: z.string().optional(),
   baseUrl: z.string().url().optional(),
   apiKey: z.string().min(1).optional(),
   model: z.string().optional(),

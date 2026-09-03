@@ -65,8 +65,20 @@ let tray: Tray | null = null;
 let providerManager: ProviderManager | null = null;
 let memreaderPlugin: MemreaderPlugin | null = null;
 
+function resolveResourcePath(relativePath: string): string {
+  if (is.dev) {
+    return join(__dirname, "..", "..", relativePath);
+  }
+  return join(process.resourcesPath, relativePath);
+}
+
 // Load persisted config
 const appConfig: AppConfig = initConfig();
+
+function emitConfigUpdated(): void {
+  mainWindow?.webContents.send("config:updated");
+}
+
 let gameExe = appConfig.gameExe;
 
 function createMainWindow(): void {
@@ -75,7 +87,11 @@ function createMainWindow(): void {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === "linux" ? { icon: join(__dirname, "../resources/icon.png") } : {}),
+    ...(process.platform === "linux"
+      ? {
+          icon: nativeImage.createFromPath(resolveResourcePath("resources/icon.png")),
+        }
+      : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -278,7 +294,7 @@ function registerHotkey(): void {
           new Notification({
             title: "Gaming Copilot",
             body: summary || "Analysis complete",
-            icon: nativeImage.createFromPath(join(__dirname, "../resources/icon.png")),
+            icon: nativeImage.createFromPath(resolveResourcePath("resources/icon.png")),
             silent: false,
           }).show();
         }
@@ -315,7 +331,7 @@ function setHotkey(newHotkey: string): void {
 }
 
 function createTray(): void {
-  const iconPath = join(__dirname, "../resources/icon.png");
+  const iconPath = resolveResourcePath("resources/icon.png");
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
   tray = new Tray(icon);
   tray.setToolTip("Gaming Copilot");
@@ -600,6 +616,14 @@ ipcMain.handle("ai:clear-cache", () => {
   return true;
 });
 
+ipcMain.handle("ai:fetch-models", async (_event, name: unknown) => {
+  const validName = validateIPC(providerNameSchema, name);
+  if (!providerManager) {
+    throw new Error("Provider manager not initialized");
+  }
+  return providerManager.fetchModelsForProvider(validName);
+});
+
 // IPC Handlers — Config
 ipcMain.handle("config:set-game-exe", (_event, exe: string) => {
   gameExe = exe;
@@ -664,26 +688,44 @@ ipcMain.handle("config:set-provider", async (_event, name: unknown, config: unkn
   }
 
   // Store API keys in OS keychain if enabled
+  let storedApiKey: string | undefined;
   if (appConfig.useKeychain) {
     const apiKey =
       validName === "gemini"
         ? appConfig.providers.gemini?.apiKey
         : appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === validName)?.apiKey;
     if (apiKey) {
-      if (validName === "gemini") {
-        await storeKey("gemini", apiKey);
-        appConfig.providers.gemini!.apiKey = "";
-      } else {
-        const account = getAccount("endpoint", validName);
-        await storeKey(account, apiKey);
-        const ep = appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === validName);
-        if (ep) ep.apiKey = "";
+      storedApiKey = apiKey;
+      try {
+        if (validName === "gemini") {
+          await storeKey("gemini", apiKey);
+          appConfig.providers.gemini!.apiKey = "";
+        } else {
+          const account = getAccount("endpoint", validName);
+          await storeKey(account, apiKey);
+          const ep = appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === validName);
+          if (ep) ep.apiKey = "";
+        }
+      } catch (keychainError) {
+        logger.warn("Config", `Keychain store failed, keeping API key in config: ${keychainError}`);
       }
     }
   }
 
   setConfigValue("providers", appConfig.providers);
+
+  // Restore API key in memory for ProviderManager (blanked only for disk save)
+  if (storedApiKey) {
+    if (validName === "gemini" && appConfig.providers.gemini) {
+      appConfig.providers.gemini.apiKey = storedApiKey;
+    } else {
+      const ep = appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === validName);
+      if (ep) ep.apiKey = storedApiKey;
+    }
+  }
+
   initProviders();
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:remove-endpoint", async (_event, name: unknown) => {
@@ -695,11 +737,16 @@ ipcMain.handle("config:remove-endpoint", async (_event, name: unknown) => {
 
   if (appConfig.useKeychain) {
     const account = getAccount("endpoint", validName);
-    await deleteKey(account);
+    try {
+      await deleteKey(account);
+    } catch (keychainError) {
+      logger.warn("Config", `Keychain delete failed for ${validName}: ${keychainError}`);
+    }
   }
 
   setConfigValue("providers", appConfig.providers);
   initProviders();
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-active-provider", (_event, name: unknown) => {

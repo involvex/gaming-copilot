@@ -23,11 +23,15 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
   const [zenModel, setZenModel] = useState(
     (zenEndpoint?.model as string) || "gpt-4-vision-preview",
   );
+  const [zenModels, setZenModels] = useState<string[]>([]);
+  const [zenFetching, setZenFetching] = useState(false);
 
   const [kiloKey, setKiloKey] = useState((kiloEndpoint?.apiKey as string) || "");
   const [kiloModel, setKiloModel] = useState(
     (kiloEndpoint?.model as string) || "gpt-4-vision-preview",
   );
+  const [kiloModels, setKiloModels] = useState<string[]>([]);
+  const [kiloFetching, setKiloFetching] = useState(false);
 
   const [testing, setTesting] = useState<string | null>(null);
   const [customProviders, setCustomProviders] = useState<Array<Record<string, unknown>>>([]);
@@ -105,6 +109,22 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
       baseUrl: preset.baseUrl,
       model: kiloModel,
     });
+  };
+
+  const handleFetchModels = async (
+    name: string,
+    setModels: (models: string[]) => void,
+    setFetching: (b: boolean) => void,
+  ) => {
+    setFetching(true);
+    try {
+      const models = await window.electronAPI.fetchModels(name);
+      setModels(models);
+    } catch (error) {
+      alert(`Failed to fetch models: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setFetching(false);
+    }
   };
 
   const handleTest = async (name: string) => {
@@ -240,15 +260,31 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
           <label htmlFor="zen-model" className="block text-xs text-gray-400 mb-1">
             Model
           </label>
-          <input
-            id="zen-model"
-            type="text"
-            value={zenModel}
-            onChange={(e) => setZenModel(e.target.value)}
-            onBlur={handleSaveZen}
-            placeholder="gpt-4-vision-preview"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-          />
+          <div className="flex gap-2">
+            <input
+              id="zen-model"
+              type="text"
+              list="zen-models"
+              value={zenModel}
+              onChange={(e) => setZenModel(e.target.value)}
+              onBlur={handleSaveZen}
+              placeholder="gpt-4-vision-preview"
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <datalist id="zen-models">
+              {zenModels.map((model) => (
+                <option key={model} value={model} />
+              ))}
+            </datalist>
+            <button
+              type="button"
+              onClick={() => handleFetchModels("zen", setZenModels, setZenFetching)}
+              disabled={!zenKey || zenFetching}
+              className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 px-2 py-1 rounded text-xs transition-colors"
+            >
+              {zenFetching ? "..." : "Fetch"}
+            </button>
+          </div>
         </div>
         <button
           type="button"
@@ -287,15 +323,31 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
           <label htmlFor="kilo-model" className="block text-xs text-gray-400 mb-1">
             Model
           </label>
-          <input
-            id="kilo-model"
-            type="text"
-            value={kiloModel}
-            onChange={(e) => setKiloModel(e.target.value)}
-            onBlur={handleSaveKilo}
-            placeholder="gpt-4-vision-preview"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-          />
+          <div className="flex gap-2">
+            <input
+              id="kilo-model"
+              type="text"
+              list="kilo-models"
+              value={kiloModel}
+              onChange={(e) => setKiloModel(e.target.value)}
+              onBlur={handleSaveKilo}
+              placeholder="gpt-4-vision-preview"
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <datalist id="kilo-models">
+              {kiloModels.map((model) => (
+                <option key={model} value={model} />
+              ))}
+            </datalist>
+            <button
+              type="button"
+              onClick={() => handleFetchModels("kilo", setKiloModels, setKiloFetching)}
+              disabled={!kiloKey || kiloFetching}
+              className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 px-2 py-1 rounded text-xs transition-colors"
+            >
+              {kiloFetching ? "..." : "Fetch"}
+            </button>
+          </div>
         </div>
         <button
           type="button"

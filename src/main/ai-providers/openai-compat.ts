@@ -28,6 +28,18 @@ export class OpenAICompatProvider implements AIProvider {
     return this.config.model;
   }
 
+  async fetchModels(): Promise<string[]> {
+    const url = `${this.config.baseUrl.replace(/\/$/, "")}/models`;
+    const response = await fetch(url, {
+      headers: this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: HTTP ${response.status}`);
+    }
+    const data = (await response.json()) as { data?: Array<{ id: string }> };
+    return data.data?.map((m) => m.id) ?? [];
+  }
+
   getRateLimitInfo(): RateLimitInfo {
     return RATE_LIMITER.getInfo();
   }

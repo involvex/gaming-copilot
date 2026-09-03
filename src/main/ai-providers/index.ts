@@ -51,6 +51,14 @@ export class ProviderManager {
     return this.providers.filter((p) => p.isConfigured());
   }
 
+  async fetchModelsForProvider(name: string): Promise<string[]> {
+    const provider = this.getProvider(name);
+    if (!provider?.isConfigured() || !provider.fetchModels) {
+      throw new Error(`Provider "${name}" does not support model fetching`);
+    }
+    return provider.fetchModels!();
+  }
+
   getProvider(name: string): AIProvider | undefined {
     return this.providers.find((p) => p.name === name);
   }

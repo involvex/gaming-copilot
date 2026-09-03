@@ -37,11 +37,22 @@ export default function Settings() {
   }, [theme]);
 
   useEffect(() => {
-    window.electronAPI.getConfig().then((cfg) => {
-      const c = cfg as Record<string, unknown>;
-      setConfig(c);
-      setTheme((c.theme as "dark" | "light" | "system") || "system");
+    const loadConfig = () => {
+      window.electronAPI.getConfig().then((cfg) => {
+        const c = cfg as Record<string, unknown>;
+        setConfig(c);
+        setTheme((c.theme as "dark" | "light" | "system") || "system");
+      });
+    };
+    loadConfig();
+
+    const stopListening = window.electronAPI.onConfigUpdated(() => {
+      loadConfig();
     });
+    return () => {
+      stopListening();
+      window.electronAPI.removeAllListeners("config:updated");
+    };
   }, []);
 
   const tabs: Array<{ id: Tab; label: string; keywords: string[] }> = [

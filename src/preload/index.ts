@@ -32,6 +32,7 @@ export interface ElectronAPI {
     onError: (error: string) => void,
   ) => void;
   testProvider: (name: string) => Promise<boolean>;
+  fetchModels: (name: string) => Promise<string[]>;
   clearCache: () => Promise<boolean>;
   getProviders: () => Promise<Array<{ name: string; displayName: string; rateLimit: unknown }>>;
 
@@ -85,6 +86,7 @@ export interface ElectronAPI {
   onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => void;
   onNavigateSettings: (callback: () => void) => void;
   onUpdateStatus: (callback: (status: string, version?: string, message?: string) => void) => void;
+  onConfigUpdated: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
 }
 
@@ -124,6 +126,7 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on("ai:stream-error", (_event, error: string) => onError(error));
   },
   testProvider: (name: string) => ipcRenderer.invoke("ai:test-provider", name),
+  fetchModels: (name: string) => ipcRenderer.invoke("ai:fetch-models", name),
   getProviders: () => ipcRenderer.invoke("ai:get-providers"),
   clearCache: () => ipcRenderer.invoke("ai:clear-cache"),
 
@@ -199,6 +202,9 @@ const electronAPI: ElectronAPI = {
   },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
+  },
+  onConfigUpdated: (callback: () => void) => {
+    ipcRenderer.on("config:updated", () => callback());
   },
 };
 
