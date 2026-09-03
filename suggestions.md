@@ -34,6 +34,7 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-008 | DevEx | Replaced all console.log in memreader.ts with structured logger module | `#15` |
 | FEAT-027 | Feature | OCR text extraction using Tesseract.js — on-screen text is extracted and passed as context to AI providers | `#16` |
 | FEAT-019 | Feature | Multiple monitor selection dropdown — `monitorIndex` config, `capture:get-screens` IPC, dropdown in CaptureConfig | `#17` |
+| FEAT-021 | Feature | Custom CSS theme for overlay — background color, text color, border color, border radius, padding controls with live preview | `#18` |
 
 ---
 

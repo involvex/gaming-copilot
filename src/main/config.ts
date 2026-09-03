@@ -50,6 +50,17 @@ const schema = {
       },
       default: {},
     },
+    overlayCustomTheme: {
+      type: "object",
+      properties: {
+        backgroundColor: { type: "string", default: "#111827" },
+        textColor: { type: "string", default: "#ffffff" },
+        borderRadius: { type: "number", default: 8 },
+        padding: { type: "number", default: 16 },
+        borderColor: { type: "string", default: "#374151" },
+      },
+      default: {},
+    },
     tts: {
       type: "object",
       properties: {
@@ -178,6 +189,13 @@ function getDefaultConfig(): AppConfig {
       fontSize: 14,
       theme: "dark",
       clickThrough: true,
+    },
+    overlayCustomTheme: {
+      backgroundColor: "#111827",
+      textColor: "#ffffff",
+      borderRadius: 8,
+      padding: 16,
+      borderColor: "#374151",
     },
     tts: {
       enabled: false,

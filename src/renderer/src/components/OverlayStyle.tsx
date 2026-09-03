@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export default function OverlayStyle({ config }: { config: Record<string, unknown> | null }) {
   const overlay = (config?.overlay as Record<string, unknown>) || {};
+  const customTheme = (config?.overlayCustomTheme as Record<string, unknown>) || {};
   const [position, setPosition] = useState((overlay.position as string) || "bottom-right");
   const [duration, setDuration] = useState((overlay.duration as number) || 8000);
   const [opacity, setOpacity] = useState((overlay.opacity as number) || 0.9);
@@ -9,9 +10,60 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
   const [clickThrough, setClickThrough] = useState<boolean>(
     (overlay.clickThrough as boolean) || true,
   );
+  const [backgroundColor, setBackgroundColor] = useState<string>(
+    (customTheme.backgroundColor as string) || "#111827",
+  );
+  const [textColor, setTextColor] = useState<string>(
+    (customTheme.textColor as string) || "#ffffff",
+  );
+  const [borderColor, setBorderColor] = useState<string>(
+    (customTheme.borderColor as string) || "#374151",
+  );
+  const [borderRadius, setBorderRadius] = useState<number>(
+    (customTheme.borderRadius as number) || 8,
+  );
+  const [padding, setPadding] = useState<number>((customTheme.padding as number) || 16);
 
   const persist = (update: Record<string, unknown>) => {
     window.electronAPI.setOverlayConfig(update);
+  };
+
+  const persistTheme = (update: Record<string, unknown>) => {
+    window.electronAPI.setSetting("overlayCustomTheme", update);
+  };
+
+  const handleThemeChange = (field: string, value: string | number) => {
+    const newTheme: Record<string, unknown> = {
+      backgroundColor,
+      textColor,
+      borderColor,
+      borderRadius,
+      padding,
+      [field]: value,
+    };
+    if (typeof value === "string") {
+      switch (field) {
+        case "backgroundColor":
+          setBackgroundColor(value);
+          break;
+        case "textColor":
+          setTextColor(value);
+          break;
+        case "borderColor":
+          setBorderColor(value);
+          break;
+      }
+    } else {
+      switch (field) {
+        case "borderRadius":
+          setBorderRadius(value);
+          break;
+        case "padding":
+          setPadding(value);
+          break;
+      }
+    }
+    persistTheme(newTheme);
   };
 
   const handleClickThroughToggle = async () => {
@@ -130,6 +182,117 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         </p>
       </div>
 
+      <div className="border-t border-gray-600 pt-4">
+        <h3 className="text-sm font-medium text-gray-300 mb-3">Custom Theme</h3>
+
+        <div>
+          <label
+            htmlFor="overlay-bg-color"
+            className="block text-sm font-medium text-gray-300 mb-1"
+          >
+            Background Color
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="overlay-bg-color"
+              type="color"
+              value={backgroundColor}
+              onChange={(e) => handleThemeChange("backgroundColor", e.target.value)}
+              className="w-12 h-8 p-0 border border-gray-600 rounded cursor-pointer"
+            />
+            <input
+              type="text"
+              value={backgroundColor}
+              onChange={(e) => handleThemeChange("backgroundColor", e.target.value)}
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="overlay-text-color"
+            className="block text-sm font-medium text-gray-300 mb-1"
+          >
+            Text Color
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="overlay-text-color"
+              type="color"
+              value={textColor}
+              onChange={(e) => handleThemeChange("textColor", e.target.value)}
+              className="w-12 h-8 p-0 border border-gray-600 rounded cursor-pointer"
+            />
+            <input
+              type="text"
+              value={textColor}
+              onChange={(e) => handleThemeChange("textColor", e.target.value)}
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="overlay-border-color"
+            className="block text-sm font-medium text-gray-300 mb-1"
+          >
+            Border Color
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="overlay-border-color"
+              type="color"
+              value={borderColor}
+              onChange={(e) => handleThemeChange("borderColor", e.target.value)}
+              className="w-12 h-8 p-0 border border-gray-600 rounded cursor-pointer"
+            />
+            <input
+              type="text"
+              value={borderColor}
+              onChange={(e) => handleThemeChange("borderColor", e.target.value)}
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="overlay-border-radius"
+            className="block text-sm font-medium text-gray-300 mb-1"
+          >
+            Border Radius: {borderRadius}px
+          </label>
+          <input
+            id="overlay-border-radius"
+            type="range"
+            min={0}
+            max={32}
+            step={1}
+            value={borderRadius}
+            onChange={(e) => handleThemeChange("borderRadius", Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="overlay-padding" className="block text-sm font-medium text-gray-300 mb-1">
+            Padding: {padding}px
+          </label>
+          <input
+            id="overlay-padding"
+            type="range"
+            min={4}
+            max={48}
+            step={2}
+            value={padding}
+            onChange={(e) => handleThemeChange("padding", Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+      </div>
+
       <div className="bg-gray-700/50 rounded-lg p-4">
         <p className="text-sm text-gray-400">
           Preview: The overlay will appear in the <strong>{position.replace("-", " ")}</strong>{" "}
@@ -137,6 +300,19 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
           <strong>{fontSize}px</strong> font size. Click-through is{" "}
           <strong>{clickThrough ? "enabled" : "disabled"}</strong>.
         </p>
+        <div
+          className="mt-2 p-2 text-xs rounded sample-overlay-preview"
+          style={{
+            backgroundColor,
+            color: textColor,
+            borderRadius: `${borderRadius}px`,
+            padding: `${padding}px`,
+            borderColor: borderColor,
+            border: `1px solid ${borderColor}`,
+          }}
+        >
+          Sample overlay text preview
+        </div>
       </div>
     </div>
   );

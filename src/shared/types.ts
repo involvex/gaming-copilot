@@ -101,6 +101,15 @@ export interface AppConfig {
     clickThrough: boolean;
   };
 
+  // Overlay Custom Theme
+  overlayCustomTheme: {
+    backgroundColor: string;
+    textColor: string;
+    borderRadius: number;
+    padding: number;
+    borderColor: string;
+  };
+
   // TTS
   tts: {
     enabled: boolean;
