@@ -64,12 +64,19 @@ export interface ElectronAPI {
   // Window
   openSettings: () => Promise<void>;
 
+  // App
+  getVersion: () => Promise<string>;
+  checkForUpdates: (
+    action: "check" | "install",
+  ) => Promise<{ status: string; version?: string; message?: string }>;
+
   // Events
   onCaptureResult: (callback: (dataUrl: string) => void) => void;
   onOverlayData: (callback: (text: string) => void) => void;
   onOverlayStreamDone: (callback: (text: string) => void) => void;
   onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => void;
   onNavigateSettings: (callback: () => void) => void;
+  onUpdateStatus: (callback: (status: string, version?: string, message?: string) => void) => void;
   removeAllListeners: (channel: string) => void;
 }
 
@@ -82,6 +89,8 @@ const electronAPI: ElectronAPI = {
   checkGame: (exeName: string) => ipcRenderer.invoke("capture:check-game", exeName),
   setGameExe: (exe: string) => ipcRenderer.invoke("config:set-game-exe", exe),
   setCaptureRegion: (region) => ipcRenderer.invoke("capture:set-region", region),
+  setRecordDuration: (duration: number) =>
+    ipcRenderer.invoke("config:set-generic", "recordDuration", duration),
 
   // AI
   analyze: (imageBase64: string, userMessage?: string) =>
@@ -141,6 +150,10 @@ const electronAPI: ElectronAPI = {
   // Window
   openSettings: () => ipcRenderer.invoke("window:open-settings"),
 
+  // App
+  getVersion: () => ipcRenderer.invoke("app:get-version"),
+  checkForUpdates: (action: "check" | "install") => ipcRenderer.invoke("app:update", action),
+
   // Events
   onCaptureResult: (callback: (dataUrl: string) => void) => {
     ipcRenderer.on("capture:result", (_event, dataUrl) => callback(dataUrl));
@@ -156,6 +169,13 @@ const electronAPI: ElectronAPI = {
   },
   onNavigateSettings: (callback: () => void) => {
     ipcRenderer.on("navigate:settings", () => callback());
+  },
+  onUpdateStatus: (callback: (status: string, version?: string, message?: string) => void) => {
+    ipcRenderer.on(
+      "app:update-status",
+      (_event, status: string, version?: string, message?: string) =>
+        callback(status, version, message),
+    );
   },
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);

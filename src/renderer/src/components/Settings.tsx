@@ -585,6 +585,25 @@ function GeneralConfig({
     ((config?.telemetry as Record<string, unknown>)?.enabled as boolean) ?? false,
   );
 
+  const [version, setVersion] = useState<string>("0.0.0");
+  const [updateStatus, setUpdateStatus] = useState<
+    "idle" | "checking" | "available" | "not-available" | "downloaded" | "error"
+  >("idle");
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.electronAPI.getVersion().then(setVersion);
+
+    const handler = (status: string, newVersion?: string, message?: string) => {
+      setUpdateStatus(status as typeof updateStatus);
+      if (newVersion) setUpdateVersion(newVersion);
+      if (message) setUpdateMessage(message);
+    };
+    window.electronAPI.onUpdateStatus(handler);
+    return () => window.electronAPI.removeAllListeners("app:update-status");
+  }, []);
+
   const handleTelemetryToggle = async () => {
     const newValue = !telemetry;
     setTelemetry(newValue);
@@ -595,6 +614,15 @@ function GeneralConfig({
     const nextTheme = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
     onThemeChange(nextTheme);
     await window.electronAPI.setSetting("theme", nextTheme);
+  };
+
+  const handleCheckUpdates = async () => {
+    setUpdateStatus("checking");
+    await window.electronAPI.checkForUpdates("check");
+  };
+
+  const handleInstallUpdate = async () => {
+    await window.electronAPI.checkForUpdates("install");
   };
 
   const handleExport = async (format: "markdown" | "json") => {
@@ -715,6 +743,42 @@ function GeneralConfig({
             />
           </button>
         </label>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-gray-300 mb-1">Application Updates</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Current version: <strong>v{version}</strong> ·{" "}
+              {updateStatus === "idle" && "No updates checked"}
+              {updateStatus === "checking" && "Checking for updates…"}
+              {updateStatus === "available" && `Update ${updateVersion} available!`}
+              {updateStatus === "not-available" && "You are up to date"}
+              {updateStatus === "downloaded" && `Update ${updateVersion} ready to install!`}
+              {updateStatus === "error" && updateMessage}
+            </p>
+          </div>
+          {updateStatus === "available" || updateStatus === "downloaded" ? (
+            <button
+              type="button"
+              onClick={handleInstallUpdate}
+              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Install Update
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleCheckUpdates}
+              disabled={updateStatus === "checking"}
+              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              data-light={resolvedTheme === "light" ? "" : undefined}
+            >
+              Check for Updates
+            </button>
+          )}
+        </div>
       </div>
 
       <div>

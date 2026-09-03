@@ -12,6 +12,7 @@ import {
   screen,
   Tray,
 } from "electron";
+import { autoUpdater } from "electron-updater";
 import { z } from "zod";
 
 import type { AppConfig } from "../shared/types";
@@ -353,6 +354,25 @@ app.whenReady().then(async () => {
   registerHotkey();
   createTray();
   updateAutoStart();
+
+  autoUpdater.on("checking-for-update", () => {
+    mainWindow?.webContents.send("app:update-status", "checking");
+  });
+  autoUpdater.on("update-available", (info) => {
+    logger.info("Updater", `Update available: ${info.version}`);
+    mainWindow?.webContents.send("app:update-status", "available", info.version);
+  });
+  autoUpdater.on("update-not-available", () => {
+    mainWindow?.webContents.send("app:update-status", "not-available");
+  });
+  autoUpdater.on("error", (error) => {
+    logger.error("Updater", `Update error: ${error?.message}`);
+    mainWindow?.webContents.send("app:update-status", "error", error?.message);
+  });
+  autoUpdater.on("update-downloaded", (info) => {
+    logger.info("Updater", `Update downloaded: ${info.version}`);
+    mainWindow?.webContents.send("app:update-status", "downloaded", info.version);
+  });
 
   const pluginConfig = appConfig.plugins.bunMemreader;
   if (pluginConfig.enabled) {
@@ -833,4 +853,24 @@ ipcMain.handle("plugin:memreader:state", () => {
 
 ipcMain.handle("plugin:memreader:connected", () => {
   return memreaderPlugin?.isConnected() || false;
+});
+
+// IPC Handlers — App / Auto-Update
+ipcMain.handle("app:update", async (_event, action: string) => {
+  if (action === "check") {
+    const result = await autoUpdater.checkForUpdates();
+    if (!result) {
+      return { status: "not-available" };
+    }
+    return { status: "checking" };
+  }
+  if (action === "install") {
+    autoUpdater.quitAndInstall();
+    return { status: "installing" };
+  }
+  return { status: "unknown" };
+});
+
+ipcMain.handle("app:get-version", () => {
+  return app.getVersion();
 });
