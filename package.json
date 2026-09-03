@@ -18,7 +18,8 @@
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
     "@google/genai": "^1.1.0",
-    "electron-store": "^10.0.1"
+    "electron-store": "^10.0.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",

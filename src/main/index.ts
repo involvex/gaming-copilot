@@ -26,6 +26,7 @@ import {
   setConfigValue,
 } from "./config";
 import { logger } from "./logger";
+import { extractText, terminateOcrWorker } from "./ocr";
 import { MemreaderPlugin } from "./plugins";
 
 let mainWindow: BrowserWindow | null = null;
@@ -139,6 +140,23 @@ function registerHotkey(): void {
     overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
     overlayWindow?.show();
 
+    let ocrContext: string | undefined;
+    if (appConfig.ocr.enabled) {
+      try {
+        const ocrResult = await extractText(resizedDataUrl, appConfig.ocr);
+        if (ocrResult.text) {
+          ocrContext = `On-screen text (OCR):\n${ocrResult.text}`;
+          logger.info(
+            "OCR",
+            `Extracted ${ocrResult.text.length} chars, confidence: ${Math.round(ocrResult.confidence)}%`,
+          );
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "OCR failed";
+        logger.warn("OCR", `Failed to extract text: ${msg}`);
+      }
+    }
+
     if (providerManager && providerManager.getAvailableProviders().length > 0) {
       try {
         const systemPrompt = appConfig.prompts.system;
@@ -153,6 +171,7 @@ function registerHotkey(): void {
           resizedMimeType,
           finalPrompt,
           "Analyze this game screenshot.",
+          ocrContext,
         )) {
           if (chunk.done) {
             logger.info("Hotkey", `AI streaming complete, total: ${fullText.length} chars`);
@@ -274,6 +293,7 @@ app.whenReady().then(() => {
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   memreaderPlugin?.stop();
+  void terminateOcrWorker();
   logger.info("App", "Quitting");
 });
 
@@ -327,12 +347,27 @@ ipcMain.handle("capture:set-region", (_event, region: RegionBounds | null) => {
 ipcMain.handle("ai:analyze", async (_event, imageBase64: string, userMessage?: string) => {
   if (!providerManager) return { error: "Provider manager not initialized" };
 
+  let ocrContext: string | undefined;
+  if (appConfig.ocr.enabled) {
+    try {
+      const dataUrl = `data:image/png;base64,${imageBase64}`;
+      const ocrResult = await extractText(dataUrl, appConfig.ocr);
+      if (ocrResult.text) {
+        ocrContext = `On-screen text (OCR):\n${ocrResult.text}`;
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "OCR failed";
+      logger.warn("OCR", `Failed to extract text: ${msg}`);
+    }
+  }
+
   try {
     const response = await providerManager.analyze(
       imageBase64,
       "image/png",
       appConfig.prompts.system,
       userMessage || "Analyze this game screenshot.",
+      ocrContext,
     );
     return { response };
   } catch (error) {
@@ -357,6 +392,20 @@ ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?:
     ? `${appConfig.prompts.system}\n\n${gameSpecificPrompt}`
     : appConfig.prompts.system;
 
+  let ocrContext: string | undefined;
+  if (appConfig.ocr.enabled) {
+    try {
+      const dataUrl = `data:image/png;base64,${imageBase64}`;
+      const ocrResult = await extractText(dataUrl, appConfig.ocr);
+      if (ocrResult.text) {
+        ocrContext = `On-screen text (OCR):\n${ocrResult.text}`;
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "OCR failed";
+      logger.warn("OCR", `Failed to extract text: ${msg}`);
+    }
+  }
+
   try {
     let fullText = "";
     for await (const chunk of providerManager.streamAnalyze(
@@ -364,6 +413,7 @@ ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?:
       "image/png",
       finalPrompt,
       userMessage || "Analyze this game screenshot.",
+      ocrContext,
     )) {
       if (!chunk.done) {
         fullText += chunk.text;

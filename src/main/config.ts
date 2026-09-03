@@ -83,6 +83,14 @@ const schema = {
       },
       default: {},
     },
+    ocr: {
+      type: "object",
+      properties: {
+        enabled: { type: "boolean", default: true },
+        language: { type: "string", default: "eng" },
+      },
+      default: {},
+    },
   },
   default: {},
 } as const;
@@ -186,6 +194,10 @@ function getDefaultConfig(): AppConfig {
     prompts: {
       system: DEFAULT_SYSTEM_PROMPT,
       gameSpecific: {},
+    },
+    ocr: {
+      enabled: true,
+      language: "eng",
     },
   };
 }

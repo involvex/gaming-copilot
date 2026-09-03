@@ -118,6 +118,12 @@ export interface AppConfig {
     };
   };
 
+  // OCR
+  ocr: {
+    enabled: boolean;
+    language: string;
+  };
+
   // Prompts
   prompts: {
     system: string;

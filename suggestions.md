@@ -30,6 +30,9 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-014 | UX | ChatHistory error handling with retry button and visual error styling | `#15` |
 | FEAT-015 | Feature | Capture region preview thumbnail in Settings — "Preview" button captures a 256px thumbnail | `#15` |
 | FEAT-020 | Feature | Toggle hotkey registration at runtime via `hotkeyEnabled` config + IPC handler | `#15` |
+| FEAT-004 | Bug Fix | Overlay now re-fetches config on each show for real-time settings updates | `#16` |
+| FEAT-008 | DevEx | Replaced all console.log in memreader.ts with structured logger module | `#15` |
+| FEAT-027 | Feature | OCR text extraction using Tesseract.js — on-screen text is extracted and passed as context to AI providers | `#16` |
 
 ---
 

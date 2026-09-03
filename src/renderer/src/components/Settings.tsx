@@ -72,6 +72,12 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     (config?.maxImageWidth as number) || 1024,
   );
   const [hotkeyInput, setHotkeyInput] = useState("");
+  const [ocrEnabled, setOcrEnabled] = useState<boolean>(
+    ((config?.ocr as Record<string, unknown>)?.enabled as boolean) ?? true,
+  );
+  const [ocrLanguage, setOcrLanguage] = useState<string>(
+    ((config?.ocr as Record<string, unknown>)?.language as string) || "eng",
+  );
   const [preview, setPreview] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [gameStatus, setGameStatus] = useState<"idle" | "checking" | "running" | "not-found">(
@@ -110,6 +116,23 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     const newValue = !notifications;
     setNotifications(newValue);
     await window.electronAPI.setSetting("notifications", newValue);
+  };
+
+  const handleOcrToggle = async () => {
+    const newValue = !ocrEnabled;
+    setOcrEnabled(newValue);
+    await window.electronAPI.setSetting("ocr", {
+      ...(config?.ocr as Record<string, unknown> | undefined),
+      enabled: newValue,
+    });
+  };
+
+  const handleOcrLanguageChange = async (lang: string) => {
+    setOcrLanguage(lang);
+    await window.electronAPI.setSetting("ocr", {
+      ...(config?.ocr as Record<string, unknown> | undefined),
+      language: lang,
+    });
   };
 
   const handleHotkeyToggle = async () => {
@@ -328,6 +351,46 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         <p className="text-xs text-gray-500 mt-1">
           Show a system notification when AI analysis completes.
         </p>
+      </div>
+
+      <div>
+        <label htmlFor="ocr-enabled" className="flex items-center justify-between cursor-pointer">
+          <span className="text-sm font-medium text-gray-300">OCR Text Extraction</span>
+          <button
+            id="ocr-enabled"
+            type="button"
+            onClick={handleOcrToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              ocrEnabled ? "bg-blue-600" : "bg-gray-600"
+            }}`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                ocrEnabled ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+        <p className="text-xs text-gray-500 mt-1">
+          Extract on-screen text via OCR and include it in AI prompts for better context.
+        </p>
+        {ocrEnabled && (
+          <div className="mt-2">
+            <label htmlFor="ocr-language" className="block text-sm font-medium text-gray-300 mb-1">
+              OCR Language
+            </label>
+            <select
+              id="ocr-language"
+              value={ocrLanguage}
+              onChange={(e) => handleOcrLanguageChange(e.target.value)}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+            >
+              <option value="eng">English</option>
+              <option value="eng+osd">English + Orientation</option>
+              <option value="universal">Universal (all scripts)</option>
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );
