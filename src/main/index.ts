@@ -12,8 +12,9 @@ import {
   screen,
   Tray,
 } from "electron";
+import { z } from "zod";
 
-import type { AppConfig, ChatMessage, RegionBounds } from "../shared/types";
+import type { AppConfig } from "../shared/types";
 import { ProviderManager } from "./ai-providers";
 import { recordScreen, resizeImage, smartCapture } from "./capture";
 import { findProcessByExe } from "./capture/win32";
@@ -28,6 +29,22 @@ import {
 import { logger } from "./logger";
 import { extractText, terminateOcrWorker } from "./ocr";
 import { MemreaderPlugin } from "./plugins";
+import {
+  booleanSchema,
+  captureModeSchema,
+  chatFormatSchema,
+  chatMessageSchema,
+  endpointConfigSchema,
+  exeNameSchema,
+  geminiProviderConfigSchema,
+  hotkeySchema,
+  overlayConfigSchema,
+  promptsConfigSchema,
+  providerNameSchema,
+  regionBoundsSchema,
+  ttsConfigSchema,
+  validateIPC,
+} from "./schemas";
 import { deleteKey, getAccount, retrieveKey, storeKey } from "./secure-storage";
 
 export function trackEvent(event: string, metadata?: Record<string, unknown>): void {
@@ -417,31 +434,39 @@ ipcMain.handle("capture:preview", async () => {
   const mimeType = result.format === "jpeg" ? "image/jpeg" : "image/png";
   return `data:${mimeType};base64,${resizedBuffer.toString("base64")}`;
 });
-ipcMain.handle("capture:check-game", (_event, exeName: string) => {
-  if (!exeName || !/^[\w.-]+\.exe$/.test(exeName.endsWith(".exe") ? exeName : `${exeName}.exe`)) {
+ipcMain.handle("capture:check-game", (_event, exeName: unknown) => {
+  const name = validateIPC(exeNameSchema, exeName);
+  if (!/^[\w.-]+\.exe$/.test(name.endsWith(".exe") ? name : `${name}.exe`)) {
     return { running: false, pid: null };
   }
-  const pid = findProcessByExe(exeName);
+  const pid = findProcessByExe(name);
   return { running: pid !== null, pid };
 });
 
-ipcMain.handle("capture:set-region", (_event, region: RegionBounds | null) => {
-  appConfig.captureRegion = region || undefined;
-  setConfigValue("captureRegion", region || undefined);
+ipcMain.handle("capture:set-region", (_event, region: unknown) => {
+  const parsed = region === null ? null : validateIPC(regionBoundsSchema, region);
+  appConfig.captureRegion = parsed || undefined;
+  setConfigValue("captureRegion", parsed || undefined);
   logger.info(
     "Capture",
-    region ? `Region set: ${region.width}x${region.height}` : "Region cleared",
+    parsed ? `Region set: ${parsed.width}x${parsed.height}` : "Region cleared",
   );
 });
 
 // IPC Handlers — AI
-ipcMain.handle("ai:analyze", async (_event, imageBase64: string, userMessage?: string) => {
+const aiAnalyzeSchema = z.object({
+  imageBase64: z.string().min(1),
+  userMessage: z.string().optional(),
+});
+
+ipcMain.handle("ai:analyze", async (_event, imageBase64: unknown, userMessage?: unknown) => {
+  const parsed = validateIPC(aiAnalyzeSchema, { imageBase64, userMessage });
   if (!providerManager) return { error: "Provider manager not initialized" };
 
   let ocrContext: string | undefined;
   if (appConfig.ocr.enabled) {
     try {
-      const dataUrl = `data:image/png;base64,${imageBase64}`;
+      const dataUrl = `data:image/png;base64,${parsed.imageBase64}`;
       const ocrResult = await extractText(dataUrl, appConfig.ocr);
       if (ocrResult.text) {
         ocrContext = `On-screen text (OCR):\n${ocrResult.text}`;
@@ -454,10 +479,10 @@ ipcMain.handle("ai:analyze", async (_event, imageBase64: string, userMessage?: s
 
   try {
     const response = await providerManager.analyze(
-      imageBase64,
+      parsed.imageBase64,
       "image/png",
       appConfig.prompts.system,
-      userMessage || "Analyze this game screenshot.",
+      parsed.userMessage || "Analyze this game screenshot.",
       ocrContext,
     );
     return { response };
@@ -467,9 +492,10 @@ ipcMain.handle("ai:analyze", async (_event, imageBase64: string, userMessage?: s
   }
 });
 
-ipcMain.handle("ai:test-provider", async (_event, name: string) => {
+ipcMain.handle("ai:test-provider", async (_event, name: unknown) => {
+  const validName = validateIPC(providerNameSchema, name);
   if (!providerManager) return false;
-  return providerManager.testProvider(name);
+  return providerManager.testProvider(validName);
 });
 
 ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?: string) => {
@@ -564,60 +590,70 @@ ipcMain.handle("config:get", async () => {
   return appConfig;
 });
 
-ipcMain.handle(
-  "config:set-provider",
-  async (_event, name: string, config: Record<string, unknown>) => {
-    if (name === "gemini") {
-      appConfig.providers.gemini = config as AppConfig["providers"]["gemini"];
+ipcMain.handle("config:set-provider", async (_event, name: unknown, config: unknown) => {
+  const validName = validateIPC(providerNameSchema, name);
+  if (validName === "gemini") {
+    const parsed = validateIPC(geminiProviderConfigSchema, config);
+    appConfig.providers.gemini = {
+      apiKey: parsed.apiKey || "",
+      model: parsed.model || "",
+      grounding: parsed.grounding ?? false,
+    };
+  } else {
+    const parsed = validateIPC(endpointConfigSchema, config);
+    if (!appConfig.providers.openaiCompat) {
+      appConfig.providers.openaiCompat = { endpoints: [] };
+    }
+    const existing = appConfig.providers.openaiCompat.endpoints.findIndex(
+      (e) => e.name === validName,
+    );
+    if (existing >= 0) {
+      appConfig.providers.openaiCompat.endpoints[existing] = {
+        ...appConfig.providers.openaiCompat.endpoints[existing],
+        ...parsed,
+      };
     } else {
-      if (!appConfig.providers.openaiCompat) {
-        appConfig.providers.openaiCompat = { endpoints: [] };
-      }
-      const existing = appConfig.providers.openaiCompat.endpoints.findIndex((e) => e.name === name);
-      if (existing >= 0) {
-        appConfig.providers.openaiCompat.endpoints[existing] = {
-          ...appConfig.providers.openaiCompat.endpoints[existing],
-          ...config,
-        };
+      appConfig.providers.openaiCompat.endpoints.push({
+        name: validName,
+        baseUrl: parsed.baseUrl || "",
+        apiKey: parsed.apiKey || "",
+        model: parsed.model || "",
+      });
+    }
+  }
+
+  // Store API keys in OS keychain if enabled
+  if (appConfig.useKeychain) {
+    const apiKey =
+      validName === "gemini"
+        ? appConfig.providers.gemini?.apiKey
+        : appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === validName)?.apiKey;
+    if (apiKey) {
+      if (validName === "gemini") {
+        await storeKey("gemini", apiKey);
+        appConfig.providers.gemini!.apiKey = "";
       } else {
-        appConfig.providers.openaiCompat.endpoints.push({
-          name: name as string,
-          baseUrl: config.baseUrl as string,
-          apiKey: config.apiKey as string,
-          model: config.model as string,
-        });
+        const account = getAccount("endpoint", validName);
+        await storeKey(account, apiKey);
+        const ep = appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === validName);
+        if (ep) ep.apiKey = "";
       }
     }
+  }
 
-    // Store API keys in OS keychain if enabled
-    if (appConfig.useKeychain) {
-      const apiKey = config.apiKey as string | undefined;
-      if (apiKey) {
-        if (name === "gemini") {
-          await storeKey("gemini", apiKey);
-          appConfig.providers.gemini!.apiKey = "";
-        } else {
-          const account = getAccount("endpoint", name);
-          await storeKey(account, apiKey);
-          const ep = appConfig.providers.openaiCompat?.endpoints.find((e) => e.name === name);
-          if (ep) ep.apiKey = "";
-        }
-      }
-    }
+  setConfigValue("providers", appConfig.providers);
+  initProviders();
+});
 
-    setConfigValue("providers", appConfig.providers);
-    initProviders();
-  },
-);
-
-ipcMain.handle("config:remove-endpoint", async (_event, name: string) => {
+ipcMain.handle("config:remove-endpoint", async (_event, name: unknown) => {
+  const validName = validateIPC(providerNameSchema, name);
   if (!appConfig.providers.openaiCompat) return;
   appConfig.providers.openaiCompat.endpoints = appConfig.providers.openaiCompat.endpoints.filter(
-    (e) => e.name !== name,
+    (e) => e.name !== validName,
   );
 
   if (appConfig.useKeychain) {
-    const account = getAccount("endpoint", name);
+    const account = getAccount("endpoint", validName);
     await deleteKey(account);
   }
 
@@ -625,80 +661,86 @@ ipcMain.handle("config:remove-endpoint", async (_event, name: string) => {
   initProviders();
 });
 
-ipcMain.handle("config:set-active-provider", (_event, name: string) => {
+ipcMain.handle("config:set-active-provider", (_event, name: unknown) => {
+  const validName = validateIPC(providerNameSchema, name);
   if (
-    name !== "gemini" &&
-    !appConfig.providers.openaiCompat?.endpoints.some((e) => e.name === name)
+    validName !== "gemini" &&
+    !appConfig.providers.openaiCompat?.endpoints.some((e) => e.name === validName)
   ) {
-    throw new Error(`Unknown provider: ${name}`);
+    throw new Error(`Unknown provider: ${validName}`);
   }
-  appConfig.activeProvider = name;
-  providerManager?.setActiveProvider(name);
-  setConfigValue("activeProvider", name);
-  logger.info("Providers", `Active provider set to: ${name}`);
+  appConfig.activeProvider = validName;
+  providerManager?.setActiveProvider(validName);
+  setConfigValue("activeProvider", validName);
+  logger.info("Providers", `Active provider set to: ${validName}`);
 });
 
-ipcMain.handle("config:set-overlay", (_event, overlay: Partial<AppConfig["overlay"]>) => {
-  appConfig.overlay = { ...appConfig.overlay, ...overlay };
+ipcMain.handle("config:set-overlay", (_event, overlay: unknown) => {
+  const parsed = validateIPC(overlayConfigSchema, overlay);
+  appConfig.overlay = { ...appConfig.overlay, ...parsed };
   setConfigValue("overlay", appConfig.overlay);
 });
 
-ipcMain.handle("config:set-tts", (_event, tts: Partial<AppConfig["tts"]>) => {
-  appConfig.tts = { ...appConfig.tts, ...tts };
+ipcMain.handle("config:set-tts", (_event, tts: unknown) => {
+  const parsed = validateIPC(ttsConfigSchema, tts);
+  appConfig.tts = { ...appConfig.tts, ...parsed };
   setConfigValue("tts", appConfig.tts);
 });
 
-ipcMain.handle("config:set-prompts", (_event, prompts: Partial<AppConfig["prompts"]>) => {
-  appConfig.prompts = { ...appConfig.prompts, ...prompts };
+ipcMain.handle("config:set-prompts", (_event, prompts: unknown) => {
+  const parsed = validateIPC(promptsConfigSchema, prompts);
+  appConfig.prompts = { ...appConfig.prompts, ...parsed };
   setConfigValue("prompts", appConfig.prompts);
 });
 
-ipcMain.handle("config:set-auto-start", (_event, enable: boolean) => {
-  appConfig.autoStart = enable;
-  setConfigValue("autoStart", enable);
+ipcMain.handle("config:set-auto-start", (_event, enable: unknown) => {
+  const parsed = validateIPC(booleanSchema, enable);
+  appConfig.autoStart = parsed;
+  setConfigValue("autoStart", parsed);
   updateAutoStart();
 });
 
-ipcMain.handle("config:set-generic", (_event, key: string, value: unknown) => {
-  const typedKey = key as keyof AppConfig;
+ipcMain.handle("config:set-generic", (_event, key: unknown, value: unknown) => {
+  const typedKey = validateIPC(hotkeySchema, key) as keyof AppConfig;
   if (typedKey in appConfig) {
     appConfig[typedKey] = value as never;
     setConfigValue(typedKey, value as never);
   }
 });
 
-ipcMain.handle("config:set-telemetry", (_event, enabled: boolean) => {
-  appConfig.telemetry = { enabled };
-  setConfigValue("telemetry", { enabled });
-  if (enabled) {
+ipcMain.handle("config:set-telemetry", (_event, enabled: unknown) => {
+  const parsed = validateIPC(booleanSchema, enabled);
+  appConfig.telemetry = { enabled: parsed };
+  setConfigValue("telemetry", { enabled: parsed });
+  if (parsed) {
     logger.info("Telemetry", "Telemetry enabled — anonymous usage data will be collected");
-    trackEvent("telemetry_enabled", { enabled });
+    trackEvent("telemetry_enabled", { enabled: parsed });
   } else {
     logger.info("Telemetry", "Telemetry disabled");
   }
 });
 
-ipcMain.handle(
-  "config:set-capture-mode",
-  (_event, mode: "auto" | "window" | "fullscreen" | "gdi") => {
-    appConfig.captureMode = mode;
-    setConfigValue("captureMode", mode);
-    logger.info("Capture", `Capture mode set to: ${mode}`);
-  },
-);
+ipcMain.handle("config:set-capture-mode", (_event, mode: unknown) => {
+  const parsed = validateIPC(captureModeSchema, mode);
+  appConfig.captureMode = parsed;
+  setConfigValue("captureMode", parsed);
+  logger.info("Capture", `Capture mode set to: ${parsed}`);
+});
 
-ipcMain.handle("config:set-hotkey", (_event, hotkey: string) => {
-  if (!hotkey || !/^\w+([+-].+)*$/.test(hotkey)) {
+ipcMain.handle("config:set-hotkey", (_event, hotkey: unknown) => {
+  const parsed = validateIPC(hotkeySchema, hotkey);
+  if (!parsed || !/^\w+([+-].+)*$/.test(parsed)) {
     return false;
   }
-  setHotkey(hotkey);
+  setHotkey(parsed);
   return true;
 });
 
-ipcMain.handle("config:set-hotkey-enabled", (_event, enabled: boolean) => {
-  appConfig.hotkeyEnabled = enabled;
-  setConfigValue("hotkeyEnabled", enabled);
-  if (enabled) {
+ipcMain.handle("config:set-hotkey-enabled", (_event, enabled: unknown) => {
+  const parsed = validateIPC(booleanSchema, enabled);
+  appConfig.hotkeyEnabled = parsed;
+  setConfigValue("hotkeyEnabled", parsed);
+  if (parsed) {
     registerHotkey();
   } else {
     unregisterHotkey();
@@ -708,8 +750,11 @@ ipcMain.handle("config:set-hotkey-enabled", (_event, enabled: boolean) => {
 });
 
 // IPC Handlers — Chat History
-ipcMain.handle("chat:save", (_event, messages: ChatMessage[]) => {
-  saveChatHistory(messages);
+const chatSaveSchema = z.array(chatMessageSchema);
+
+ipcMain.handle("chat:save", (_event, messages: unknown) => {
+  const parsed = validateIPC(chatSaveSchema, messages);
+  saveChatHistory(parsed);
   return true;
 });
 
@@ -722,9 +767,10 @@ ipcMain.handle("chat:clear", () => {
   return true;
 });
 
-ipcMain.handle("chat:export", (_event, format: "markdown" | "json") => {
+ipcMain.handle("chat:export", (_event, format: unknown) => {
+  const validFormat = validateIPC(chatFormatSchema, format);
   const messages = getChatHistory();
-  if (format === "markdown") {
+  if (validFormat === "markdown") {
     let md = "# Gaming Copilot Chat History\n\n";
     for (const msg of messages) {
       if (msg.role === "user") {
@@ -739,8 +785,9 @@ ipcMain.handle("chat:export", (_event, format: "markdown" | "json") => {
 });
 
 // IPC Handlers — Overlay
-ipcMain.handle("overlay:show", (_event, text: string) => {
-  overlayWindow?.webContents.send("overlay:data", text);
+ipcMain.handle("overlay:show", (_event, text: unknown) => {
+  const validText = validateIPC(z.string(), text);
+  overlayWindow?.webContents.send("overlay:data", validText);
   overlayWindow?.show();
 });
 
@@ -748,10 +795,11 @@ ipcMain.handle("overlay:hide", () => {
   overlayWindow?.hide();
 });
 
-ipcMain.handle("overlay:set-click-through", (_event, enable: boolean) => {
-  appConfig.overlay.clickThrough = enable;
+ipcMain.handle("overlay:set-click-through", (_event, enable: unknown) => {
+  const parsed = validateIPC(booleanSchema, enable);
+  appConfig.overlay.clickThrough = parsed;
   setConfigValue("overlay", appConfig.overlay);
-  overlayWindow?.setIgnoreMouseEvents(enable);
+  overlayWindow?.setIgnoreMouseEvents(parsed);
 });
 
 // IPC Handlers — Window

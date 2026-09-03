@@ -706,11 +706,11 @@ Format: Use bullet points for multiple observations.
 ### Near Term
 - **Code signing** (Windows) — Add `CSC_LINK` and `CSC_KEY_PASSWORD` to build config
 - **Auto-update** — Integrate `electron-updater` with GitHub releases provider
-- **Zod-based IPC validation** — Replace manual type guards with schema validation
 - **TypeScript strictness audit** — `noUnusedLocals`, `noUncheckedIndexedAccess`, etc.
 - **Active provider badge in overlay** — Show which provider generated the response
 
 ### Completed (was Near Term)
+- ✅ Zod-based IPC input validation (`validateIPC` helper, 37 schema tests)
 - ✅ API key encryption via `keytar` (OS keyring)
 - ✅ Memreader unit tests (5 test suite, 88 tests total)
 - ✅ Settings keyboard shortcuts (`Ctrl+1` through `Ctrl+6`)

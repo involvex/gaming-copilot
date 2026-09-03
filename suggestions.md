@@ -63,7 +63,6 @@ This document catalogs opportunities for improvement, new features, and optimiza
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-045 | Security | **Add Zod-based IPC input validation** — Several IPC handlers accept untyped `Record<string, unknown>` payloads. Replace manual type guards with Zod schema validation at the IPC boundary. | Medium | Medium |
 | FEAT-046 | Feature | **Implement auto-update** — Add `electron-updater` and configure GitHub releases as the update provider. Add IPC handler for `app:update` and a UI indicator in Settings. | Medium | Medium |
 | FEAT-047 | Security | **Add code signing for Windows** — Unsigned executables trigger Windows SmartScreen warnings. Add `CSC_LINK` and `CSC_KEY_PASSWORD` env vars to CI and electron-builder config. | High | Medium |
 
@@ -71,8 +70,8 @@ This document catalogs opportunities for improvement, new features, and optimiza
 
 | ID | Category | Description | Impact | Effort |
 |----|----------|-------------|--------|--------|
-| FEAT-055 | DevEx | **TypeScript strictness audit** — Verify `noUnusedLocals`, `noUnusedParameters`, and consider `noUncheckedIndexedAccess` for array safety. Check both `tsconfig.node.json` and `tsconfig.web.json`. | Low | Low |
-| FEAT-056 | Feature | **Active provider badge in overlay** — Show which AI provider generated the overlay response (e.g., "via Gemini 2.5 Flash") as a small label in the overlay. | Low | Low |
+| FEAT-056 | Feature | Active provider badge in overlay — Show which AI provider generated the overlay response (e.g., "via Gemini 2.5 Flash") as a small label in the overlay. | Low | Low |
+| FEAT-045 | Security | Add Zod-based IPC input validation — Several IPC handlers accept untyped `unknown` payloads. Replaced manual type guards with Zod schema validation at the IPC boundary via `validateIPC()` helper. Added `src/main/schemas.ts` with typed schemas. | `e92fc53` |
 
 ### Technical Debt
 
