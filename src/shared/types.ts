@@ -62,6 +62,7 @@ export interface AppConfig {
   hotkey: string;
   autoStart: boolean;
   minimizeToTray: boolean;
+  notifications: boolean;
 
   // Capture
   gameExe: string;

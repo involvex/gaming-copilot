@@ -57,7 +57,13 @@ export default function Settings() {
 
 function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   const [gameExe, setGameExe] = useState((config?.gameExe as string) || "");
-  const [autoStart, setAutoStart] = useState((config?.autoStart as boolean) || false);
+  const [autoStart, setAutoStart] = useState<boolean>((config?.autoStart as boolean) || false);
+  const [notifications, setNotifications] = useState<boolean>(
+    (config?.notifications as boolean) || true,
+  );
+  const [captureQuality, setCaptureQuality] = useState<number>(
+    (config?.captureQuality as number) || 85,
+  );
   const [hotkey, setHotkey] = useState((config?.hotkey as string) || "CommandOrControl+Shift+G");
   const [hotkeyInput, setHotkeyInput] = useState("");
   const [gameStatus, setGameStatus] = useState<"idle" | "checking" | "running" | "not-found">(
@@ -78,6 +84,12 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     const newValue = !autoStart;
     setAutoStart(newValue);
     await window.electronAPI.setAutoStart(newValue);
+  };
+
+  const handleNotificationsToggle = async () => {
+    const newValue = !notifications;
+    setNotifications(newValue);
+    await window.electronAPI.setSetting("notifications", newValue);
   };
 
   const handleHotkeyChange = async () => {
@@ -157,6 +169,30 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
       </div>
 
       <div>
+        <label htmlFor="capture-quality" className="block text-sm font-medium text-gray-300 mb-2">
+          Capture Quality: {captureQuality}
+        </label>
+        <p className="text-xs text-gray-400 mb-2">
+          JPEG quality for screenshot compression. Lower values reduce token cost but may lose
+          detail.
+        </p>
+        <input
+          id="capture-quality"
+          type="range"
+          min={20}
+          max={100}
+          step={5}
+          value={captureQuality}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setCaptureQuality(v);
+            window.electronAPI.setSetting("captureQuality", v);
+          }}
+          className="w-full"
+        />
+      </div>
+
+      <div>
         <label htmlFor="auto-start" className="flex items-center justify-between cursor-pointer">
           <span className="text-sm font-medium text-gray-300">Start with Windows</span>
           <button
@@ -176,6 +212,29 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         </label>
         <p className="text-xs text-gray-500 mt-1">
           Launch Gaming Copilot automatically when Windows starts.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="notifications" className="flex items-center justify-between cursor-pointer">
+          <span className="text-sm font-medium text-gray-300">System Notifications</span>
+          <button
+            id="notifications"
+            type="button"
+            onClick={handleNotificationsToggle}
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              notifications ? "bg-blue-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                notifications ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </label>
+        <p className="text-xs text-gray-500 mt-1">
+          Show a system notification when AI analysis completes.
         </p>
       </div>
     </div>

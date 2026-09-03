@@ -7,6 +7,7 @@ import {
   globalShortcut,
   ipcMain,
   Menu,
+  Notification,
   nativeImage,
   screen,
   Tray,
@@ -145,6 +146,16 @@ function registerHotkey(): void {
           }
         }
         overlayWindow?.webContents.send("overlay:stream-done", fullText);
+
+        if (appConfig.notifications) {
+          const summary = fullText.slice(0, 100) + (fullText.length > 100 ? "..." : "");
+          new Notification({
+            title: "Gaming Copilot",
+            body: summary || "Analysis complete",
+            icon: nativeImage.createFromPath(join(__dirname, "../resources/icon.png")),
+            silent: false,
+          }).show();
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Analysis failed";
         overlayWindow?.webContents.send("overlay:data", `Error: ${message}`);
@@ -408,6 +419,14 @@ ipcMain.handle("config:set-auto-start", (_event, enable: boolean) => {
   appConfig.autoStart = enable;
   setConfigValue("autoStart", enable);
   updateAutoStart();
+});
+
+ipcMain.handle("config:set-generic", (_event, key: string, value: unknown) => {
+  const typedKey = key as keyof AppConfig;
+  if (typedKey in appConfig) {
+    appConfig[typedKey] = value as never;
+    setConfigValue(typedKey, value as never);
+  }
 });
 
 ipcMain.handle("config:set-hotkey", (_event, hotkey: string) => {

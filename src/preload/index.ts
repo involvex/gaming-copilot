@@ -39,6 +39,7 @@ export interface ElectronAPI {
   setPromptsConfig: (config: Record<string, unknown>) => Promise<void>;
   setAutoStart: (enable: boolean) => Promise<void>;
   setHotkey: (hotkey: string) => Promise<boolean>;
+  setSetting: (key: string, value: unknown) => Promise<void>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -100,6 +101,7 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke("config:set-prompts", config),
   setAutoStart: (enable: boolean) => ipcRenderer.invoke("config:set-auto-start", enable),
   setHotkey: (hotkey: string) => ipcRenderer.invoke("config:set-hotkey", hotkey),
+  setSetting: (key: string, value: unknown) => ipcRenderer.invoke("config:set-generic", key, value),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),
