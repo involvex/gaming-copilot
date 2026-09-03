@@ -83,6 +83,8 @@ describe("config module", () => {
 
       expect(config).toBeDefined();
       expect(config.maxImageWidth).toBe(1024);
+      expect(config.captureMode).toBe("auto");
+      expect(config.activeProvider).toBe("gemini");
     });
 
     it("should return default config if not initialized", async () => {
@@ -111,6 +113,24 @@ describe("config module", () => {
       setConfigValue("gameExe", "Neuz.exe");
 
       expect(getConfig().gameExe).toBe("Neuz.exe");
+    });
+
+    it("should set captureMode value", async () => {
+      const { initConfig, setConfigValue, getConfig } = await import("../config");
+
+      initConfig();
+      setConfigValue("captureMode", "fullscreen");
+
+      expect(getConfig().captureMode).toBe("fullscreen");
+    });
+
+    it("should set activeProvider value", async () => {
+      const { initConfig, setConfigValue, getConfig } = await import("../config");
+
+      initConfig();
+      setConfigValue("activeProvider", "custom-endpoint");
+
+      expect(getConfig().activeProvider).toBe("custom-endpoint");
     });
   });
 

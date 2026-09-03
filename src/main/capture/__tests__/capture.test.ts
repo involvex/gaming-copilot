@@ -188,7 +188,7 @@ describe("capture module", () => {
         { thumbnail: mockThumbnail, name: "Screen 1" },
       ]);
 
-      const result = await smartCapture("evil; rm -rf /", undefined, undefined, 0);
+      const result = await smartCapture("evil; rm -rf /", undefined, undefined, 0, "auto");
       expect(result.buffer).toBeDefined();
       expect(result.format).toBe("png");
     });
@@ -205,7 +205,7 @@ describe("capture module", () => {
         { thumbnail: mockThumbnail, name: "Screen 1" },
       ]);
 
-      const result = await smartCapture(undefined, undefined, undefined, 0);
+      const result = await smartCapture(undefined, undefined, undefined, 0, "auto");
       expect(result.buffer).toEqual(pngData);
     });
   });
@@ -329,6 +329,8 @@ describe("capture module", () => {
       const base64Output = Buffer.from("fake-captured-image").toString("base64");
       vi.mocked(execSync).mockReturnValue(base64Output);
 
+      mockNativeImage.createFromBuffer.mockReturnValue(makeMockImage());
+
       const result = await captureWithGDI("game.exe", 85);
       expect(result).toBeDefined();
       expect(result?.buffer).toBeDefined();
@@ -347,6 +349,8 @@ describe("capture module", () => {
       const { execSync } = await import("node:child_process");
       const base64Output = Buffer.from("fake-captured-image").toString("base64");
       vi.mocked(execSync).mockReturnValue(base64Output);
+
+      mockNativeImage.createFromBuffer.mockReturnValue(makeMockImage());
 
       const result = await captureWithGDI("game.exe", 100);
       expect(result?.format).toBe("png");

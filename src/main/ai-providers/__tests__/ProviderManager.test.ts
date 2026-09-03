@@ -108,6 +108,7 @@ function makeConfig(providerNames: string[]): AppConfig {
     maxImageWidth: 1024,
     hotkeyEnabled: true,
     monitorIndex: 0,
+    captureMode: "auto",
     providers: {
       gemini: {
         apiKey: "test-key",

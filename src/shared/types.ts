@@ -72,6 +72,7 @@ export interface AppConfig {
   captureRegion?: RegionBounds;
   hotkeyEnabled: boolean;
   monitorIndex: number;
+  captureMode: "auto" | "window" | "fullscreen" | "gdi";
 
   // Providers
   providers: {

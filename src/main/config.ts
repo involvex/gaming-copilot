@@ -15,6 +15,7 @@ const schema = {
     maxImageWidth: { type: "number", default: 1024 },
     hotkeyEnabled: { type: "boolean", default: true },
     monitorIndex: { type: "number", default: 0 },
+    captureMode: { type: "string", default: "auto" },
     activeProvider: { type: "string", default: "gemini" },
     providers: {
       type: "object",
@@ -188,6 +189,7 @@ function getDefaultConfig(): AppConfig {
     maxImageWidth: 1024,
     hotkeyEnabled: true,
     monitorIndex: 0,
+    captureMode: "auto",
     providers: {},
     activeProvider: "gemini",
     overlay: {

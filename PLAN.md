@@ -4,41 +4,36 @@
 
 | Phase | Status | Commit | Notes |
 |-------|--------|--------|-------|
-| 1: Scaffolding | ✅ Done | `e480f0c` | electron-vite + React 19 + Tailwind 4 + Biome 2 |
+| 1: Scaffolding | ✅ Done | `e480f0c` | electron-vite 4 + React 19 + Tailwind 4 + Biome 2 |
 | 2: Screenshot | ✅ Done | `e480f0c` | desktopCapturer → GDI+ → fullscreen fallback |
-| 3: AI Providers | ✅ Done | `e480f0c` | Gemini native SDK, OpenAI-compat (Zen/Kilo) |
+| 3: AI Providers | ✅ Done | `e480f0c` | Gemini native SDK, OpenAI-compat (Zen/Kilo/Ollama) |
 | 4: Floating Overlay | ✅ Done | `e480f0c` | Transparent frameless, auto-dismiss, fade |
-| 5: Settings GUI | ✅ Done | `e480f0c` | Tabbed UI (providers/capture/overlay/prompts) |
-| 6: TTS | ✅ Done | `f80e35c` | Web Speech API, voice/speed/pitch/volume |
+| 5: Settings GUI | ✅ Done | `e480f0c` | Tabbed UI (5 tabs → 6 tabs with General) |
+| 6: TTS | ✅ Done | `f80e35c` | Web Speech API, voice/speed/pitch/volume + preview |
 | 7: Plugins | ✅ Done | `911f554` | bun-memreader sidecar via HTTP, IPC integration |
 | 8: System Tray | ✅ Done | `308e9d9` | Context menu, minimize-to-tray |
 | 9: Packaging | ✅ Done | `cbc6215` | electron-builder NSIS, GitHub publish config |
+| 10: Config Persistence | ✅ Done | `9ed6c01` | electron-store wired for all config + chat history |
+| 11: Auto-start | ✅ Done | `5016976` | Windows login item settings + IPC toggle |
+| 12: Image Preprocessing | ✅ Done | `5cdb103` | Resize to max 1024px, JPEG quality control |
+| 13: Streaming AI | ✅ Done | `fd7c2c4` | AsyncGenerator + SSE parsing + typewriter overlay |
+| 14: AI Response Caching | ✅ Done | `4041919` | 60s TTL SHA-1 cache + clear-cache IPC |
+| 15: Custom CSS Overlay Theme | ✅ Done | `c1c4b03` | Color pickers, border radius, padding, live preview |
+| 16: System Notifications | ✅ Done | `a79b195` | electron.Notification on analysis complete |
+| 17: Per-game System Prompts | ✅ Done | `d2aeb33` | Game-specific prompt mapping in config + UI |
+| 18: Custom OpenAI Endpoints | ✅ Done | `23ed403` | Add/remove/test arbitrary OpenAI-compatible endpoints |
+| 19: Capture Preview + Region | ✅ Done | `a45629b` | Region selector, 256px preview thumbnail |
+| 20: Multiple Monitors | ✅ Done | `2ae8069` | Monitor selection dropdown + IPC |
+| 21: Screen Recording | ✅ Done | `a4a1afd` | Keyframe burst → grid composite image |
+| 22: OCR Text Extraction | ✅ Done | `4cd006e` | Tesseract.js, optional, 3 languages |
+| 23: Chat History Persistence | ✅ Done | `e363b8b` | electron-store backed, export MD/JSON |
+| 24: Telemetry | ✅ Done | `a6ec947` | Anonymous opt-in toggle, event tracking |
+| 25: CI/CD | ✅ Done | `d643341` | GitHub Actions on Windows (biome, tsc, build, test) |
+| 26: Unit Tests | ✅ Done | `1de1d1b` | vitest: capture, config, ProviderManager, memreader (81 tests) |
+| 27: Code Signing | ❌ Not done | — | Windows SmartScreen will warn on unsigned exe |
+| 28: Auto-update | ❌ Not done | — | electron-updater not yet integrated |
 
-**All 9 phases implemented.** Repository: https://github.com/involvex/gaming-copilot (private)
-
-### What's Working
-- `bun run dev` — launches Electron app with hot reload
-- `bun run build` — full production pipeline (format + lint + typecheck + vite build)
-- `bun run package` — builds Windows NSIS installer
-- Settings GUI with 5 tabs: AI Providers, Capture, Overlay, TTS, Prompts
-- System tray with context menu and minimize-to-tray on close
-- Screenshot capture chain: desktopCapturer → GDI+ PowerShell fallback → fullscreen
-- AI provider fallback chain with rate limiting
-- TTS toggle with configurable voice, speed, pitch, volume
-- bun-memreader sidecar start/stop/state via IPC
-- 256x256 app icon (gamepad design)
-
-### What's Not Yet Done
-- Config persistence (electron-store not wired — config resets on restart)
-- Auto-start with Windows
-- Chat history / recent analyses
-- Region selection for screenshots
-- Multiple monitor support
-- Image preprocessing (crop/resize before AI)
-- Error logging to file
-- Unit/integration tests
-- Code signing
-- Auto-update
+**Repository**: https://github.com/involvex/gaming-copilot (private)
 
 ---
 
@@ -48,11 +43,30 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
 
 ### Core Features
 - **Screenshot Capture**: Hotkey-triggered screen capture (game window or full monitor)
-- **AI Vision Analysis**: Send screenshots to Gemini / OpenCode Zen / Kilo Gateway for analysis
+- **AI Vision Analysis**: Send screenshots to Gemini / OpenCode Zen / Kilo Gateway / Ollama for analysis
 - **Floating Overlay**: Transparent, always-on-top response display with auto-dismiss
 - **Settings GUI**: Configure hotkeys, API keys, providers, prompts, TTS, overlay styling
 - **Plugin System**: Optional game-specific data injection (bun-memreader sidecar)
 - **TTS**: Optional text-to-speech for AI responses (toggle in settings)
+- **OCR**: On-screen text extraction to provide additional context to AI
+- **Screen Recording**: Short keyframe burst → grid composite image for action sequences
+
+### Additional Features
+- **Streaming AI responses** with typewriter effect in overlay
+- **AI response caching** (60-second TTL, keyed by image hash)
+- **Custom OpenAI-compatible endpoints** (Zen, Kilo, Ollama, or any custom API)
+- **Per-game system prompts** (map game exe names to custom prompt overrides)
+- **Windows system notifications** when analysis completes
+- **Capture region selection** and preview thumbnail
+- **Multiple monitor selection**
+- **Custom CSS overlay themes** (colors, border radius, padding)
+- **Chat history persistence** with export to Markdown/JSON
+- **Anonymous telemetry** (opt-in)
+- **Configurable hotkey** with runtime toggle
+- **JPEG compression** with configurable quality
+  - **Image resizing** to configurable max width (default 1024px)
+  - **Active provider switching** — dropdown to select primary AI provider at runtime with fallback chain
+  - **Capture mode selection** — choose auto (window → GDI+ → fullscreen), window-only, fullscreen-only, or GDI+ fallback-only
 
 ---
 
@@ -60,17 +74,21 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
 
 | Layer | Technology | Version | Reason |
 |-------|-----------|---------|--------|
-| Framework | **electron-vite** | 4.0.1 | Fast HMR, TypeScript-first, Vite 7 |
-| Runtime | **Bun** | 1.4.1 | Fast installs, native FFI, TypeScript native |
+| Framework | **electron-vite** | 4.0.1 | Fast HMR, TypeScript-first |
+| Runtime | **Bun** | 1.4.1 | Fast installs, native FFI, TS native |
 | UI Framework | **React** | 19.1 | Component-based overlay/settings UI |
-| Screenshot | **Electron desktopCapturer** + **Windows GDI+ fallback** | — | Works in windowed/borderless; GDI+ for exclusive fullscreen |
-| AI Providers | **Gemini 2.5 Flash** (native `@google/genai`) + **OpenAI-compatible** (Zen/Kilo) | — | Free tier + flexible provider system |
+| Screenshot | **Electron desktopCapturer** + **Windows GDI+ fallback** | — | Windowed/borderless + exclusive fullscreen |
+| AI Providers | **Gemini 2.5 Flash** (native `@google/genai`) + **OpenAI-compatible** (Zen/Kilo/Ollama) | — | Free tier + flexible provider system |
+| Streaming | **SSE / AsyncGenerator** | — | Incremental response display |
 | Hotkeys | **Electron globalShortcut** | — | Native OS-level registration |
-| TTS | **Web Speech API** (SpeechSynthesis) | — | Built into Chromium, no dependencies |
+| TTS | **Web Speech API** (SpeechSynthesis) | — | Built into Chromium |
+| OCR | **Tesseract.js** | 7.0 | On-screen text extraction |
 | Styling | **Tailwind CSS** | 4.1.7 | Fast UI development |
 | Build | **electron-builder** | 26.0 | Windows NSIS installer |
-| Linting | **Biome** | 2.5.11 | Format + lint + organize imports |
-| Type Check | **TypeScript** | 5.8.3 | Strict type safety |
+| Linting | **Biome** | 2.4.16 | Format + lint + organize imports |
+| Type Check | **TypeScript** | 5.8.3 | Strict mode enabled |
+| Testing | **Vitest** | 3.2.4 | Unit tests for capture, config, providers |
+| CI | **GitHub Actions** | — | Windows runner: lint, typecheck, build, test |
 | Package Manager | **Bun** | >= 1.3.0 | Required by environment |
 
 ---
@@ -78,40 +96,51 @@ A **general-purpose AI gaming assistant** that captures screenshots of any game 
 ## 3. Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Electron Main Process                     │
-│                                                              │
+┌─────────────────────────────────────────────────────────────────┐
+│                    Electron Main Process                         │
+│                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │  Hotkey Mgr  │  │  Screenshot  │  │  AI Provider     │  │
 │  │  (global     │  │  Capture     │  │  Manager         │  │
 │  │   shortcut)  │  │  (desktop    │  │  ┌─ Gemini      │  │
 │  └──────┬───────┘  │   Capturer   │  │  ├─ OpenAI-Compat│  │
-│         │          │   + GDI+)    │  │  └─ Ollama      │  │
-│         │          └──────┬───────┘  └────────┬─────────┘  │
-│         │                 │                    │             │
-│         ▼                 ▼                    ▼             │
+│         │          │   + GDI+)    │  │  │  ├─ Zen      │  │
+│         │          └──────┬───────┘  │  │  ├─ Kilo     │  │
+│         │                 │          │  │  └─ Ollama   │  │
+│         │                 │          │  └────────┬─────────┘  │
+│         │                 │          │           │             │
+│         ▼                 ▼          ▼            ▼            │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │              IPC Bridge (contextBridge)              │   │
+│  │   IPC Bridge (contextBridge) + Logger (file rotate)  │   │
 │  └─────────────────────────────────────────────────────┘   │
-│                                                              │
+│                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │  Tray Icon   │  │  Plugin Mgr  │  │  Config Store    │  │
 │  │  (system     │  │  (bun-mem    │  │  (electron-store)│  │
 │  │   tray)      │  │   reader)    │  │                  │  │
 │  └──────────────┘  └──────────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                    IPC    │  ipcRenderer.invoke()
-                           ▼
+│                                                                  │
+│  ┌─────────────────────────────────────────────┐              │
+│  │  OCR (Tesseract.js) │ Screen Recording (grid) │           │
+│  └─────────────────────────────────────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                     IPC    │  ipcRenderer.invoke() / send()
+                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Renderer Process (React)                  │
-│                                                              │
+│                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │  Overlay     │  │  Settings    │  │  Chat History    │  │
-│  │  (floating,  │  │  Window      │  │  (optional)      │  │
-│  │   transparent│  │  (full UI)   │  │                  │  │
-│  │   response)  │  │              │  │                  │  │
+│  │  (floating,  │  │  Window      │  │  (persistent)    │  │
+│  │   transparent│  │  (6 tabs)    │  │                  │  │
+│  │   streaming) │  │              │  │                  │  │
 │  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐                          │
+│  │  TTSConfig   │  │  PromptEditor│                          │
+│  │  (Web Speech │  │  + RegionSel │                          │
+│  │   + preview) │  │              │                          │
+│  └──────────────┘  └──────────────┘                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -129,24 +158,41 @@ E:\Game\gaming-copilot\gaming-copilot\
 ├── README.md
 ├── AGENTS.md
 ├── PLAN.md
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── .gitattributes
 │
 ├── src/
 │   ├── main/                       # Electron main process
 │   │   ├── index.ts                # App entry, IPC handlers, tray, hotkey
+│   │   ├── config.ts               # electron-store config + chat history store
 │   │   ├── capture/                # Screenshot capture
-│   │   │   ├── index.ts            # smartCapture (desktopCapturer → GDI+ → fullscreen)
-│   │   │   └── win32.ts            # findProcessByExe, getWindowTitleByPid
+│   │   │   ├── index.ts            # smartCapture, resizeImage, recordScreen, compositeFrames
+│   │   │   ├── win32.ts            # findProcessByExe, getWindowTitleByPid
+│   │   │   └── __tests__/
+│   │   │       └── capture.test.ts  # vitest tests for capture logic
 │   │   ├── ai-providers/           # AI vision providers
-│   │   │   ├── types.ts            # AIProvider interface
+│   │   │   ├── types.ts            # AIProvider, AIResponse, StreamChunk, RateLimitInfo
 │   │   │   ├── gemini.ts           # Google Gemini (native SDK)
-│   │   │   ├── openai-compat.ts    # OpenAI-compatible (Zen, Kilo)
-│   │   │   └── index.ts            # ProviderManager + fallback chain
-│   │   └── plugins/                # Plugin integrations
-│   │       ├── index.ts            # Barrel export
-│   │       └── memreader.ts        # bun-memreader sidecar manager
+│   │   │   ├── openai-compat.ts    # OpenAI-compatible (Zen, Kilo, Ollama, custom)
+│   │   │   ├── index.ts            # ProviderManager + fallback chain + caching
+│   │   │   └── __tests__/
+│   │   │       └── ProviderManager.test.ts
+│   │   ├── plugins/                # Plugin integrations
+│   │   │   ├── index.ts            # Barrel export
+│   │   │   ├── memreader.ts        # bun-memreader sidecar manager
+│   │   │   └── __tests__/
+│   │   │       └── memreader.test.ts  # vitest tests (planned)
+│   │   ├── ocr/                    # OCR text extraction
+│   │   │   └── index.ts            # Tesseract.js worker wrapper
+│   │   ├── logger/                 # File logging with rotation
+│   │   │   └── index.ts
+│   │   └── __tests__/
+│   │       └── config.test.ts      # vitest tests for config module
 │   │
 │   ├── preload/
-│   │   └── index.ts                # contextBridge IPC API
+│   │   └── index.ts                # contextBridge IPC API (ElectronAPI interface)
 │   │
 │   ├── renderer/
 │   │   └── src/
@@ -155,17 +201,21 @@ E:\Game\gaming-copilot\gaming-copilot\
 │   │       ├── tts.ts              # Web Speech API wrapper
 │   │       ├── styles/
 │   │       │   └── globals.css     # Tailwind base
+│   │       ├── types/
+│   │       │   └── electron.d.ts   # Global type augmentation for window.electronAPI
 │   │       └── components/
-│   │           ├── Overlay.tsx     # Floating transparent overlay + TTS
-│   │           ├── Settings.tsx    # Tabbed settings container
-│   │           ├── ProviderConfig.tsx  # Gemini/Zen/Kilo API key config
-│   │           ├── OverlayStyle.tsx    # Position, opacity, font size
-│   │           ├── TTSConfig.tsx       # TTS toggle + voice settings
-│   │           └── PromptEditor.tsx    # System prompt editor
+│   │           ├── Overlay.tsx     # Floating overlay + streaming + TTS
+│   │           ├── Settings.tsx    # Tabbed settings (6 tabs)
+│   │           ├── ProviderConfig.tsx # Gemini/Zen/Kilo/custom endpoint config
+│   │           ├── OverlayStyle.tsx  # Position, opacity, font size, custom theme
+│   │           ├── TTSConfig.tsx     # TTS toggle + voice settings + preview
+│   │           ├── PromptEditor.tsx  # System prompt + per-game prompts
+│   │           ├── RegionSelector.tsx # Capture region selection UI
+│   │           └── ChatHistory.tsx   # Persistent chat + export
 │   │
 │   └── shared/
-│       ├── types.ts                # AppConfig, AIResponse, GameState
-│       └── constants.ts            # DEFAULT_SYSTEM_PROMPT, presets
+│       ├── types.ts                # AppConfig, AIResponse, GameState, ChatMessage
+│       └── constants.ts            # DEFAULT_SYSTEM_PROMPT, presets, defaults
 │
 ├── resources/
 │   └── icon.png                    # 256x256 app icon
@@ -178,7 +228,7 @@ E:\Game\gaming-copilot\gaming-copilot\
 ## 5. Implementation Phases
 
 ### Phase 1: Project Scaffolding (Day 1)
-**Goal**: Working electron-vite skeleton with React
+**Status**: ✅ Complete
 
 1. Initialize electron-vite project with React + TypeScript template
 2. Configure Tailwind CSS
@@ -187,305 +237,212 @@ E:\Game\gaming-copilot\gaming-copilot\
 5. Verify: `bun run dev` opens an Electron window with React rendering
 
 ### Phase 2: Screenshot Capture (Day 1-2)
-**Goal**: Reliable screenshot capture from any game
+**Status**: ✅ Complete
 
 1. **desktopCapturer integration**:
    - Use `desktopCapturer.getSources({ types: ['window', 'screen'] })`
    - Capture specific window by title or full primary screen
-   - Return as PNG Buffer in memory (no disk writes)
+   - Return as PNG/JPEG Buffer in memory (no disk writes)
 
 2. **Windows GDI+ fallback** (for exclusive fullscreen games):
-   - Implement via PowerShell child process or native FFI
+   - PowerShell child process using `CopyFromScreen`
    - `SetForegroundWindow` → `GetWindowRect` → `CopyFromScreen` → Buffer
-   - Based on the user's existing PowerShell script
+   - Input validation to prevent command injection (`SAFE_EXE_PATTERN`)
 
 3. **Game window detection**:
-   - Enumerate running processes via `tasklist` or WMI
-   - Match by window title or process name
-   - Allow manual window selection in settings
+   - Enumerate running processes via `tasklist`
+   - Match by window title or process name (exe validation)
+   - Manual region selection via RegionSelector UI
 
-4. **IPC bridge**: Expose `captureScreenshot()` to renderer
+4. **IPC bridge**: `capture:screenshot`, `capture:preview`, `capture:record`, `capture:get-screens`, `capture:check-game`, `capture:set-region`
 
 ### Phase 3: AI Provider System (Day 2-3)
-**Goal**: Pluggable AI vision providers with unified interface
+**Status**: ✅ Complete
 
 1. **Provider interface** (`types.ts`):
    ```typescript
    interface AIProvider {
-     name: string;
-     analyze(image: Buffer, prompt: string, context?: string): Promise<string>;
-     isAvailable(): boolean;
-     getRateLimit(): { rpm: number; rpd: number };
+     readonly name: string;
+     readonly displayName: string;
+     analyze(params: { imageBase64, mimeType, systemPrompt, userMessage, context? }): Promise<AIResponse>;
+     streamAnalyze(params: { ... }): AsyncGenerator<StreamChunk>;
+     isConfigured(): boolean;
+     getRateLimitInfo(): RateLimitInfo;
    }
    ```
 
 2. **Gemini provider** (`gemini.ts`):
-   - Use `@google/genai` SDK
+   - Uses `@google/genai` SDK
    - Model: `gemini-2.5-flash` (free tier)
-   - Send image as inlineData (base64)
-   - Support grounding (web search) for up-to-date game info
+   - Supports grounding (Google Search)
+   - Streaming via `generateContentStream`
 
 3. **OpenAI-compatible provider** (`openai-compat.ts`):
    - Generic OpenAI chat completions API
    - Works with: OpenCode Zen, Kilo Gateway, OpenRouter, local Ollama
-   - Configurable base URL + API key
-   - Model: configurable (default: auto-detect)
+   - Configurable base URL + API key + model name
+   - Both presets and custom endpoints
 
 4. **Provider manager** (`index.ts`):
    - Auto-detect available providers from config
    - Fallback chain: primary → secondary → tertiary
-   - Rate limit tracking per provider
-   - Response caching (optional)
+   - Rate limit tracking per provider (minute + day counters)
+   - **Response caching**: 60-second TTL, SHA-1 keyed by image+prompts
+   - `clearCache()` IPC handler
 
 ### Phase 4: Floating Overlay UI (Day 3-4)
-**Goal**: Transparent, always-on-top response display
+**Status**: ✅ Complete
 
 1. **Electron window setup**:
    - Frameless, transparent background
    - Always on top (`alwaysOnTop: true`)
-   - Ignore mouse events (click-through when not interacting)
-   - Position: bottom-right corner, configurable
+   - Configurable click-through (ignore mouse events)
+   - Position: bottom-right corner, configurable via settings
 
-2. **Overlay component**:
+2. **Overlay component** (`Overlay.tsx`):
    - Shows AI response text
-   - Typing animation (optional)
+   - **Streaming typewriter effect** (receives chunks via IPC `overlay:data`)
    - Auto-dismiss after configurable duration (default: 8 seconds)
    - Manual dismiss via hotkey or click
-   - Fade-in/fade-out animations
+   - **Custom CSS theme** (background, text color, border color, border radius, padding)
+   - **Re-fetches config** on every show for real-time settings updates
+   - TTS integration: speaks response when stream completes
 
 3. **Interaction modes**:
-   - **Pass-through mode**: Mouse clicks go through to game
-   - **Active mode**: Mouse events captured for scrolling/copying
-   - Toggle via hotkey (e.g., Ctrl+Shift when overlay visible)
+   - **Pass-through mode**: Mouse clicks go through to game (`clickThrough: true`)
+   - **Active mode**: Mouse events captured (`clickThrough: false`)
+   - Toggle via Settings UI or IPC `overlay:set-click-through`
 
 ### Phase 5: Settings GUI (Day 4-5)
-**Goal**: Full settings window with all configuration
+**Status**: ✅ Complete
 
 1. **Settings window** (separate Electron BrowserWindow):
-   - General: Hotkey, auto-start, minimize to tray
-   - Providers: API keys, model selection, fallback order
-   - Capture: Game selection, capture mode (window/fullscreen)
-   - Overlay: Position, opacity, duration, font size, theme
-   - TTS: Toggle, voice, speed, pitch
-   - Plugins: Enable/disable bun-memreader sidecar
-   - Advanced: Log level, cache settings
+   - **General**: Hotkey, auto-start, minimize-to-tray, notifications, telemetry
+   - **AI Providers**: Gemini API key/model, Zen/Kilo/Ollama endpoints, custom endpoints, cache management
+   - **Capture**: Game exe, capture quality, max image width, monitor selection, region selector, region preview, screen recording duration, OCR on/off + language
+   - **Overlay**: Position, opacity, duration, font size, click-through, custom CSS theme with live preview
+   - **TTS**: Toggle, voice, speed, pitch, volume, voice preview button
+   - **Prompts**: System prompt editor, per-game prompt mapping
 
-2. **Config persistence** (`electron-store`):
-   - JSON config file in app data directory
-   - Schema validation on load
-   - Migration support for version upgrades
+2. **Config persistence** (`config.ts`):
+   - JSON config file in app data directory via electron-store
+   - Schema validation on load (JSON schema)
+   - All settings saved via IPC handlers (`config:set-generic`, `config:set-provider`, etc.)
 
 ### Phase 6: TTS Integration (Day 5)
-**Goal**: Optional text-to-speech for AI responses
+**Status**: ✅ Complete
 
-1. **Web Speech API wrapper**:
+1. **Web Speech API wrapper** (`tts.ts`):
    - `speechSynthesis.speak()` with configurable voice
    - Language: auto-detect from response or configurable
    - Speed, pitch, volume controls
+   - Stop on overlay dismiss
 
-2. **Integration with overlay**:
-   - Speak response when overlay appears
+2. **TTS Voice Preview** (`TTSConfig.tsx`):
+   - Preview button that speaks a sample sentence with current settings
+
+3. **Integration with overlay**:
+   - Speak response when overlay stream completes
    - Stop speaking when overlay dismissed
    - Toggle in settings (off by default)
 
 ### Phase 7: Plugin System (Day 5-6)
-**Goal**: bun-memreader integration as optional sidecar
+**Status**: ✅ Complete
 
-1. **Plugin manifest** (`plugins/bun-memreader/manifest.json`):
-   ```json
-   {
-     "name": "bun-memreader",
-     "version": "1.0.0",
-     "description": "Dragon Crusade memory reader",
-     "api": {
-       "endpoint": "http://localhost:31337",
-       "routes": {
-         "state": "/api/state",
-         "health": "/api/health"
-       }
-     },
-     "contextTemplate": "Player {name} (Lv.{level}) at ({x}, {y}, {z}) | HP: {hp}, MP: {mp}, FP: {fp}"
-   }
-   ```
-
-2. **Plugin manager** (`plugins.ts`):
-   - Auto-start sidecar process if configured
-   - Health check polling
-   - Inject context into AI prompts
+1. **Plugin manager** (`plugins/memreader.ts`):
+   - Auto-start bun-memreader sidecar process if configured
+   - Health check polling via HTTP
+   - Inject context into AI prompts (game state)
    - Graceful degradation if plugin unavailable
+   - Logger integration (no more console.log)
 
-3. **Prompt augmentation**:
-   - Base prompt: "Analyze this game screenshot..."
-   - Plugin context: "Player data: HP=621, MP=508, Position=(7023, 100, 3409)"
-   - Combined: Full context for AI analysis
+2. **IPC handlers**:
+   - `plugin:memreader:start`, `plugin:memreader:stop`, `plugin:memreader:state`, `plugin:memreader:connected`
 
 ### Phase 8: System Tray (Day 6)
-**Goal**: Background operation with tray icon
+**Status**: ✅ Complete
 
 1. **Tray icon**:
    - Custom icon in system tray
-   - Right-click menu: Open Settings, Quit, Recent Analyses
-   - Tooltip: Current status (connected/disconnected)
-   - Badge indicator when analysis in progress
+   - Right-click menu: Show Settings, Show Overlay, Quit
+   - Tooltip: "Gaming Copilot"
+   - Double-click to open main window
 
 2. **Background mode**:
-   - Close button minimizes to tray (configurable)
-   - Auto-start with Windows (optional)
-   - Single instance enforcement
+   - Close button minimizes to tray (configurable via `minimizeToTray`)
+   - Auto-start with Windows (configurable via `autoStart`)
+   - Single instance enforcement (Electron built-in)
 
 ### Phase 9: Polish & Packaging (Day 6-7)
-**Goal**: Production-ready build
+**Status**: ✅ Complete
 
 1. **Error handling**:
    - Graceful API failures (rate limits, network errors)
    - Screenshot capture failures (black screen, permission denied)
    - Plugin connection failures
+   - ChatHistory error states with retry button
 
-2. **Logging**:
-   - File logging for debugging
-   - Log rotation
-   - Verbose mode toggle
+2. **Logging** (`logger/index.ts`):
+   - File logging with daily rotation (max 7 files)
+   - Verbose mode via `DEBUG` env var
+   - Structured log format: `[timestamp] [LEVEL] [component] message`
 
 3. **Packaging**:
-   - electron-builder config for Windows installer
-   - Auto-update support (optional)
-   - Code signing (optional)
+   - electron-builder config for Windows NSIS installer
+   - GitHub publish config for auto-update (not yet enabled)
+   - 256x256 app icon (gamepad design)
 
 ---
 
-## 6. Key Component Details
+## 6. Advanced Feature Details
 
-### 6.1 Screenshot Capture (`capture.ts`)
+### 6.1 Streaming AI Responses (`streamAnalyze`)
 
-```typescript
-// Primary method: Electron desktopCapturer
-async function captureWindow(windowTitle?: string): Promise<Buffer> {
-  const sources = await desktopCapturer.getSources({
-    types: ['window', 'screen'],
-    thumbnailSize: { width: 1920, height: 1080 }
-  });
+**Files**: `src/main/ai-providers/index.ts`, `src/main/ai-providers/gemini.ts`, `src/main/ai-providers/openai-compat.ts`, `src/renderer/src/components/Overlay.tsx`
 
-  // Find specific window or primary screen
-  const source = windowTitle
-    ? sources.find(s => s.name.includes(windowTitle))
-    : sources.find(s => s.display_id !== ''); // primary screen
+The `ProviderManager.streamAnalyze()` method returns an `AsyncGenerator<StreamChunk>` that yields text chunks as they arrive from the provider. The IPC handler `ai:analyze-stream` uses `event.sender.send()` to push chunks to the renderer via `ai:stream-chunk` events. The overlay component receives these via `onOverlayData` and appends text incrementally, creating a typewriter effect.
 
-  return source.thumbnail.toPNG();
-}
+### 6.2 AI Response Caching
 
-// Fallback: Windows GDI+ (for exclusive fullscreen)
-async function captureFullscreenGDI(): Promise<Buffer> {
-  // Spawn PowerShell child process
-  // Based on user's existing script
-  // Returns PNG buffer
-}
-```
+**File**: `src/main/ai-providers/index.ts`
 
-### 6.2 AI Provider Interface (`ai-providers/types.ts`)
+Cache is a `Map<string, CacheEntry>` keyed by SHA-1 hash of `imageBase64 + systemPrompt + userMessage`. Entries expire after 60 seconds (`CACHE_TTL_MS = 60_000`). The `clearCache()` method is exposed via `ai:clear-cache` IPC handler, accessible from the ProviderConfig UI.
 
-```typescript
-interface AIProvider {
-  readonly name: string;
-  readonly displayName: string;
+### 6.3 Screen Recording
 
-  analyze(params: {
-    image: Buffer;
-    mimeType: 'image/png' | 'image/jpeg';
-    systemPrompt: string;
-    userMessage: string;
-    context?: string;  // game-specific data from plugins
-  }): Promise<AIResponse>;
+**File**: `src/main/capture/index.ts` — `recordScreen()`
 
-  isConfigured(): boolean;
-  getRateLimitInfo(): RateLimitInfo;
-}
+Captures keyframe burst over a configurable duration (default: 10 seconds) at configurable FPS (default: 2). Frames are composited into a grid image (max 3×3) using `compositeFrames()`. The grid is sent to AI as a single image, providing temporal context for action sequences.
 
-interface AIResponse {
-  text: string;
-  provider: string;
-  model: string;
-  tokens: { input: number; output: number };
-  latencyMs: number;
-  timestamp: number;
-}
-```
+### 6.4 OCR Text Extraction
 
-### 6.3 Overlay Component (`Overlay.tsx`)
+**File**: `src/main/ocr/index.ts`
 
-```tsx
-// Transparent, always-on-top overlay
-function Overlay({ response, onDismiss }: Props) {
-  const [visible, setVisible] = useState(false);
-  const [opacity, setOpacity] = useState(0);
+Uses Tesseract.js to extract on-screen text from screenshots. Worker is lazily initialized and reused across calls. Language is configurable (`eng`, `eng+osd`, `universal`). OCR results are appended as context to AI prompts. The worker is terminated on app quit via `terminateOcrWorker()`.
 
-  useEffect(() => {
-    if (response) {
-      setVisible(true);
-      // Fade in
-      setTimeout(() => setOpacity(1), 50);
-      // Auto-dismiss after duration
-      const timer = setTimeout(onDismiss, config.overlay.duration);
-      return () => clearTimeout(timer);
-    }
-  }, [response]);
+### 6.5 Custom CSS Overlay Theme
 
-  if (!visible) return null;
+**File**: `src/renderer/src/components/OverlayStyle.tsx`
 
-  return (
-    <div
-      className="fixed bottom-4 right-4 max-w-md p-4 bg-black/80
-                 text-white rounded-lg backdrop-blur-sm
-                 transition-opacity duration-300"
-      style={{ opacity }}
-    >
-      <p className="text-sm">{response.text}</p>
-      <button onClick={onDismiss} className="absolute top-2 right-2">✕</button>
-    </div>
-  );
-}
-```
+Users can customize overlay background color, text color, border color, border radius, and padding via color pickers and sliders. Changes are saved immediately to config via `setOverlayConfig` / `setSetting`. A live preview shows the styled overlay with sample text.
 
-### 6.4 Provider Manager (`ai-providers/index.ts`)
+### 6.6 System Notifications
 
-```typescript
-class ProviderManager {
-  private providers: AIProvider[] = [];
-  private rateLimits: Map<string, RateLimitInfo> = new Map();
+**File**: `src/main/index.ts` — hotkey handler
 
-  constructor(config: AppConfig) {
-    // Initialize configured providers
-    if (config.gemini?.apiKey) {
-      this.providers.push(new GeminiProvider(config.gemini));
-    }
-    if (config.openaiCompat?.apiKey) {
-      this.providers.push(new OpenAICompatProvider(config.openaiCompat));
-    }
-  }
+When `appConfig.notifications` is enabled, a non-blocking `electron.Notification` is shown after AI analysis completes, with a summary of the response. Uses the app icon as the notification icon.
 
-  async analyze(image: Buffer, prompt: string, context?: string): Promise<AIResponse> {
-    for (const provider of this.providers) {
-      if (!provider.isConfigured()) continue;
-      if (this.isRateLimited(provider.name)) continue;
+### 6.7 Chat History Persistence & Export
 
-      try {
-        const response = await provider.analyze({
-          image,
-          mimeType: 'image/png',
-          systemPrompt: this.getSystemPrompt(),
-          userMessage: prompt,
-          context,
-        });
-        this.trackRateLimit(provider.name);
-        return response;
-      } catch (error) {
-        console.error(`Provider ${provider.name} failed:`, error);
-        continue; // Try next provider
-      }
-    }
-    throw new Error('All AI providers failed');
-  }
-}
-```
+**Files**: `src/main/config.ts` (chat store), `src/renderer/src/components/ChatHistory.tsx`
+
+Messages are persisted to a separate electron-store file (`chat-history.json`). Export via IPC `chat:export` supports Markdown and JSON formats, triggering a browser download in the renderer.
+
+### 6.8 Telemetry
+
+**File**: `src/main/index.ts` — `trackEvent()`
+
+Anonymous event tracking for hotkey usage, analysis completion, and provider status. Opt-in via `telemetry.enabled` config. Respects user privacy — no screenshots or personal data sent.
 
 ---
 
@@ -497,27 +454,41 @@ interface AppConfig {
   hotkey: string;                    // Default: 'CommandOrControl+Shift+G'
   autoStart: boolean;                // Default: false
   minimizeToTray: boolean;           // Default: true
+  notifications: boolean;            // Default: true
 
   // Capture
-  captureMode: 'window' | 'fullscreen' | 'region';
-  targetWindow: string;              // Process name or window title
+  gameExe: string;                   // e.g., 'Neuz.exe'
   captureQuality: number;            // 1-100, default: 85
+  maxImageWidth: number;             // Default: 1024
+  captureRegion?: RegionBounds;
+   hotkeyEnabled: boolean;            // Default: true
+   monitorIndex: number;              // Default: 0
+   captureMode: "auto" | "window" | "fullscreen" | "gdi";  // Default: 'auto'
+   recordDuration: number;            // Default: 10 (seconds)
+
+  // OCR
+  ocr: {
+    enabled: boolean;                // Default: true
+    language: string;                // Default: 'eng'
+  };
 
   // Providers
   providers: {
     gemini?: {
       apiKey: string;
       model: string;                 // Default: 'gemini-2.5-flash'
-      grounding: boolean;            // Web search, default: true
+      grounding: boolean;            // Default: true
     };
     openaiCompat?: {
-      baseUrl: string;               // e.g., 'https://api.opencode.ai/v1'
-      apiKey: string;
-      model: string;
+      endpoints: Array<{
+        name: string;
+        baseUrl: string;             // e.g., 'https://opencode.ai/zen/v1'
+        apiKey: string;
+        model: string;
+      }>;
     };
   };
-  primaryProvider: string;           // 'gemini' | 'openaiCompat'
-  fallbackProviders: string[];
+  activeProvider: string;            // Default: 'gemini'
 
   // Overlay
   overlay: {
@@ -527,6 +498,15 @@ interface AppConfig {
     fontSize: number;                // px, default: 14
     theme: 'dark' | 'light' | 'game';
     clickThrough: boolean;           // Default: true
+  };
+
+  // Overlay Custom Theme
+  overlayCustomTheme: {
+    backgroundColor: string;         // Default: '#111827'
+    textColor: string;               // Default: '#ffffff'
+    borderRadius: number;            // Default: 8
+    padding: number;                 // Default: 16
+    borderColor: string;             // Default: '#374151'
   };
 
   // TTS
@@ -541,16 +521,21 @@ interface AppConfig {
   // Plugins
   plugins: {
     bunMemreader: {
-      enabled: boolean;
+      enabled: boolean;              // Default: false
       port: number;                  // Default: 31337
-      autoStart: boolean;
+      autoStart: boolean;            // Default: false
     };
   };
 
   // Prompts
   prompts: {
     system: string;                  // Default system prompt
-    gameSpecific: Record<string, string>;  // Per-game prompts
+    gameSpecific: Record<string, string>;
+  };
+
+  // Telemetry
+  telemetry: {
+    enabled: boolean;                // Default: false
   };
 }
 ```
@@ -586,19 +571,49 @@ Format: Use bullet points for multiple observations.
 
 | Channel | Direction | Purpose |
 |---------|-----------|---------|
-| `capture:screenshot` | Renderer → Main | Request screenshot capture |
-| `capture:screenshot-result` | Main → Renderer | Return screenshot buffer |
-| `ai:analyze` | Renderer → Main | Send image to AI provider |
-| `ai:analyze-result` | Main → Renderer | Return AI response |
-| `config:get` | Renderer → Main | Read configuration |
-| `config:set` | Renderer → Main | Update configuration |
-| `hotkey:register` | Renderer → Main | Register global hotkey |
-| `hotkey:unregister` | Renderer → Main | Unregister global hotkey |
-| `tts:speak` | Renderer → Main | Request TTS playback |
-| `tts:stop` | Renderer → Main | Stop TTS playback |
-| `plugin:status` | Renderer → Main | Check plugin health |
-| `overlay:show` | Main → Renderer | Show overlay with response |
-| `overlay:hide` | Main → Renderer | Hide overlay |
+| `capture:screenshot` | R → M | Capture screenshot (returns data URL) |
+| `capture:preview` | R → M | Capture 256px preview thumbnail |
+| `capture:record` | R → M | Screen recording (grid composite) |
+| `capture:get-screens` | R → M | Enumerate all displays |
+| `capture:check-game` | R → M | Check if game .exe is running (PID) |
+| `capture:set-region` | R → M | Set capture region bounds |
+| `ai:analyze` | R → M | Send image to AI (non-streaming) |
+| `ai:analyze-stream` | R → M | Start streaming analysis (event-based) |
+| `ai:stream-chunk` | M → R | Push text chunk to overlay |
+| `ai:stream-done` | M → R | Signal stream complete |
+| `ai:stream-error` | M → R | Push streaming error |
+| `ai:test-provider` | R → M | Test provider connection |
+| `ai:get-providers` | R → M | List available providers |
+| `ai:clear-cache` | R → M | Clear AI response cache |
+| `config:get` | R → M | Read full config |
+| `config:set-provider` | R → M | Add/update provider config |
+| `config:remove-endpoint` | R → M | Remove custom OpenAI endpoint |
+| `config:set-overlay` | R → M | Update overlay config |
+| `config:set-tts` | R → M | Update TTS config |
+| `config:set-prompts` | R → M | Update prompt config |
+| `config:set-auto-start` | R → M | Toggle Windows auto-start |
+| `config:set-hotkey` | R → M | Change hotkey at runtime |
+| `config:set-hotkey-enabled` | R → M | Enable/disable hotkey |
+| `config:set-generic` | R → M | Set any config key |
+| `config:set-telemetry` | R → M | Toggle telemetry |
+| `config:set-active-provider` | R → M | Set active AI provider (calls setActiveProvider) |
+| `config:set-capture-mode` | R → M | Set capture mode (auto/window/fullscreen/gdi) |
+| `config:set-game-exe` | R → M | Set game exe name |
+| `overlay:show` | R → M | Show overlay with text |
+| `overlay:hide` | R → M | Hide overlay |
+| `overlay:set-click-through` | R → M | Toggle click-through mode |
+| `overlay:data` | M → R | Push text to overlay (streaming) |
+| `overlay:stream-done` | M → R | Signal overlay stream complete |
+| `chat:save` | R → M | Save chat history |
+| `chat:load` | R → M | Load chat history |
+| `chat:clear` | R → M | Clear chat history |
+| `chat:export` | R → M | Export chat as Markdown/JSON |
+| `plugin:memreader:start` | R → M | Start memreader sidecar |
+| `plugin:memreader:stop` | R → M | Stop memreader sidecar |
+| `plugin:memreader:state` | R → M | Get game state |
+| `plugin:memreader:connected` | R → M | Check memreader connection |
+| `window:open-settings` | R → M | Open settings window |
+| `navigate:settings` | M → R | Navigate to settings tab |
 
 ---
 
@@ -607,54 +622,100 @@ Format: Use bullet points for multiple observations.
 ### Production
 ```json
 {
-  "@google/genai": "^1.0.0",
-  "electron-store": "^10.0.0",
-  "sharp": "^0.33.0"
+  "@electron-toolkit/utils": "^4.0.0",
+  "@google/genai": "^1.1.0",
+  "electron-store": "^10.0.1",
+  "tesseract.js": "^7.0.0"
 }
 ```
 
 ### Development
 ```json
 {
-  "electron": "^33.0.0",
-  "electron-vite": "^3.0.0",
-  "@biomejs/biome": "^2.4.0",
-  "react": "^18.3.0",
-  "react-dom": "^18.3.0",
-  "tailwindcss": "^4.0.0",
-  "typescript": "^5.6.0",
-  "@types/react": "^18.3.0",
-  "electron-builder": "^25.0.0"
+  "@biomejs/biome": "^2.4.16",
+  "@types/react": "^19.1.8",
+  "@types/react-dom": "^19.1.7",
+  "@vitejs/plugin-react": "^4.5.2",
+  "electron": "^35.7.5",
+  "electron-builder": "^26.0.12",
+  "electron-vite": "^4.0.0",
+  "react": "^19.1.1",
+  "react-dom": "^19.1.1",
+  "tailwindcss": "^4.1.7",
+  "@tailwindcss/vite": "^4.1.7",
+  "typescript": "^5.8.3",
+  "vitest": "^3.2.4"
 }
 ```
+
+> **Note**: Uses Electron's built-in `nativeImage` for image resizing (no `sharp` dependency). Image preprocessing is done via `nativeImage.createFromBuffer()` + `.resize()` + `.toJPEG()`/`.toPNG()`.
 
 ---
 
 ## 11. Testing Strategy
 
-1. **Unit tests**: Capture logic, provider interface, config validation
-2. **Integration tests**: Screenshot → AI → Overlay pipeline
-3. **Manual tests**: Run against actual games (Dragon Crusade, New World, etc.)
-4. **Edge cases**: Game minimized, game in exclusive fullscreen, API rate limited, no API key configured
+### Unit Tests (vitest)
+| Module | File | Status | Coverage |
+|--------|------|--------|----------|
+| Capture | `src/main/capture/__tests__/capture.test.ts` | ✅ Exists | Smart capture, resize, crop, GDI |
+| Config | `src/main/__tests__/config.test.ts` | ✅ Exists | initConfig, setConfigValue, defaults |
+| ProviderManager | `src/main/ai-providers/__tests__/ProviderManager.test.ts` | ✅ Exists | Fallback chain, caching, rate limits |
+| Memreader | `src/main/plugins/__tests__/memreader.test.ts` | ⚠️ Planned | Config, start/stop lifecycle, parseState |
+
+### Test Coverage Plan
+- **FEAT-031** — Capture logic tests: `cropBuffer()`, `smartCapture()` fallback chain, region bounding box validation. Mocking `desktopCapturer` and `execSync`.
+- **FEAT-032** — ProviderManager tests: fallback chain, rate limit checking, cache hit/miss, error propagation.
+- **FEAT-033** — Config tests: `initConfig()`, `setConfigValue()`, `setPartialConfig()`, `getDefaultConfig()`.
+- **FEAT-034** — MemreaderPlugin tests: config updates, start/stop lifecycle, `parseState()` with various data shapes.
+
+### Integration Tests (planned)
+- End-to-end: capture → resize → AI analyze → overlay display
+- Edge cases: game minimized, exclusive fullscreen, API rate limited, no API key configured
 
 ---
 
 ## 12. Open Questions
 
-1. **OpenCode Zen / Kilo Gateway API format**: Need to confirm the exact API endpoint and authentication method. Are they standard OpenAI-compatible APIs?
+1. **API key encryption**: Consider migrating from plaintext electron-store to `keytar` or encrypted electron-store for API key storage at rest.
 2. **Overlay interaction**: Should users be able to type follow-up questions in the overlay, or is it strictly display-only?
-3. **Screenshot region**: Should users be able to select a specific region of the screen (e.g., just the inventory panel)?
-4. **Multiple monitors**: Which monitor to capture? Primary, secondary, or configurable?
-5. **Image preprocessing**: Should we crop/resize screenshots before sending to AI (reduce token cost)?
+3. **Active provider switching UI**: `ProviderManager.setActiveProvider()` exists but there's no UI to select the active provider at runtime — only `ProviderConfig` shows which is active.
+4. **Light/dark mode for Settings**: Should the settings window itself support a light theme toggle?
 
 ---
 
 ## 13. Risk Mitigation
 
-| Risk | Mitigation |
-|------|-----------|
-| Exclusive fullscreen games show black screenshot | GDI+ fallback + user notification to switch to borderless windowed |
-| Gemini free tier rate limits | Fallback to OpenAI-compatible provider + rate limit display in UI |
-| API key security | Store in OS keychain (electron-store with encryption) or .env file |
-| Game anti-cheat false positive | Screenshot capture is 100% external, no memory reading |
-| Overlay blocks gameplay | Click-through mode + configurable position + quick dismiss |
+| Risk | Mitigation | Status |
+|------|-----------|--------|
+| Exclusive fullscreen games show black screenshot | GDI+ fallback + user notification to switch to borderless windowed | ✅ Mitigated |
+| Gemini free tier rate limits | Fallback to OpenAI-compatible provider + rate limit tracking + caching | ✅ Mitigated |
+| API key security | Stored in electron-store (plaintext — consider keytar or encryption) | ⚠️ Partial |
+| Command injection via exe name | `SAFE_EXE_PATTERN` validation in `findProcessByExe` and `capture:check-game` IPC handler | ✅ Fixed |
+| Game anti-cheat false positive | Screenshot capture is 100% external, no memory reading of game process | ✅ Mitigated |
+| Overlay blocks gameplay | Click-through mode + configurable position + quick dismiss | ✅ Mitigated |
+| Windows SmartScreen warning | Code signing not yet implemented — unsigned exe will warn | ⚠️ Open |
+
+---
+
+## 14. Remaining Roadmap
+
+### Near Term
+- **Code signing** (Windows) — Add `CSC_LINK` and `CSC_KEY_PASSWORD` to build config
+- **Auto-update** — Integrate `electron-updater` with GitHub releases provider
+- **API key encryption** — Migrate to `keytar` or electron-store encryption
+- **Memreader unit tests** — Complete test coverage for plugin module
+- **Settings keyboard shortcuts** — `Ctrl+1` through `Ctrl+6` for tab navigation
+- **Active provider selection UI** — Dropdown to switch primary provider at runtime
+
+### Medium Term
+- **Zod-based IPC validation** — Replace manual type guards with schema validation
+- **Light/dark mode toggle** for Settings window
+- **Overlay navigation security** — `will-navigate` and `new-window` event handlers
+- **Explicit `contextIsolation: true`** in BrowserWindow configs (defense in depth)
+- **Dynamic GDI+ image dimensions** — Replace hardcoded 1920×1080 with actual values
+- **Shared rate-limit base class** — Extract duplicate logic from Gemini/OpenAI providers
+
+### Long Term
+- Full integration test suite (capture → AI → overlay pipeline)
+- macOS and Linux support (currently Windows-only)
+- Ollama provider enhancements (model auto-detection, streaming)

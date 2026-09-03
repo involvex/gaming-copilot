@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { AppConfig } from "../../shared/types";
+import { logger } from "../logger";
 import { GeminiProvider } from "./gemini";
 import { OpenAICompatProvider } from "./openai-compat";
 import type { AIProvider, AIResponse, StreamChunk } from "./types";
@@ -124,7 +125,10 @@ export class ProviderManager {
         this.setCachedResponse(cacheKey, response);
         return response;
       } catch (error) {
-        console.error(`Provider ${provider.name} failed:`, error);
+        logger.error(
+          "ProviderManager",
+          `Provider ${provider.name} failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -208,7 +212,10 @@ export class ProviderManager {
         return;
       } catch (error) {
         lastError = error;
-        console.error(`Provider ${provider.name} failed:`, error);
+        logger.error(
+          "ProviderManager",
+          `Provider ${provider.name} failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 

@@ -24,6 +24,24 @@ export default function Settings() {
     { id: "general", label: "General" },
   ];
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+        const num = e.key;
+        if (num >= "1" && num <= "6") {
+          e.preventDefault();
+          const idx = Number(num) - 1;
+          const tabIds: Tab[] = ["providers", "capture", "overlay", "tts", "prompts", "general"];
+          if (idx < tabIds.length) {
+            setActiveTab(tabIds[idx]);
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
@@ -81,6 +99,7 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     ((config?.ocr as Record<string, unknown>)?.language as string) || "eng",
   );
   const [monitorIndex, setMonitorIndex] = useState<number>((config?.monitorIndex as number) || 0);
+  const [captureMode, setCaptureMode] = useState<string>((config?.captureMode as string) || "auto");
   const [recordDuration, setRecordDuration] = useState<number>(
     (config?.recordDuration as number) || 10,
   );
@@ -349,6 +368,31 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         ) : (
           <p className="text-xs text-gray-500">Loading displays...</p>
         )}
+      </div>
+
+      <div>
+        <label htmlFor="capture-mode" className="block text-sm font-medium text-gray-300 mb-2">
+          Capture Mode
+        </label>
+        <p className="text-xs text-gray-400 mb-2">
+          Auto tries window capture first, then GDI+ fallback, then fullscreen. Override to force a
+          specific method.
+        </p>
+        <select
+          id="capture-mode"
+          value={captureMode}
+          onChange={(e) => {
+            const v = e.target.value;
+            setCaptureMode(v);
+            window.electronAPI.setCaptureMode(v as "auto" | "window" | "fullscreen" | "gdi");
+          }}
+          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+        >
+          <option value="auto">Auto (window → GDI+ → fullscreen)</option>
+          <option value="window">Window Only</option>
+          <option value="gdi">GDI+ Fallback Only</option>
+          <option value="fullscreen">Fullscreen Only</option>
+        </select>
       </div>
 
       <div>

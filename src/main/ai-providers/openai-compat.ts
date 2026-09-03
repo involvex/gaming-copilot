@@ -1,3 +1,4 @@
+import { RateLimiter } from "./rate-limiter";
 import type {
   AIProvider,
   AIResponse,
@@ -6,13 +7,12 @@ import type {
   StreamChunk,
 } from "./types";
 
+const RATE_LIMITER = new RateLimiter(60, 10000);
+
 export class OpenAICompatProvider implements AIProvider {
   readonly name: string;
   readonly displayName: string;
   private config: OpenAICompatConfig;
-  private requestCount = { minute: 0, day: 0 };
-  private lastMinuteReset = Date.now();
-  private lastDayReset = Date.now();
 
   constructor(config: OpenAICompatConfig) {
     this.name = config.name;
@@ -25,15 +25,7 @@ export class OpenAICompatProvider implements AIProvider {
   }
 
   getRateLimitInfo(): RateLimitInfo {
-    this.resetCountersIfNeeded();
-    return {
-      rpm: 60,
-      rpd: 10000,
-      remaining: {
-        minute: Math.max(0, 60 - this.requestCount.minute),
-        day: Math.max(0, 10000 - this.requestCount.day),
-      },
-    };
+    return RATE_LIMITER.getInfo();
   }
 
   async analyze(params: {
@@ -44,7 +36,7 @@ export class OpenAICompatProvider implements AIProvider {
     context?: string;
   }): Promise<AIResponse> {
     const start = Date.now();
-    this.resetCountersIfNeeded();
+    RATE_LIMITER.getInfo();
 
     const url = `${this.config.baseUrl.replace(/\/$/, "")}/chat/completions`;
 
@@ -91,8 +83,7 @@ export class OpenAICompatProvider implements AIProvider {
       model?: string;
     };
 
-    this.requestCount.minute++;
-    this.requestCount.day++;
+    RATE_LIMITER.increment();
 
     const text = data.choices?.[0]?.message?.content ?? "No response generated";
     const model = data.model ?? this.config.model;
@@ -117,12 +108,11 @@ export class OpenAICompatProvider implements AIProvider {
     userMessage: string;
     context?: string;
   }): AsyncGenerator<StreamChunk> {
-    this.resetCountersIfNeeded();
+    RATE_LIMITER.getInfo();
 
     const url = `${this.config.baseUrl.replace(/\/$/, "")}/chat/completions`;
 
-    this.requestCount.minute++;
-    this.requestCount.day++;
+    RATE_LIMITER.increment();
 
     const response = await fetch(url, {
       method: "POST",
@@ -211,17 +201,5 @@ export class OpenAICompatProvider implements AIProvider {
     }
 
     yield { text: "", done: true };
-  }
-
-  private resetCountersIfNeeded(): void {
-    const now = Date.now();
-    if (now - this.lastMinuteReset > 60_000) {
-      this.requestCount.minute = 0;
-      this.lastMinuteReset = now;
-    }
-    if (now - this.lastDayReset > 86_400_000) {
-      this.requestCount.day = 0;
-      this.lastDayReset = now;
-    }
   }
 }

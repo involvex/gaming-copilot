@@ -253,10 +253,14 @@ if ($width -gt 0 -and $height -gt 0) {
     const buffer = Buffer.from(output, "base64");
     if (buffer.length === 0) return null;
 
+    const image = nativeImage.createFromBuffer(buffer);
+    if (image.isEmpty()) return null;
+    const { width, height } = image.getSize();
+
     return {
       buffer,
-      width: 1920,
-      height: 1080,
+      width,
+      height,
       timestamp: Date.now(),
       format,
     };
@@ -273,25 +277,54 @@ if ($width -gt 0 -and $height -gt 0) {
  * @param quality - Optional JPEG quality (1-100). PNG used if 100 or undefined.
  * @param monitorIndex - Screen index for fullscreen fallback (0 = primary).
  */
+/**
+ * Capture mode: "auto" tries window → GDI+ → fullscreen, "window" only,
+ * "fullscreen" only, or "gdi" only uses GDI+ fallback.
+ */
+export type CaptureMode = "auto" | "window" | "fullscreen" | "gdi";
+
 export async function smartCapture(
   gameExe?: string,
   region?: RegionBounds,
   quality?: number,
   monitorIndex: number = 0,
+  captureMode: CaptureMode = "auto",
 ): Promise<CaptureResult> {
   let result: CaptureResult;
 
-  if (gameExe && validateExeName(gameExe)) {
-    const windowCapture = await captureWindowByExe(gameExe, quality);
-    if (windowCapture) {
-      result = windowCapture;
+  const exeValid = !!gameExe && validateExeName(gameExe);
+
+  if (captureMode === "fullscreen") {
+    result = await captureFullScreen(quality, monitorIndex);
+  } else if (captureMode === "window" && exeValid) {
+    const winCapture = await captureWindowByExe(gameExe!, quality);
+    if (!winCapture) {
+      result = await captureFullScreen(quality, monitorIndex);
     } else {
-      const gdiCapture = await captureWithGDI(gameExe, quality);
-      if (gdiCapture) {
-        result = gdiCapture;
+      result = winCapture;
+    }
+  } else if (captureMode === "gdi" && exeValid) {
+    const gdiCapture = await captureWithGDI(gameExe!, quality);
+    if (!gdiCapture) {
+      result = await captureFullScreen(quality, monitorIndex);
+    } else {
+      result = gdiCapture;
+    }
+  } else if (captureMode === "auto") {
+    if (exeValid) {
+      const windowCapture = await captureWindowByExe(gameExe!, quality);
+      if (windowCapture) {
+        result = windowCapture;
       } else {
-        result = await captureFullScreen(quality, monitorIndex);
+        const gdiCapture = await captureWithGDI(gameExe!, quality);
+        if (gdiCapture) {
+          result = gdiCapture;
+        } else {
+          result = await captureFullScreen(quality, monitorIndex);
+        }
       }
+    } else {
+      result = await captureFullScreen(quality, monitorIndex);
     }
   } else {
     result = await captureFullScreen(quality, monitorIndex);

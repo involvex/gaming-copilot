@@ -36,6 +36,29 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
   const [newCustomKey, setNewCustomKey] = useState("");
   const [newCustomModel, setNewCustomModel] = useState("gpt-4-vision-preview");
 
+  const availableProviders: Array<{
+    value: string;
+    label: string;
+    configured: boolean;
+  }> = [
+    {
+      value: "gemini",
+      label: "Google Gemini",
+      configured: !!geminiProvider?.apiKey,
+    },
+    { value: "zen", label: "OpenCode Zen", configured: !!zenEndpoint?.apiKey },
+    {
+      value: "kilo",
+      label: "Kilo Gateway",
+      configured: !!kiloEndpoint?.apiKey,
+    },
+    ...customProviders.map((ep) => ({
+      value: ep.name as string,
+      label: ep.name as string,
+      configured: !!(ep.apiKey as string),
+    })),
+  ];
+
   useEffect(() => {
     const custom = endpoints.filter((e) => !["zen", "kilo"].includes(e.name as string));
     setCustomProviders(custom);
@@ -91,6 +114,11 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     alert(ok ? `${name} connected successfully!` : `${name} failed. Check your API key.`);
   };
 
+  const handleActiveProviderChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const name = e.target.value;
+    await window.electronAPI.setActiveProvider(name);
+  };
+
   const handleAddCustomProvider = async () => {
     if (!newCustomName.trim() || !newCustomBaseUrl.trim() || !newCustomKey.trim()) return;
     await window.electronAPI.setProvider(newCustomName.trim(), {
@@ -112,6 +140,30 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">AI Providers</h2>
+
+      <div>
+        <label htmlFor="active-provider" className="block text-sm font-medium text-gray-300 mb-2">
+          Primary Provider
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          The first provider tried when analyzing. Falls back to other configured providers on
+          failure.
+        </p>
+        <select
+          id="active-provider"
+          value={activeProvider}
+          onChange={handleActiveProviderChange}
+          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+        >
+          {availableProviders
+            .filter((p) => p.configured)
+            .map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+        </select>
+      </div>
 
       {/* Gemini */}
       <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">

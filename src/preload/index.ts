@@ -44,6 +44,7 @@ export interface ElectronAPI {
   getConfig: () => Promise<unknown>;
   setProvider: (name: string, config: Record<string, unknown>) => Promise<void>;
   removeEndpoint: (name: string) => Promise<void>;
+  setActiveProvider: (name: string) => Promise<void>;
   setOverlayConfig: (config: Record<string, unknown>) => Promise<void>;
   setTTSConfig: (config: Record<string, unknown>) => Promise<void>;
   setPromptsConfig: (config: Record<string, unknown>) => Promise<void>;
@@ -52,6 +53,7 @@ export interface ElectronAPI {
   setHotkeyEnabled: (enabled: boolean) => Promise<boolean>;
   setSetting: (key: string, value: unknown) => Promise<void>;
   setTelemetry: (enabled: boolean) => Promise<void>;
+  setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") => Promise<void>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -115,6 +117,7 @@ const electronAPI: ElectronAPI = {
   setProvider: (name: string, config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-provider", name, config),
   removeEndpoint: (name: string) => ipcRenderer.invoke("config:remove-endpoint", name),
+  setActiveProvider: (name: string) => ipcRenderer.invoke("config:set-active-provider", name),
   setOverlayConfig: (config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-overlay", config),
   setTTSConfig: (config: Record<string, unknown>) => ipcRenderer.invoke("config:set-tts", config),
@@ -125,6 +128,8 @@ const electronAPI: ElectronAPI = {
   setHotkeyEnabled: (enabled: boolean) => ipcRenderer.invoke("config:set-hotkey-enabled", enabled),
   setSetting: (key: string, value: unknown) => ipcRenderer.invoke("config:set-generic", key, value),
   setTelemetry: (enabled: boolean) => ipcRenderer.invoke("config:set-telemetry", enabled),
+  setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") =>
+    ipcRenderer.invoke("config:set-capture-mode", mode),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),

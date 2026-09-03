@@ -1,14 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
+import { RateLimiter } from "./rate-limiter";
 import type { AIProvider, AIResponse, GeminiConfig, RateLimitInfo, StreamChunk } from "./types";
+
+const RATE_LIMITER = new RateLimiter(15, 1000);
 
 export class GeminiProvider implements AIProvider {
   readonly name = "gemini";
   readonly displayName = "Google Gemini";
   private client: GoogleGenAI;
   private config: GeminiConfig;
-  private requestCount = { minute: 0, day: 0 };
-  private lastMinuteReset = Date.now();
-  private lastDayReset = Date.now();
 
   constructor(config: GeminiConfig) {
     this.config = config;
@@ -20,15 +20,7 @@ export class GeminiProvider implements AIProvider {
   }
 
   getRateLimitInfo(): RateLimitInfo {
-    this.resetCountersIfNeeded();
-    return {
-      rpm: 15,
-      rpd: 1000,
-      remaining: {
-        minute: Math.max(0, 15 - this.requestCount.minute),
-        day: Math.max(0, 1000 - this.requestCount.day),
-      },
-    };
+    return RATE_LIMITER.getInfo();
   }
 
   async analyze(params: {
@@ -39,7 +31,7 @@ export class GeminiProvider implements AIProvider {
     context?: string;
   }): Promise<AIResponse> {
     const start = Date.now();
-    this.resetCountersIfNeeded();
+    RATE_LIMITER.getInfo();
 
     const contents = [
       {
@@ -74,8 +66,7 @@ export class GeminiProvider implements AIProvider {
       config,
     });
 
-    this.requestCount.minute++;
-    this.requestCount.day++;
+    RATE_LIMITER.increment();
 
     const text = response.text ?? "No response generated";
     const usage = response.usageMetadata;
@@ -100,7 +91,7 @@ export class GeminiProvider implements AIProvider {
     userMessage: string;
     context?: string;
   }): AsyncGenerator<StreamChunk> {
-    this.resetCountersIfNeeded();
+    RATE_LIMITER.getInfo();
 
     const contents = [
       {
@@ -129,8 +120,7 @@ export class GeminiProvider implements AIProvider {
       config.tools = [{ googleSearch: {} }];
     }
 
-    this.requestCount.minute++;
-    this.requestCount.day++;
+    RATE_LIMITER.increment();
 
     const response = await this.client.models.generateContentStream({
       model: this.config.model,
@@ -153,17 +143,5 @@ export class GeminiProvider implements AIProvider {
         output: 0,
       },
     };
-  }
-
-  private resetCountersIfNeeded(): void {
-    const now = Date.now();
-    if (now - this.lastMinuteReset > 60_000) {
-      this.requestCount.minute = 0;
-      this.lastMinuteReset = now;
-    }
-    if (now - this.lastDayReset > 86_400_000) {
-      this.requestCount.day = 0;
-      this.lastDayReset = now;
-    }
   }
 }

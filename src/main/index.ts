@@ -57,6 +57,7 @@ function createMainWindow(): void {
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
+      contextIsolation: true,
     },
   });
 
@@ -96,6 +97,7 @@ function createOverlayWindow(): void {
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
+      contextIsolation: true,
     },
   });
 
@@ -113,6 +115,9 @@ function createOverlayWindow(): void {
 
   overlayWindow.hide();
   logger.info("Overlay", "Overlay window created");
+
+  overlayWindow.webContents.on("will-navigate", (e) => e.preventDefault());
+  overlayWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 }
 
 function initProviders(): void {
@@ -135,6 +140,7 @@ function registerHotkey(): void {
       region,
       appConfig.captureQuality,
       appConfig.monitorIndex,
+      appConfig.captureMode,
     );
     if (!result) {
       logger.warn("Hotkey", "No capture result");
@@ -542,6 +548,19 @@ ipcMain.handle("config:remove-endpoint", (_event, name: string) => {
   initProviders();
 });
 
+ipcMain.handle("config:set-active-provider", (_event, name: string) => {
+  if (
+    name !== "gemini" &&
+    !appConfig.providers.openaiCompat?.endpoints.some((e) => e.name === name)
+  ) {
+    throw new Error(`Unknown provider: ${name}`);
+  }
+  appConfig.activeProvider = name;
+  providerManager?.setActiveProvider(name);
+  setConfigValue("activeProvider", name);
+  logger.info("Providers", `Active provider set to: ${name}`);
+});
+
 ipcMain.handle("config:set-overlay", (_event, overlay: Partial<AppConfig["overlay"]>) => {
   appConfig.overlay = { ...appConfig.overlay, ...overlay };
   setConfigValue("overlay", appConfig.overlay);
@@ -581,6 +600,15 @@ ipcMain.handle("config:set-telemetry", (_event, enabled: boolean) => {
     logger.info("Telemetry", "Telemetry disabled");
   }
 });
+
+ipcMain.handle(
+  "config:set-capture-mode",
+  (_event, mode: "auto" | "window" | "fullscreen" | "gdi") => {
+    appConfig.captureMode = mode;
+    setConfigValue("captureMode", mode);
+    logger.info("Capture", `Capture mode set to: ${mode}`);
+  },
+);
 
 ipcMain.handle("config:set-hotkey", (_event, hotkey: string) => {
   if (!hotkey || !/^\w+([+-].+)*$/.test(hotkey)) {
