@@ -64,7 +64,7 @@ export interface AppConfig {
   autoStart: boolean;
   minimizeToTray: boolean;
   notifications: boolean;
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "system";
 
   // Capture
   gameExe: string;

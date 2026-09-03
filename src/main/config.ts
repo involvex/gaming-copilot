@@ -48,7 +48,7 @@ const schema = {
         duration: { type: "number", default: 8000 },
         opacity: { type: "number", default: 0.9 },
         fontSize: { type: "number", default: 14 },
-        theme: { type: "string", default: "dark" },
+        theme: { type: "string", default: "system" },
         clickThrough: { type: "boolean", default: true },
       },
       default: {},

@@ -7,16 +7,39 @@ import TTSConfig from "./TTSConfig";
 
 type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts" | "general";
 
+function resolveSystemTheme(): "dark" | "light" {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("providers");
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light" | "system">("system");
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    const updateResolved = () => {
+      if (theme === "system") {
+        setResolvedTheme(resolveSystemTheme());
+      } else {
+        setResolvedTheme(theme);
+      }
+    };
+    updateResolved();
+
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => setResolvedTheme(resolveSystemTheme());
+      mediaQuery.addEventListener("change", handler);
+      return () => mediaQuery.removeEventListener("change", handler);
+    }
+  }, [theme]);
 
   useEffect(() => {
     window.electronAPI.getConfig().then((cfg) => {
       const c = cfg as Record<string, unknown>;
       setConfig(c);
-      setTheme((c.theme as "dark" | "light") || "dark");
+      setTheme((c.theme as "dark" | "light" | "system") || "system");
     });
   }, []);
 
@@ -37,8 +60,9 @@ export default function Settings() {
           e.preventDefault();
           const idx = Number(num) - 1;
           const tabIds: Tab[] = ["providers", "capture", "overlay", "tts", "prompts", "general"];
-          if (idx < tabIds.length) {
-            setActiveTab(tabIds[idx]);
+          const tab = tabIds[idx];
+          if (tab) {
+            setActiveTab(tab);
           }
         }
       }
@@ -50,10 +74,10 @@ export default function Settings() {
   return (
     <div
       className={`min-h-screen p-6 transition-colors ${
-        theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
+        resolvedTheme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
       }`}
     >
-      {theme === "light" && (
+      {resolvedTheme === "light" && (
         <style>{`
           [data-light] .bg-gray-800 { background-color: #f3f4f6; }
           [data-light] .bg-gray-700 { background-color: #e5e7eb; }
@@ -73,7 +97,7 @@ export default function Settings() {
 
       <div
         className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1"
-        data-light={theme === "light" ? "" : undefined}
+        data-light={resolvedTheme === "light" ? "" : undefined}
       >
         {tabs.map((tab) => (
           <button
@@ -91,14 +115,22 @@ export default function Settings() {
         ))}
       </div>
 
-      <div className="bg-gray-800 rounded-lg p-6" data-light={theme === "light" ? "" : undefined}>
+      <div
+        className="bg-gray-800 rounded-lg p-6"
+        data-light={resolvedTheme === "light" ? "" : undefined}
+      >
         {activeTab === "providers" && <ProviderConfig config={config} />}
         {activeTab === "capture" && <CaptureConfig config={config} />}
         {activeTab === "overlay" && <OverlayStyle config={config} />}
         {activeTab === "tts" && <TTSConfig config={config} />}
         {activeTab === "prompts" && <PromptEditor config={config} />}
         {activeTab === "general" && (
-          <GeneralConfig config={config} theme={theme} onThemeChange={setTheme} />
+          <GeneralConfig
+            config={config}
+            theme={theme}
+            resolvedTheme={resolvedTheme}
+            onThemeChange={setTheme}
+          />
         )}
       </div>
     </div>
@@ -541,11 +573,13 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
 function GeneralConfig({
   config,
   theme,
+  resolvedTheme,
   onThemeChange,
 }: {
   config: Record<string, unknown> | null;
-  theme: "dark" | "light";
-  onThemeChange: (theme: "dark" | "light") => void;
+  theme: "dark" | "light" | "system";
+  resolvedTheme: "dark" | "light";
+  onThemeChange: (theme: "dark" | "light" | "system") => void;
 }) {
   const [telemetry, setTelemetry] = useState<boolean>(
     ((config?.telemetry as Record<string, unknown>)?.enabled as boolean) ?? false,
@@ -558,9 +592,9 @@ function GeneralConfig({
   };
 
   const handleThemeToggle = async () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    onThemeChange(newTheme);
-    await window.electronAPI.setSetting("theme", newTheme);
+    const nextTheme = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
+    onThemeChange(nextTheme);
+    await window.electronAPI.setSetting("theme", nextTheme);
   };
 
   const handleExport = async (format: "markdown" | "json") => {
@@ -619,26 +653,30 @@ function GeneralConfig({
         <label
           htmlFor="theme-toggle"
           className="flex items-center justify-between cursor-pointer"
-          data-light={theme === "light" ? "" : undefined}
+          data-light={resolvedTheme === "light" ? "" : undefined}
         >
           <div>
             <span className="text-sm font-medium text-gray-300">Color Theme</span>
             <p className="text-xs text-gray-500 mt-1">
-              Current: <strong>{theme}</strong>. Toggle between dark and light mode for the Settings
-              window. The overlay has its own separate theme settings.
+              Current: <strong>{theme}</strong>. Cycle through Dark, Light, and System (auto-detect)
+              modes for the Settings window. The overlay has its own separate theme settings.
             </p>
           </div>
           <button
             id="theme-toggle"
             type="button"
             onClick={handleThemeToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              theme === "dark" ? "bg-gray-700" : "bg-blue-600"
+            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${
+              theme === "dark" ? "bg-gray-700" : theme === "light" ? "bg-blue-600" : "bg-purple-600"
             }`}
           >
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                theme === "dark" ? "translate-x-1" : "translate-x-5"
+                theme === "dark"
+                  ? "translate-x-1"
+                  : theme === "light"
+                    ? "translate-x-7"
+                    : "translate-x-4"
               }`}
             />
           </button>
@@ -649,7 +687,7 @@ function GeneralConfig({
         <label
           htmlFor="keychain-toggle"
           className="flex items-center justify-between cursor-pointer"
-          data-light={theme === "light" ? "" : undefined}
+          data-light={resolvedTheme === "light" ? "" : undefined}
         >
           <div>
             <span className="text-sm font-medium text-gray-300">Encrypt API Keys</span>

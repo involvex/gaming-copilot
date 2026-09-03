@@ -67,7 +67,7 @@ export const exeNameSchema = z.string().min(1);
 
 export const booleanSchema = z.boolean();
 
-export const themeSchema = z.enum(["dark", "light"]);
+export const themeSchema = z.enum(["dark", "light", "system"]);
 
 export const chatFormatSchema = z.enum(["markdown", "json"]);
 
