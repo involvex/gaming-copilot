@@ -108,6 +108,7 @@ function createMainWindow(): void {
   });
 
   mainWindow.on("close", (e) => {
+    if (app.isQuitting) return;
     if (appConfig.minimizeToTray && tray) {
       e.preventDefault();
       mainWindow?.hide();
@@ -121,14 +122,45 @@ function createMainWindow(): void {
   }
 }
 
-function createOverlayWindow(): void {
+const OVERLAY_WIN_WIDTH = 420;
+const OVERLAY_WIN_HEIGHT = 220;
+
+function calculateOverlayPosition(position: AppConfig["overlay"]["position"]): {
+  x?: number;
+  y?: number;
+} {
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+  let x: number | undefined;
+  let y: number | undefined;
+  switch (position) {
+    case "top-left":
+      x = 20;
+      y = 20;
+      break;
+    case "top-right":
+      x = screenWidth - OVERLAY_WIN_WIDTH;
+      y = 20;
+      break;
+    case "bottom-left":
+      x = 20;
+      y = screenHeight - OVERLAY_WIN_HEIGHT;
+      break;
+    case "bottom-right":
+      x = screenWidth - OVERLAY_WIN_WIDTH;
+      y = screenHeight - OVERLAY_WIN_HEIGHT;
+      break;
+  }
+  return { x, y };
+}
+
+function createOverlayWindow(): void {
+  const { x, y } = calculateOverlayPosition(appConfig.overlay.position);
 
   overlayWindow = new BrowserWindow({
     width: 400,
     height: 200,
-    x: screenWidth - 420,
-    y: screenHeight - 220,
+    x,
+    y,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -346,6 +378,12 @@ function toggleOverlay(): void {
   }
 }
 
+function repositionOverlay(): void {
+  if (!overlayWindow) return;
+  const { x, y } = calculateOverlayPosition(appConfig.overlay.position);
+  overlayWindow.setPosition(x, y);
+}
+
 function registerOverlayHotkey(): void {
   if (!appConfig.hotkeyEnabled) return;
   const hotkey = appConfig.overlayHotkey;
@@ -387,6 +425,14 @@ function createTray(): void {
   ]);
 
   tray.setContextMenu(contextMenu);
+
+  tray.on("click", () => {
+    if (mainWindow?.isVisible()) {
+      mainWindow?.hide();
+    } else {
+      mainWindow?.show();
+    }
+  });
 
   tray.on("double-click", () => {
     mainWindow?.show();
@@ -793,8 +839,13 @@ ipcMain.handle("config:set-active-provider", (_event, name: unknown) => {
 
 ipcMain.handle("config:set-overlay", (_event, overlay: unknown) => {
   const parsed = validateIPC(overlayConfigSchema, overlay);
+  const positionChanged = parsed.position && parsed.position !== appConfig.overlay.position;
   appConfig.overlay = { ...appConfig.overlay, ...parsed };
   setConfigValue("overlay", appConfig.overlay);
+  if (positionChanged) {
+    repositionOverlay();
+    overlayWindow?.webContents.send("overlay:set-position", appConfig.overlay.position);
+  }
   emitConfigUpdated();
 });
 

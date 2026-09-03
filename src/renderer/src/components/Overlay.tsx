@@ -99,37 +99,44 @@ export default function Overlay() {
   }, []);
 
   useEffect(() => {
-    window.electronAPI.onOverlayData(async (data) => {
-      const cfg = await window.electronAPI.getConfig();
-      const config = cfg as Record<string, unknown>;
-      const overlay = config?.overlay as Record<string, unknown> | undefined;
-      if (overlay) {
-        setOverlayConfig((prev) => ({
-          duration: Number(overlay.duration) || prev.duration,
-          opacity: Number(overlay.opacity) || prev.opacity,
-          fontSize: Number(overlay.fontSize) || prev.fontSize,
-          position: (overlay.position as OverlayConfig["position"]) || prev.position,
-          theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
-          clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
-        }));
-        setCustomCSS((overlay.customCSS as string) || "");
-        const theme = config?.overlayCustomTheme as Record<string, unknown> | undefined;
-        if (theme) {
-          setCustomTheme({
-            backgroundColor: (theme.backgroundColor as string) || "#111827",
-            textColor: (theme.textColor as string) || "#ffffff",
-            borderRadius: Number(theme.borderRadius) || 8,
-            padding: Number(theme.padding) || 16,
-            borderColor: (theme.borderColor as string) || "#374151",
-          });
-        }
-      }
+    let active = true;
+    const configLoaded = { current: false };
+    window.electronAPI.onOverlayData((data) => {
       setText(data);
       setVisible(true);
       setStreaming(true);
       setTimeout(() => setOpacity(1), 50);
+      if (!active || configLoaded.current) return;
+      configLoaded.current = true;
+      window.electronAPI.getConfig().then((cfg) => {
+        if (!active) return;
+        const config = cfg as Record<string, unknown>;
+        const overlay = config?.overlay as Record<string, unknown> | undefined;
+        if (overlay) {
+          setOverlayConfig((prev) => ({
+            duration: Number(overlay.duration) || prev.duration,
+            opacity: Number(overlay.opacity) || prev.opacity,
+            fontSize: Number(overlay.fontSize) || prev.fontSize,
+            position: (overlay.position as OverlayConfig["position"]) || prev.position,
+            theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
+            clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
+          }));
+          setCustomCSS((overlay.customCSS as string) || "");
+          const theme = config?.overlayCustomTheme as Record<string, unknown> | undefined;
+          if (theme) {
+            setCustomTheme({
+              backgroundColor: (theme.backgroundColor as string) || "#111827",
+              textColor: (theme.textColor as string) || "#ffffff",
+              borderRadius: Number(theme.borderRadius) || 8,
+              padding: Number(theme.padding) || 16,
+              borderColor: (theme.borderColor as string) || "#374151",
+            });
+          }
+        }
+      });
     });
     return () => {
+      active = false;
       window.electronAPI.removeAllListeners("overlay:data");
     };
   }, []);
@@ -147,6 +154,15 @@ export default function Overlay() {
     });
     return () => {
       window.electronAPI.removeAllListeners("overlay:provider");
+    };
+  }, []);
+
+  useEffect(() => {
+    window.electronAPI.onOverlayPosition((pos) => {
+      setOverlayConfig((prev) => ({ ...prev, position: pos }));
+    });
+    return () => {
+      window.electronAPI.removeAllListeners("overlay:set-position");
     };
   }, []);
 
@@ -200,15 +216,15 @@ export default function Overlay() {
   const getPositionClasses = () => {
     switch (overlayConfig.position) {
       case "top-right":
-        return "fixed top-4 right-4";
+        return "fixed top-0 right-0";
       case "top-left":
-        return "fixed top-4 left-4";
+        return "fixed top-0 left-0";
       case "bottom-left":
-        return "fixed bottom-4 left-4";
+        return "fixed bottom-0 left-0";
       case "bottom-right":
-        return "fixed bottom-4 right-4";
+        return "fixed bottom-0 right-0";
       default:
-        return "fixed bottom-4 right-4";
+        return "fixed bottom-0 right-0";
     }
   };
 

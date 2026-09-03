@@ -19,6 +19,17 @@ export default function Settings() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        window.location.hash = "#/";
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     const updateResolved = () => {
       if (theme === "system") {
         setResolvedTheme(resolveSystemTheme());
@@ -195,7 +206,22 @@ export default function Settings() {
           [data-light] select { background-color: #f9fafb; border-color: #9ca3af; color: #111827; }
         `}</style>
       )}
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.hash = "#/";
+          }}
+          className={`text-sm px-3 py-1.5 rounded transition-colors ${
+            resolvedTheme === "dark"
+              ? "text-gray-400 hover:text-white hover:bg-gray-800"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-300"
+          }}`}
+        >
+          Back to App
+        </button>
+      </div>
 
       <div className="mb-6">
         <label htmlFor="settings-search" className="sr-only">

@@ -86,6 +86,7 @@ export interface ElectronAPI {
   onOverlayCSS: (callback: (css: string) => void) => void;
   onOverlayStreamDone: (callback: (text: string) => void) => void;
   onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => void;
+  onOverlayPosition: (callback: (position: string) => void) => void;
   onNavigateSettings: (callback: () => void) => void;
   onUpdateStatus: (callback: (status: string, version?: string, message?: string) => void) => void;
   onConfigUpdated: (callback: () => void) => void;
@@ -193,6 +194,9 @@ const electronAPI: ElectronAPI = {
   },
   onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => {
     ipcRenderer.on("overlay:provider", (_event, info) => callback(info));
+  },
+  onOverlayPosition: (callback: (position: string) => void) => {
+    ipcRenderer.on("overlay:set-position", (_event, position) => callback(position));
   },
   onNavigateSettings: (callback: () => void) => {
     ipcRenderer.on("navigate:settings", () => callback());

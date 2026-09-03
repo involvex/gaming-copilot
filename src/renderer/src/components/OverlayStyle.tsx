@@ -307,7 +307,11 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
           Write custom CSS to style the overlay. Use selectors like{" "}
           <code className="bg-gray-700 px-1 rounded text-xs">.overlay-container</code>,{" "}
           <code className="bg-gray-700 px-1 rounded text-xs">.overlay-text</code>,{" "}
-          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-provider</code>.
+          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-provider</code>. Note: use
+          valid CSS — <code className="bg-gray-700 px-1 rounded text-xs">position: absolute</code>{" "}
+          or <code className="bg-gray-700 px-1 rounded text-xs">position: fixed</code>
+          (not <code className="bg-gray-700 px-1 rounded text-xs">position: flex</code>
+          ).
         </p>
         <textarea
           id="overlay-custom-css"
