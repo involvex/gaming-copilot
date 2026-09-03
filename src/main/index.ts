@@ -101,6 +101,9 @@ function createMainWindow(): void {
 
   mainWindow.on("ready-to-show", () => {
     mainWindow?.show();
+    if (is.dev) {
+      mainWindow?.webContents.openDevTools({ mode: "detach" });
+    }
     logger.info("MainWindow", "Window ready");
   });
 
@@ -327,7 +330,30 @@ function setHotkey(newHotkey: string): void {
   appConfig.hotkey = newHotkey;
   setConfigValue("hotkey", newHotkey);
   registerHotkey();
+  registerOverlayHotkey();
   logger.info("Hotkey", `Updated to: ${newHotkey}`);
+}
+
+function toggleOverlay(): void {
+  if (!overlayWindow) return;
+  if (overlayWindow.isVisible()) {
+    overlayWindow.hide();
+    logger.info("Overlay", "Overlay hidden via hotkey");
+  } else {
+    overlayWindow.webContents.send("overlay:data", "Ready to analyze.");
+    overlayWindow.show();
+    logger.info("Overlay", "Overlay shown via hotkey");
+  }
+}
+
+function registerOverlayHotkey(): void {
+  if (!appConfig.hotkeyEnabled) return;
+  const hotkey = appConfig.overlayHotkey;
+  globalShortcut.register(hotkey, () => {
+    logger.info("Hotkey", `${hotkey} triggered (overlay toggle)`);
+    toggleOverlay();
+  });
+  logger.info("Hotkey", `Registered overlay toggle: ${hotkey}`);
 }
 
 function createTray(): void {
@@ -345,16 +371,16 @@ function createTray(): void {
       },
     },
     {
-      label: "Show Overlay",
+      label: "Toggle Overlay",
       click: () => {
-        overlayWindow?.webContents.send("overlay:data", "Ready to analyze.");
-        overlayWindow?.show();
+        toggleOverlay();
       },
     },
     { type: "separator" },
     {
       label: "Quit",
       click: () => {
+        app.isQuitting = true;
         app.quit();
       },
     },
@@ -384,6 +410,7 @@ app.whenReady().then(async () => {
   initProviders();
   initChatStore();
   registerHotkey();
+  registerOverlayHotkey();
   createTray();
   updateAutoStart();
 
@@ -761,24 +788,28 @@ ipcMain.handle("config:set-active-provider", (_event, name: unknown) => {
   providerManager?.setActiveProvider(validName);
   setConfigValue("activeProvider", validName);
   logger.info("Providers", `Active provider set to: ${validName}`);
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-overlay", (_event, overlay: unknown) => {
   const parsed = validateIPC(overlayConfigSchema, overlay);
   appConfig.overlay = { ...appConfig.overlay, ...parsed };
   setConfigValue("overlay", appConfig.overlay);
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-tts", (_event, tts: unknown) => {
   const parsed = validateIPC(ttsConfigSchema, tts);
   appConfig.tts = { ...appConfig.tts, ...parsed };
   setConfigValue("tts", appConfig.tts);
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-prompts", (_event, prompts: unknown) => {
   const parsed = validateIPC(promptsConfigSchema, prompts);
   appConfig.prompts = { ...appConfig.prompts, ...parsed };
   setConfigValue("prompts", appConfig.prompts);
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-auto-start", (_event, enable: unknown) => {
@@ -786,6 +817,7 @@ ipcMain.handle("config:set-auto-start", (_event, enable: unknown) => {
   appConfig.autoStart = parsed;
   setConfigValue("autoStart", parsed);
   updateAutoStart();
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-generic", (_event, key: unknown, value: unknown) => {
@@ -793,6 +825,7 @@ ipcMain.handle("config:set-generic", (_event, key: unknown, value: unknown) => {
   if (typedKey in appConfig) {
     appConfig[typedKey] = value as never;
     setConfigValue(typedKey, value as never);
+    emitConfigUpdated();
   }
 });
 
@@ -806,6 +839,7 @@ ipcMain.handle("config:set-telemetry", (_event, enabled: unknown) => {
   } else {
     logger.info("Telemetry", "Telemetry disabled");
   }
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-capture-mode", (_event, mode: unknown) => {
@@ -813,6 +847,7 @@ ipcMain.handle("config:set-capture-mode", (_event, mode: unknown) => {
   appConfig.captureMode = parsed;
   setConfigValue("captureMode", parsed);
   logger.info("Capture", `Capture mode set to: ${parsed}`);
+  emitConfigUpdated();
 });
 
 ipcMain.handle("config:set-hotkey", (_event, hotkey: unknown) => {
@@ -821,6 +856,20 @@ ipcMain.handle("config:set-hotkey", (_event, hotkey: unknown) => {
     return false;
   }
   setHotkey(parsed);
+  return true;
+});
+
+ipcMain.handle("config:set-overlay-hotkey", (_event, hotkey: unknown) => {
+  const parsed = validateIPC(hotkeySchema, hotkey);
+  if (!parsed || !/^\w+([+-].+)*$/.test(parsed)) {
+    return false;
+  }
+  appConfig.overlayHotkey = parsed;
+  setConfigValue("overlayHotkey", parsed);
+  globalShortcut.unregisterAll();
+  registerHotkey();
+  registerOverlayHotkey();
+  logger.info("Hotkey", `Overlay hotkey set to: ${parsed}`);
   return true;
 });
 
@@ -970,10 +1019,15 @@ ipcMain.handle("overlay:hide", () => {
   overlayWindow?.hide();
 });
 
+ipcMain.handle("overlay:toggle", () => {
+  toggleOverlay();
+});
+
 ipcMain.handle("overlay:set-click-through", (_event, enable: unknown) => {
   const parsed = validateIPC(booleanSchema, enable);
   appConfig.overlay.clickThrough = parsed;
   setConfigValue("overlay", appConfig.overlay);
+  emitConfigUpdated();
   overlayWindow?.setIgnoreMouseEvents(parsed);
 });
 
@@ -981,6 +1035,7 @@ ipcMain.handle("overlay:set-css", (_event, css: unknown) => {
   const validCss = validateIPC(z.string(), css);
   appConfig.overlay.customCSS = validCss;
   setConfigValue("overlay", appConfig.overlay);
+  emitConfigUpdated();
   overlayWindow?.webContents.send("overlay:set-css", validCss);
 });
 

@@ -61,6 +61,7 @@ export interface RegionBounds {
 export interface AppConfig {
   // General
   hotkey: string;
+  overlayHotkey: string;
   autoStart: boolean;
   minimizeToTray: boolean;
   notifications: boolean;

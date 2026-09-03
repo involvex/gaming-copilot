@@ -283,6 +283,9 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     (config?.captureQuality as number) || 85,
   );
   const [hotkey, setHotkey] = useState((config?.hotkey as string) || "CommandOrControl+Shift+G");
+  const [overlayHotkey, setOverlayHotkey] = useState(
+    (config?.overlayHotkey as string) || "CommandOrControl+Shift+O",
+  );
   const [hotkeyEnabled, setHotkeyEnabled] = useState<boolean>(
     (config?.hotkeyEnabled as boolean) ?? true,
   );
@@ -385,6 +388,17 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
       if (ok) {
         setHotkey(hotkeyInput.trim());
         setHotkeyInput("");
+      }
+    }
+  };
+
+  const [overlayHotkeyInput, setOverlayHotkeyInput] = useState("");
+  const handleOverlayHotkeyChange = async () => {
+    if (overlayHotkeyInput.trim()) {
+      const ok = await window.electronAPI.setOverlayHotkey(overlayHotkeyInput.trim());
+      if (ok) {
+        setOverlayHotkey(overlayHotkeyInput.trim());
+        setOverlayHotkeyInput("");
       }
     }
   };
@@ -498,9 +512,40 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
 
       <div>
         <label
-          htmlFor="hotkey-enabled"
-          className="flex items-center justify-between cursor-pointer"
+          htmlFor="overlay-hotkey-input"
+          className="block text-sm font-medium text-gray-300 mb-2"
         >
+          Overlay Toggle Hotkey
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          Current: <kbd className="bg-gray-700 px-1 rounded">{overlayHotkey}</kbd>
+        </p>
+        <div className="flex gap-2">
+          <input
+            id="overlay-hotkey-input"
+            type="text"
+            value={overlayHotkeyInput}
+            onChange={(e) => setOverlayHotkeyInput(e.target.value)}
+            onBlur={handleOverlayHotkeyChange}
+            placeholder="Ctrl+Shift+O"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+          <button
+            type="button"
+            onClick={handleOverlayHotkeyChange}
+            disabled={!overlayHotkeyInput.trim()}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Save
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          Show/hide the overlay window. Also available in the tray context menu.
+        </p>
+      </div>
+
+      <div>
+        <label className="flex items-center justify-between cursor-pointer">
           <span className="text-sm font-medium text-gray-300">Enable Hotkey</span>
           <button
             id="hotkey-enabled"

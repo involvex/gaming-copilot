@@ -5,6 +5,7 @@ import { logger } from "./logger";
 
 const schema = {
   hotkey: { type: "string", default: "CommandOrControl+Shift+G" },
+  overlayHotkey: { type: "string", default: "CommandOrControl+Shift+O" },
   autoStart: { type: "boolean", default: false },
   minimizeToTray: { type: "boolean", default: true },
   notifications: { type: "boolean", default: true },
@@ -182,6 +183,7 @@ export function clearChatHistory(): void {
 function getDefaultConfig(): AppConfig {
   return {
     hotkey: "CommandOrControl+Shift+G",
+    overlayHotkey: "CommandOrControl+Shift+O",
     autoStart: false,
     minimizeToTray: true,
     notifications: true,

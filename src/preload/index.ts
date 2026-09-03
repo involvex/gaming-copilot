@@ -39,6 +39,7 @@ export interface ElectronAPI {
   // Overlay
   showOverlay: (text: string) => Promise<void>;
   hideOverlay: () => Promise<void>;
+  toggleOverlay: () => Promise<void>;
   setClickThrough: (enable: boolean) => Promise<void>;
 
   // Chat History
@@ -58,6 +59,7 @@ export interface ElectronAPI {
   setPromptsConfig: (config: Record<string, unknown>) => Promise<void>;
   setAutoStart: (enable: boolean) => Promise<void>;
   setHotkey: (hotkey: string) => Promise<boolean>;
+  setOverlayHotkey: (hotkey: string) => Promise<boolean>;
   setHotkeyEnabled: (enabled: boolean) => Promise<boolean>;
   setSetting: (key: string, value: unknown) => Promise<void>;
   setTelemetry: (enabled: boolean) => Promise<void>;
@@ -133,6 +135,7 @@ const electronAPI: ElectronAPI = {
   // Overlay
   showOverlay: (text: string) => ipcRenderer.invoke("overlay:show", text),
   hideOverlay: () => ipcRenderer.invoke("overlay:hide"),
+  toggleOverlay: () => ipcRenderer.invoke("overlay:toggle"),
   setClickThrough: (enable: boolean) => ipcRenderer.invoke("overlay:set-click-through", enable),
 
   // Chat History
@@ -155,6 +158,7 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke("config:set-prompts", config),
   setAutoStart: (enable: boolean) => ipcRenderer.invoke("config:set-auto-start", enable),
   setHotkey: (hotkey: string) => ipcRenderer.invoke("config:set-hotkey", hotkey),
+  setOverlayHotkey: (hotkey: string) => ipcRenderer.invoke("config:set-overlay-hotkey", hotkey),
   setHotkeyEnabled: (enabled: boolean) => ipcRenderer.invoke("config:set-hotkey-enabled", enabled),
   setSetting: (key: string, value: unknown) => ipcRenderer.invoke("config:set-generic", key, value),
   setTelemetry: (enabled: boolean) => ipcRenderer.invoke("config:set-telemetry", enabled),
