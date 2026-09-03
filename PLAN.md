@@ -692,23 +692,25 @@ Format: Use bullet points for multiple observations.
 ### Unit Tests (vitest)
 | Module | File | Status | Tests | Coverage |
 |--------|------|--------|-------|----------|
-| Schemas | `src/main/__tests__/schemas.test.ts` | ✅ Exists | 39 | validateIPC, all input schemas, customCSS |
+| Schemas | `src/main/__tests__/schemas.test.ts` | ✅ Exists | 41 | validateIPC, all input schemas, customCSS, configImportSchema |
 | Capture | `src/main/capture/__tests__/capture.test.ts` | ✅ Exists | 30 | Smart capture, resize, crop, GDI, screen recording |
 | Config | `src/main/__tests__/config.test.ts` | ✅ Exists | 16 | initConfig, setConfigValue, defaults, chat store, overlay CSS |
 | ProviderManager | `src/main/ai-providers/__tests__/ProviderManager.test.ts` | ✅ Exists | 20 | Fallback chain, caching, rate limits, testProvider |
 | Memreader | `src/main/plugins/__tests__/memreader.test.ts` | ✅ Exists | 23 | Config, start/stop lifecycle, parseState, updateConfig |
 | Rate Limiter | `src/main/ai-providers/__tests__/rate-limiter.test.ts` | ✅ Exists | 5 | Increment, minute/day reset logic |
 | Overlay CSS | `src/main/__tests__/overlay-css.test.ts` | ✅ Exists | 3 | customCSS default, setConfigValue round-trip, setPartialConfig |
-| **Total** | **7 suites** | | **133** | |
+| Config Export | `src/main/__tests__/config-export.test.ts` | ✅ Exists | 4 | API key redaction, field preservation, empty providers |
+| **Total** | **8 suites** | | **139** | |
 
 ### Test Coverage Plan
 - **FEAT-031** — Capture logic tests: `cropBuffer()`, `smartCapture()` fallback chain, region bounding box validation. Mocking `desktopCapturer` and `execSync`.
 - **FEAT-032** — ProviderManager tests: fallback chain, rate limit checking, cache hit/miss, error propagation.
 - **FEAT-033** — Config tests: `initConfig()`, `setConfigValue()`, `setPartialConfig()`, `getDefaultConfig()`.
 - **FEAT-034** — MemreaderPlugin tests: config updates, start/stop lifecycle, `parseState()` with various data shapes.
-- **FEAT-045** — Schema validation tests: `validateIPC()` helper, all Zod schemas for IPC input validation (39 tests, including customCSS).
+- **FEAT-045** — Schema validation tests: `validateIPC()` helper, all Zod schemas for IPC input validation (41 tests, including customCSS and configImportSchema).
 - **FEAT-055** — RateLimiter tests: increment, minute/day reset, edge cases for remaining count (5 tests).
 - **FEAT-089** — Overlay CSS tests: customCSS default value, setConfigValue round-trip persistence, setPartialConfig with customCSS.
+- **FEAT-062** — Config export tests: API key redaction (gemini + openaiCompat), field preservation, empty providers handling.
 
 ### Integration Tests (planned)
 - End-to-end: capture → resize → AI analyze → overlay display
@@ -722,9 +724,9 @@ Format: Use bullet points for multiple observations.
 2. **Overlay interaction**: Should users be able to type follow-up questions in the overlay, or is it strictly display-only?
 3. **Active provider switching UI**: ✅ Resolved — Dropdown in `ProviderConfig.tsx` wired to `config:set-active-provider` IPC handler. Fallback chain (primary → secondary → tertiary) implemented in `ProviderManager.analyze()`.
 4. **Light/dark mode for Settings**: ✅ Resolved — `theme` config field with toggle in `GeneralConfig` component. Light mode CSS overrides for Tailwind classes applied via `data-light` attribute.
-5. **Auto-update strategy**: electron-updater not yet integrated. Should it be opt-in or always-on? The `publish` config in `electron-builder.yml` is already set to GitHub.
+5. **Auto-update strategy**: ✅ Resolved — electron-updater integrated with GitHub provider. Auto-update is always-on with `release-notes` and `auto-download` enabled.
 6. **Code signing approach**: Should use EV code signing or standard? GitHub Actions `windows-latest` runner needs `CSC_LINK`/`CSC_KEY_PASSWORD` secrets.
-7. **TypeScript strictness**: Should we enable `noUnusedLocals`, `noUncheckedIndexedAccess`, and other strict compiler options? Some `any` types remain in test mocks and renderer component casts.
+7. **TypeScript strictness**: ✅ Resolved — Enabled `noUnusedLocals`, `noUncheckedIndexedAccess`, `noUnusedParameters`. All `any` types in tests eliminated.
 
 ---
 

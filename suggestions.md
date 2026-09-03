@@ -63,16 +63,17 @@ This document catalogs opportunities for improvement, new features, and optimiza
 | FEAT-062 | Feature | Config import/export — export all settings as JSON for backup/migration, import with Zod schema validation, API keys redacted in export | `5623e94` |
 FEAT-063 | Feature | Screenshot saving to disk with timestamped filenames — auto-save in hotkey capture flow, directory picker UI in CaptureConfig, `capture:pick-directory` and `capture:save-screenshot` IPC handlers with timestamped filenames — auto-save in hotkey capture flow, directory picker UI in CaptureConfig, `capture:pick-directory` and `capture:save-screenshot` IPC handlers | `5623e94` |
 
-**Test suites (7 files, 133 tests total):**
+**Test suites (8 files, 139 tests total):**
 
 | Module | File | Tests | Coverage |
 |--------|------|-------|----------|
-| Schemas | `src/main/__tests__/schemas.test.ts` | 39 | validateIPC, all input schemas |
+| Schemas | `src/main/__tests__/schemas.test.ts` | 41 | validateIPC, all input schemas, customCSS, configImportSchema |
 | Capture | `src/main/capture/__tests__/capture.test.ts` | 30 | Smart capture, resize, crop, GDI, screen recording |
 | Memreader | `src/main/plugins/__tests__/memreader.test.ts` | 23 | Config, start/stop lifecycle, parseState |
 | ProviderManager | `src/main/ai-providers/__tests__/ProviderManager.test.ts` | 20 | Fallback chain, caching, rate limits, testProvider |
 | Config | `src/main/__tests__/config.test.ts` | 16 | initConfig, defaults, chat store, getConfigPath, overlay CSS |
 | Rate Limiter | `src/main/ai-providers/__tests__/rate-limiter.test.ts` | 5 | Increment, minute/day reset logic |
+| Config Export | `src/main/__tests__/config-export.test.ts` | 4 | API key redaction (gemini + openaiCompat), field preservation, empty providers |
 | Overlay CSS | `src/main/__tests__/overlay-css.test.ts` | 3 | customCSS default, setConfigValue round-trip, setPartialConfig |
 
 **IPC Channels (in `src/main/index.ts`):**

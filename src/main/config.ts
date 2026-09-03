@@ -18,7 +18,7 @@ const schema = {
     monitorIndex: { type: "number", default: 0 },
     captureMode: { type: "string", default: "auto" },
     saveScreenshots: { type: "boolean", default: false },
-    screenshotDir: { type: "string", default: null },
+    screenshotDir: { type: ["string", "null"], default: null },
     activeProvider: { type: "string", default: "gemini" },
     useKeychain: { type: "boolean", default: true },
     providers: {

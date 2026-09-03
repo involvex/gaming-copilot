@@ -5,6 +5,7 @@ import {
   captureModeSchema,
   chatFormatSchema,
   chatMessageSchema,
+  configImportSchema,
   endpointConfigSchema,
   exeNameSchema,
   geminiProviderConfigSchema,
@@ -177,6 +178,21 @@ describe("overlayConfigSchema", () => {
     expect(() => validateIPC(overlayConfigSchema, { customCSS: 123 })).toThrow(
       "IPC validation failed",
     );
+  });
+
+  it("should accept configImportSchema with arbitrary keys including saveScreenshots", () => {
+    const result = validateIPC(configImportSchema, {
+      saveScreenshots: true,
+      screenshotDir: "C:\\Screenshots",
+      captureQuality: 90,
+    });
+    expect(result.saveScreenshots).toBe(true);
+    expect(result.screenshotDir).toBe("C:\\Screenshots");
+  });
+
+  it("should reject configImportSchema for non-object input", () => {
+    expect(() => validateIPC(configImportSchema, "not an object")).toThrow("IPC validation failed");
+    expect(() => validateIPC(configImportSchema, 42)).toThrow("IPC validation failed");
   });
 });
 
