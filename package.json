@@ -19,7 +19,6 @@
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
     "@google/genai": "^1.1.0",
-    "electron-store": "^10.0.1",
     "electron-updater": "^6.8.9",
     "keytar": "^7.9.0",
     "tesseract.js": "^7.0.0",
@@ -27,16 +26,17 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
+    "@tailwindcss/vite": "^4.1.7",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.5.2",
     "electron": "^35.7.5",
     "electron-builder": "^26.0.12",
+    "electron-store": "^9",
     "electron-vite": "^4.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.7",
-    "@tailwindcss/vite": "^4.1.7",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   },
