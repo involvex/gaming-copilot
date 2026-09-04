@@ -36,6 +36,8 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
   const [kiloFetching, setKiloFetching] = useState(false);
 
   const [testing, setTesting] = useState<string | null>(null);
+  const [testingAll, setTestingAll] = useState(false);
+  const [testResults, setTestResults] = useState<Array<{ name: string; ok: boolean }>>([]);
   const [customProviders, setCustomProviders] = useState<Array<Record<string, unknown>>>([]);
   const [newCustomName, setNewCustomName] = useState("");
   const [newCustomBaseUrl, setNewCustomBaseUrl] = useState("");
@@ -134,6 +136,19 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     const ok = await window.electronAPI.testProvider(name);
     setTesting(null);
     alert(ok ? `${name} connected successfully!` : `${name} failed. Check your API key.`);
+  };
+
+  const handleTestAll = async () => {
+    setTestingAll(true);
+    setTestResults([]);
+    const providers = await window.electronAPI.getProviders();
+    const results: Array<{ name: string; ok: boolean }> = [];
+    for (const p of providers) {
+      const ok = await window.electronAPI.testProvider(p.name);
+      results.push({ name: p.displayName || p.name, ok });
+    }
+    setTestResults(results);
+    setTestingAll(false);
   };
 
   const handleActiveProviderChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -526,6 +541,34 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
         <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
           Cached AI responses expire after 60 seconds.
         </p>
+      </div>
+
+      <div>
+        <Button variant="primary" size="sm" onClick={handleTestAll} disabled={testingAll}>
+          {testingAll ? "Testing..." : "Test All Providers"}
+        </Button>
+        {testingAll && (
+          <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+            Testing all configured providers...
+          </p>
+        )}
+        {testResults.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {testResults.map((r) => (
+              <div key={r.name} className="flex items-center gap-2 text-xs">
+                <span
+                  className={r.ok ? "text-[var(--color-success)]" : "text-[var(--color-error)]"}
+                >
+                  {r.ok ? "✓" : "✗"}
+                </span>
+                <span>{r.name}</span>
+                <span className="text-[var(--color-text-tertiary)]">
+                  {r.ok ? "connected" : "failed"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

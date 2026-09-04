@@ -83,6 +83,13 @@ function emitConfigUpdated(): void {
 
 let gameExe = appConfig.gameExe;
 
+function getGameContext(exe: string | undefined): string | undefined {
+  if (!exe) return undefined;
+  const gameEntry = appConfig.games.find((g) => g.exe === exe);
+  if (!gameEntry || gameEntry.urls.length === 0) return undefined;
+  return `Game documentation URLs:\n${gameEntry.urls.join("\n")}`;
+}
+
 function createMainWindow(): void {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -297,6 +304,9 @@ function registerHotkey(): void {
       }
     }
 
+    const gameContext = getGameContext(gameExe);
+    const context = [ocrContext, gameContext].filter(Boolean).join("\n\n");
+
     if (providerManager && providerManager.getAvailableProviders().length > 0) {
       try {
         const systemPrompt = appConfig.prompts.system;
@@ -311,7 +321,7 @@ function registerHotkey(): void {
           resizedMimeType,
           finalPrompt,
           "Analyze this game screenshot.",
-          ocrContext,
+          context || undefined,
         )) {
           if (chunk.done) {
             logger.info("Hotkey", `AI streaming complete, total: ${fullText.length} chars`);
@@ -609,13 +619,16 @@ ipcMain.handle("ai:analyze", async (_event, imageBase64: unknown, userMessage?: 
     }
   }
 
+  const gameContext = getGameContext(gameExe);
+  const context = [ocrContext, gameContext].filter(Boolean).join("\n\n");
+
   try {
     const response = await providerManager.analyze(
       parsed.imageBase64,
       "image/png",
       appConfig.prompts.system,
       parsed.userMessage || "Analyze this game screenshot.",
-      ocrContext,
+      context || undefined,
     );
     return { response };
   } catch (error) {
@@ -655,6 +668,9 @@ ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?:
     }
   }
 
+  const gameContext = getGameContext(gameExe);
+  const context = [ocrContext, gameContext].filter(Boolean).join("\n\n");
+
   try {
     let fullText = "";
     for await (const chunk of providerManager.streamAnalyze(
@@ -662,7 +678,7 @@ ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?:
       "image/png",
       finalPrompt,
       userMessage || "Analyze this game screenshot.",
-      ocrContext,
+      context || undefined,
     )) {
       if (!chunk.done) {
         fullText += chunk.text;
