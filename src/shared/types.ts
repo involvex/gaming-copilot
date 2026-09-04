@@ -37,6 +37,13 @@ export interface AIProviderConfig {
   model: string;
 }
 
+export interface GameEntry {
+  id: string;
+  name: string;
+  exe: string;
+  urls: string[];
+}
+
 export interface ScreenshotResult {
   buffer: Buffer;
   width: number;
@@ -153,6 +160,9 @@ export interface AppConfig {
   telemetry: {
     enabled: boolean;
   };
+
+  // Games
+  games: GameEntry[];
 
   // Prompts
   prompts: {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import GameDocs from "./GameDocs";
 import OverlayStyle from "./OverlayStyle";
 import PromptEditor from "./PromptEditor";
 import ProviderConfig from "./ProviderConfig";
@@ -6,7 +7,7 @@ import { useTheme } from "./ThemeProvider";
 import TTSConfig from "./TTSConfig";
 import { Button, Card, Input, Select, Toggle } from "./ui";
 
-type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts" | "general";
+type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts" | "general" | "games";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
@@ -130,6 +131,23 @@ export default function Settings() {
         "restore",
       ],
     },
+    {
+      id: "games",
+      label: "Game Docs",
+      keywords: [
+        "game",
+        "documentation",
+        "wiki",
+        "urls",
+        "reference",
+        "metadata",
+        "data",
+        "neuz",
+        "executable",
+        "context",
+        "analysis",
+      ],
+    },
   ];
 
   const [activeTab, setActiveTab] = useState<Tab>("providers");
@@ -147,10 +165,18 @@ export default function Settings() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
         const num = e.key;
-        if (num >= "1" && num <= "6") {
+        if (num >= "1" && num <= "7") {
           e.preventDefault();
           const idx = Number(num) - 1;
-          const tabIds: Tab[] = ["providers", "capture", "overlay", "tts", "prompts", "general"];
+          const tabIds: Tab[] = [
+            "providers",
+            "capture",
+            "overlay",
+            "tts",
+            "prompts",
+            "games",
+            "general",
+          ];
           const tab = tabIds[idx];
           if (tab) {
             setActiveTab(tab);
@@ -229,6 +255,7 @@ export default function Settings() {
           {activeTab === "overlay" && <OverlayStyle config={config} />}
           {activeTab === "tts" && <TTSConfig config={config} />}
           {activeTab === "prompts" && <PromptEditor config={config} />}
+          {activeTab === "games" && <GameDocs config={config} />}
           {activeTab === "general" && (
             <GeneralConfig config={config} theme={theme} onThemeChange={setTheme} />
           )}

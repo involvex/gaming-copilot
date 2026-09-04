@@ -57,6 +57,15 @@ export const promptsConfigSchema = z.object({
   gameSpecific: z.record(z.string(), z.string()).optional(),
 });
 
+export const gameEntrySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  exe: z.string().min(1),
+  urls: z.array(z.string().url()),
+});
+
+export const gamesArraySchema = z.array(gameEntrySchema);
+
 export const captureModeSchema = z.enum(["auto", "window", "fullscreen", "gdi"]);
 
 export const captureQualitySchema = z.number().int().min(1).max(100);
@@ -104,5 +113,7 @@ export type TtsConfigInput = z.infer<typeof ttsConfigSchema>;
 export type PromptsConfigInput = z.infer<typeof promptsConfigSchema>;
 export type ChatMessageInput = z.infer<typeof chatMessageSchema>;
 export type FallbackProviderInput = z.infer<typeof fallbackProviderSchema>;
+export type GameEntryInput = z.infer<typeof gameEntrySchema>;
+export type GamesArrayInput = z.infer<typeof gamesArraySchema>;
 
 export const configImportSchema = z.record(z.string(), z.unknown());

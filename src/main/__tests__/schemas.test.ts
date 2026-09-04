@@ -8,6 +8,7 @@ import {
   configImportSchema,
   endpointConfigSchema,
   exeNameSchema,
+  gameEntrySchema,
   geminiProviderConfigSchema,
   hotkeySchema,
   overlayConfigSchema,
@@ -358,5 +359,87 @@ describe("chatMessageSchema", () => {
         timestamp: 1,
       }),
     ).toThrow("IPC validation failed");
+  });
+});
+
+describe("gameEntrySchema", () => {
+  it("should accept valid game entry", () => {
+    const result = validateIPC(gameEntrySchema, {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      name: "Dragon Crusade",
+      exe: "Neuz.exe",
+      urls: ["https://wiki.crusade.one/progression/"],
+    });
+    expect(result.name).toBe("Dragon Crusade");
+    expect(result.exe).toBe("Neuz.exe");
+    expect(result.urls).toEqual(["https://wiki.crusade.one/progression/"]);
+  });
+
+  it("should accept empty urls array", () => {
+    const result = validateIPC(gameEntrySchema, {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      name: "My Game",
+      exe: "Game.exe",
+      urls: [],
+    });
+    expect(result.urls).toEqual([]);
+  });
+
+  it("should accept multiple urls", () => {
+    const result = validateIPC(gameEntrySchema, {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      name: "Dragon Crusade",
+      exe: "Neuz.exe",
+      urls: ["https://www.dragon-crusade.one/New/", "https://wiki.crusade.one/progression/"],
+    });
+    expect(result.urls).toHaveLength(2);
+  });
+
+  it("should reject empty name", () => {
+    expect(() =>
+      validateIPC(gameEntrySchema, {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        name: "",
+        exe: "Game.exe",
+        urls: [],
+      }),
+    ).toThrow("IPC validation failed");
+  });
+
+  it("should reject empty exe", () => {
+    expect(() =>
+      validateIPC(gameEntrySchema, {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        name: "Game",
+        exe: "",
+        urls: [],
+      }),
+    ).toThrow("IPC validation failed");
+  });
+
+  it("should reject invalid UUID", () => {
+    expect(() =>
+      validateIPC(gameEntrySchema, {
+        id: "not-a-uuid",
+        name: "Game",
+        exe: "Game.exe",
+        urls: [],
+      }),
+    ).toThrow("IPC validation failed");
+  });
+
+  it("should reject non-URL in urls array", () => {
+    expect(() =>
+      validateIPC(gameEntrySchema, {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        name: "Game",
+        exe: "Game.exe",
+        urls: ["not-a-url"],
+      }),
+    ).toThrow("IPC validation failed");
+  });
+
+  it("should reject missing required fields", () => {
+    expect(() => validateIPC(gameEntrySchema, { name: "Game" })).toThrow("IPC validation failed");
   });
 });

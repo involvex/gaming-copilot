@@ -116,6 +116,10 @@ const schema = {
     },
     default: {},
   },
+  games: {
+    type: "array",
+    default: [],
+  },
   screenshotDir: { type: ["string", "null"], default: null },
 } as const;
 
@@ -242,5 +246,6 @@ function getDefaultConfig(): AppConfig {
     telemetry: {
       enabled: false,
     },
+    games: [],
   };
 }

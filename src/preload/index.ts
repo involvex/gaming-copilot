@@ -66,6 +66,22 @@ export interface ElectronAPI {
   setTelemetry: (enabled: boolean) => Promise<void>;
   setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") => Promise<void>;
 
+  // Games
+  addGame: (game: {
+    id: string;
+    name: string;
+    exe: string;
+    urls: string[];
+  }) => Promise<{ id: string; name: string; exe: string; urls: string[] }>;
+  updateGame: (game: {
+    id: string;
+    name: string;
+    exe: string;
+    urls: string[];
+  }) => Promise<{ id: string; name: string; exe: string; urls: string[] }>;
+  removeGame: (id: string) => Promise<boolean>;
+  getGames: () => Promise<Array<{ id: string; name: string; exe: string; urls: string[] }>>;
+
   // Plugins
   startMemreader: () => Promise<boolean>;
   stopMemreader: () => Promise<boolean>;
@@ -168,6 +184,12 @@ const electronAPI: ElectronAPI = {
   setTelemetry: (enabled: boolean) => ipcRenderer.invoke("config:set-telemetry", enabled),
   setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") =>
     ipcRenderer.invoke("config:set-capture-mode", mode),
+
+  // Games
+  addGame: (game) => ipcRenderer.invoke("games:add", game),
+  updateGame: (game) => ipcRenderer.invoke("games:update", game),
+  removeGame: (id) => ipcRenderer.invoke("games:remove", id),
+  getGames: () => ipcRenderer.invoke("games:list"),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),
