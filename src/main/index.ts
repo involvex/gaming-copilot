@@ -1202,6 +1202,7 @@ ipcMain.handle("screenshots:copy-path", async (_event, path: unknown) => {
 });
 
 const tagsFilePath = (dir: string) => join(dir, "screenshot-tags.json");
+const favoritesFilePath = (dir: string) => join(dir, "screenshot-favorites.json");
 
 async function loadTags(dir: string): Promise<Record<string, string[]>> {
   try {
@@ -1217,6 +1218,20 @@ async function saveTags(dir: string, tags: Record<string, string[]>): Promise<vo
   await writeFile(tagsFilePath(dir), JSON.stringify(tags, null, 2), "utf-8");
 }
 
+async function loadFavorites(dir: string): Promise<Record<string, boolean>> {
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const data = await readFile(favoritesFilePath(dir), "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function saveFavorites(dir: string, favorites: Record<string, boolean>): Promise<void> {
+  await writeFile(favoritesFilePath(dir), JSON.stringify(favorites, null, 2), "utf-8");
+}
+
 ipcMain.handle("screenshots:get-tags", async () => {
   if (!appConfig.screenshotDir) return {};
   return loadTags(appConfig.screenshotDir);
@@ -1229,6 +1244,92 @@ ipcMain.handle("screenshots:set-tags", async (_event, input: unknown) => {
   tags[parsed.filename] = parsed.tags;
   await saveTags(appConfig.screenshotDir, tags);
   return true;
+});
+
+ipcMain.handle("screenshots:toggle-favorite", async (_event, filename: unknown) => {
+  const validName = validateIPC(z.string(), filename);
+  if (!appConfig.screenshotDir) return false;
+  const favorites = await loadFavorites(appConfig.screenshotDir);
+  favorites[validName] = !favorites[validName];
+  await saveFavorites(appConfig.screenshotDir, favorites);
+  return true;
+});
+
+ipcMain.handle("screenshots:get-favorites", async () => {
+  if (!appConfig.screenshotDir) return {};
+  return loadFavorites(appConfig.screenshotDir);
+});
+
+ipcMain.handle("screenshots:bulk-rename", async (_event, input: unknown) => {
+  const parsed = validateIPC(
+    z.object({
+      filenames: z.array(z.string()),
+      mode: z.enum(["prefix", "suffix", "replace"]),
+      value: z.string(),
+      find: z.string().optional(),
+    }),
+    input,
+  );
+  if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
+    return { success: false, error: "Screenshot saving is not enabled" };
+  }
+  try {
+    const { rename } = await import("node:fs/promises");
+    const results: Array<{ old: string; new: string }> = [];
+    for (const oldName of parsed.filenames) {
+      const oldPath = join(appConfig.screenshotDir, oldName);
+      const ext = oldName.slice(oldName.lastIndexOf("."));
+      const base = oldName.slice(0, oldName.lastIndexOf("."));
+      let newBase = base;
+      if (parsed.mode === "prefix") {
+        newBase = `${parsed.value}${base}`;
+      } else if (parsed.mode === "suffix") {
+        newBase = `${base}${parsed.value}`;
+      } else if (parsed.mode === "replace") {
+        newBase = base.replace(parsed.find || "", parsed.value);
+      }
+      const newName = `${newBase}${ext}`;
+      if (newName !== oldName) {
+        const newPath = join(appConfig.screenshotDir, newName);
+        await rename(oldPath, newPath);
+        results.push({ old: oldName, new: newName });
+      }
+    }
+    logger.info("Screenshots", `Renamed ${results.length} files`);
+    return { success: true, results };
+  } catch (error) {
+    logger.error("Screenshots", `Failed to rename: ${error}`);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Rename failed",
+    };
+  }
+});
+
+ipcMain.handle("screenshots:get-metadata", async (_event, filename: unknown) => {
+  const validName = validateIPC(z.string(), filename);
+  if (!appConfig.screenshotDir) return null;
+  const filepath = join(appConfig.screenshotDir, validName);
+  try {
+    const { stat } = await import("node:fs/promises");
+    const info = await stat(filepath);
+    const nativeImage = (await import("electron")).nativeImage;
+    const img = nativeImage.createFromPath(filepath);
+    const size = img.getSize();
+    return {
+      filename: validName,
+      path: filepath,
+      sizeBytes: info.size,
+      width: size.width,
+      height: size.height,
+      createdAt: info.birthtimeMs,
+      modifiedAt: info.mtimeMs,
+      format: validName.split(".").pop()?.toUpperCase() || "UNKNOWN",
+    };
+  } catch (error) {
+    logger.error("Screenshots", `Failed to get metadata: ${error}`);
+    return null;
+  }
 });
 
 ipcMain.handle("screenshots:export-zip", async (_event, input: unknown) => {

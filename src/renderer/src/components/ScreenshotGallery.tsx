@@ -45,6 +45,23 @@ export default function ScreenshotGallery() {
   const [compareWith, setCompareWith] = useState<string | null>(null);
   const [compareSliderPos, setCompareSliderPos] = useState(50);
   const [exporting, setExporting] = useState(false);
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [renameMode, setRenameMode] = useState(false);
+  const [renamePattern, setRenamePattern] = useState<"prefix" | "suffix" | "replace">("prefix");
+  const [renameValue, setRenameValue] = useState("");
+  const [renameFind, setRenameFind] = useState("");
+  const [metadata, setMetadata] = useState<{
+    filename: string;
+    path: string;
+    sizeBytes: number;
+    width: number;
+    height: number;
+    createdAt: number;
+    modifiedAt: number;
+    format: string;
+  } | null>(null);
+  const [loadingMetadata, setLoadingMetadata] = useState(false);
 
   const loadScreenshots = async () => {
     setLoading(true);
@@ -56,6 +73,8 @@ export default function ScreenshotGallery() {
       setSelection(new Set());
       const loadedTags = await window.electronAPI.getTags();
       setTags(loadedTags);
+      const loadedFavorites = await window.electronAPI.getFavorites();
+      setFavorites(loadedFavorites);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load screenshots";
       setError(msg);
@@ -66,7 +85,7 @@ export default function ScreenshotGallery() {
 
   useEffect(() => {
     loadScreenshots();
-  }, []);
+  }, [loadScreenshots]);
 
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -86,10 +105,12 @@ export default function ScreenshotGallery() {
     setDateTo("");
     setSortField("date");
     setSortDir("desc");
+    setShowFavoritesOnly(false);
     resetPage();
   }, [resetPage]);
 
   const filtered = allScreenshots.filter((shot) => {
+    if (showFavoritesOnly && !favorites[shot.filename]) return false;
     const q = searchQuery.trim().toLowerCase();
     if (q && !shot.filename.toLowerCase().includes(q)) return false;
     const shotTags = tags[shot.filename] || [];
@@ -308,6 +329,48 @@ export default function ScreenshotGallery() {
     setCompareSliderPos(50);
   };
 
+  const handleToggleFavorite = async (filename: string) => {
+    const ok = await window.electronAPI.toggleFavorite(filename);
+    if (ok) {
+      setFavorites((prev) => ({
+        ...prev,
+        [filename]: !prev[filename],
+      }));
+    }
+  };
+
+  const handleBulkRename = async () => {
+    if (selection.size === 0 || !renameValue.trim()) return;
+    const filenames = Array.from(selection);
+    const result = await window.electronAPI.bulkRename(
+      filenames,
+      renamePattern,
+      renameValue.trim(),
+      renamePattern === "replace" ? renameFind : undefined,
+    );
+    if (result.success) {
+      alert(`Renamed ${result.results?.length || 0} files`);
+      setRenameMode(false);
+      setRenameValue("");
+      setRenameFind("");
+      await loadScreenshots();
+    } else {
+      alert(`Rename failed: ${result.error}`);
+    }
+  };
+
+  const loadMetadata = async (filename: string) => {
+    setLoadingMetadata(true);
+    try {
+      const data = await window.electronAPI.getMetadata(filename);
+      setMetadata(data);
+    } catch {
+      setMetadata(null);
+    } finally {
+      setLoadingMetadata(false);
+    }
+  };
+
   return (
     <Card>
       <div className="flex items-center justify-between mb-4">
@@ -320,6 +383,9 @@ export default function ScreenshotGallery() {
               </Button>
               <Button variant="secondary" size="sm" onClick={handleExportZip} disabled={exporting}>
                 {exporting ? "Exporting..." : "Export ZIP"}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setRenameMode(true)}>
+                Rename Selected ({selection.size})
               </Button>
             </>
           )}
@@ -352,6 +418,14 @@ export default function ScreenshotGallery() {
           }}
           className="input flex-1"
         />
+        <button
+          type="button"
+          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+          className={`input text-left ${showFavoritesOnly ? "ring-2 ring-yellow-400/50" : ""}`}
+          aria-pressed={showFavoritesOnly}
+        >
+          {showFavoritesOnly ? "★ Favorites Only" : "☆ Show All"}
+        </button>
         <select
           value={`${sortField}:${sortDir}`}
           onChange={(e) => {
@@ -451,6 +525,31 @@ export default function ScreenshotGallery() {
                   className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                   loading="lazy"
                 />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleFavorite(shot.filename);
+                }}
+                className="absolute top-2 right-2 p-1 rounded-full bg-black/40 hover:bg-black/60 transition-colors"
+                aria-label={favorites[shot.filename] ? "Remove from favorites" : "Add to favorites"}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill={favorites[shot.filename] ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={favorites[shot.filename] ? "text-yellow-400" : "text-white/70"}
+                  aria-hidden="true"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
               </button>
               {selectMode && (
                 <div
@@ -667,6 +766,16 @@ export default function ScreenshotGallery() {
               <Button
                 variant="secondary"
                 size="sm"
+                onClick={async () => {
+                  const filename = preview.split(/[\\/]/).pop() || "";
+                  await loadMetadata(filename);
+                }}
+              >
+                {loadingMetadata ? "Loading..." : "Info"}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => {
                   const filename = preview.split(/[\\/]/).pop() || "";
                   handleOpen(filename);
@@ -725,6 +834,20 @@ export default function ScreenshotGallery() {
                 Reset
               </button>
             </div>
+            {metadata && (
+              <div className="absolute bottom-16 left-4 bg-black/80 text-white text-xs rounded-lg p-3 max-w-xs">
+                <div className="font-semibold mb-1">{metadata.filename}</div>
+                <div className="space-y-0.5 text-white/80">
+                  <div>
+                    Dimensions: {metadata.width} × {metadata.height}
+                  </div>
+                  <div>Size: {(metadata.sizeBytes / 1024).toFixed(1)} KB</div>
+                  <div>Format: {metadata.format}</div>
+                  <div>Created: {new Date(metadata.createdAt).toLocaleString()}</div>
+                  <div>Modified: {new Date(metadata.modifiedAt).toLocaleString()}</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -824,6 +947,96 @@ export default function ScreenshotGallery() {
               <span className="text-white text-xs font-medium">After</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {renameMode && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Bulk rename"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setRenameMode(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setRenameMode(false);
+            }
+          }}
+        >
+          <button
+            type="button"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-4">Bulk Rename</h3>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+              Renaming {selection.size} selected file(s).
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="rename-mode" className="block text-sm font-medium mb-1">
+                  Mode
+                </label>
+                <select
+                  id="rename-mode"
+                  value={renamePattern}
+                  onChange={(e) =>
+                    setRenamePattern(e.target.value as "prefix" | "suffix" | "replace")
+                  }
+                  className="input w-full"
+                >
+                  <option value="prefix">Add Prefix</option>
+                  <option value="suffix">Add Suffix</option>
+                  <option value="replace">Find and Replace</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="rename-value" className="block text-sm font-medium mb-1">
+                  {renamePattern === "replace" ? "Replace with" : "Value"}
+                </label>
+                <input
+                  id="rename-value"
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder={renamePattern === "replace" ? "Replacement text" : "Text to add"}
+                  className="input w-full"
+                />
+              </div>
+              {renamePattern === "replace" && (
+                <div>
+                  <label htmlFor="rename-find" className="block text-sm font-medium mb-1">
+                    Find
+                  </label>
+                  <input
+                    id="rename-find"
+                    type="text"
+                    value={renameFind}
+                    onChange={(e) => setRenameFind(e.target.value)}
+                    placeholder="Text to find"
+                    className="input w-full"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 mt-6">
+              <Button variant="primary" size="sm" onClick={handleBulkRename} className="flex-1">
+                Rename
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setRenameMode(false);
+                  setRenameValue("");
+                  setRenameFind("");
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </button>
         </div>
       )}
     </Card>

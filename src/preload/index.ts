@@ -92,6 +92,28 @@ export interface ElectronAPI {
   copyPath: (path: string) => Promise<boolean>;
   getTags: () => Promise<Record<string, string[]>>;
   setTags: (filename: string, tags: string[]) => Promise<boolean>;
+  toggleFavorite: (filename: string) => Promise<boolean>;
+  getFavorites: () => Promise<Record<string, boolean>>;
+  bulkRename: (
+    filenames: string[],
+    mode: "prefix" | "suffix" | "replace",
+    value: string,
+    find?: string,
+  ) => Promise<{
+    success: boolean;
+    results?: Array<{ old: string; new: string }>;
+    error?: string;
+  }>;
+  getMetadata: (filename: string) => Promise<{
+    filename: string;
+    path: string;
+    sizeBytes: number;
+    width: number;
+    height: number;
+    createdAt: number;
+    modifiedAt: number;
+    format: string;
+  } | null>;
   exportZip: (
     filenames: string[],
     zipName?: string,
@@ -217,6 +239,21 @@ const electronAPI: ElectronAPI = {
   getTags: () => ipcRenderer.invoke("screenshots:get-tags"),
   setTags: (filename: string, tags: string[]) =>
     ipcRenderer.invoke("screenshots:set-tags", { filename, tags }),
+  toggleFavorite: (filename: string) => ipcRenderer.invoke("screenshots:toggle-favorite", filename),
+  getFavorites: () => ipcRenderer.invoke("screenshots:get-favorites"),
+  bulkRename: (
+    filenames: string[],
+    mode: "prefix" | "suffix" | "replace",
+    value: string,
+    find?: string,
+  ) =>
+    ipcRenderer.invoke("screenshots:bulk-rename", {
+      filenames,
+      mode,
+      value,
+      find,
+    }),
+  getMetadata: (filename: string) => ipcRenderer.invoke("screenshots:get-metadata", filename),
   exportZip: (filenames: string[], zipName?: string) =>
     ipcRenderer.invoke("screenshots:export-zip", {
       filenames,
