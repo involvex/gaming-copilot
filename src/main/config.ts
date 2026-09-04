@@ -18,6 +18,7 @@ const schema = {
   captureMode: { type: "string", default: "auto" },
   saveScreenshots: { type: "boolean", default: false },
   activeProvider: { type: "string", default: "gemini" },
+  fallbackProvider: { type: ["string", "null"], default: null },
   useKeychain: { type: "boolean", default: true },
   providers: {
     type: "object",
@@ -197,6 +198,7 @@ function getDefaultConfig(): AppConfig {
     saveScreenshots: false,
     providers: {},
     activeProvider: "gemini",
+    fallbackProvider: null,
     useKeychain: true,
     overlay: {
       position: "bottom-right",

@@ -99,6 +99,7 @@ export interface AppConfig {
     };
   };
   activeProvider: string;
+  fallbackProvider: string | null;
   useKeychain: boolean;
 
   // Overlay

@@ -53,6 +53,7 @@ export interface ElectronAPI {
   setProvider: (name: string, config: Record<string, unknown>) => Promise<void>;
   removeEndpoint: (name: string) => Promise<void>;
   setActiveProvider: (name: string) => Promise<void>;
+  setFallbackProvider: (name: string | null) => Promise<void>;
   setOverlayConfig: (config: Record<string, unknown>) => Promise<void>;
   setOverlayCSS: (css: string) => Promise<void>;
   setTTSConfig: (config: Record<string, unknown>) => Promise<void>;
@@ -151,6 +152,8 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke("config:set-provider", name, config),
   removeEndpoint: (name: string) => ipcRenderer.invoke("config:remove-endpoint", name),
   setActiveProvider: (name: string) => ipcRenderer.invoke("config:set-active-provider", name),
+  setFallbackProvider: (name: string | null) =>
+    ipcRenderer.invoke("config:set-fallback-provider", name),
   setOverlayConfig: (config: Record<string, unknown>) =>
     ipcRenderer.invoke("config:set-overlay", config),
   setOverlayCSS: (css: string) => ipcRenderer.invoke("overlay:set-css", css),

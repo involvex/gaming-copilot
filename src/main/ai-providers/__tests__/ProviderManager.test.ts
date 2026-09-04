@@ -136,6 +136,7 @@ function makeConfig(providerNames: string[]): AppConfig {
       },
     },
     activeProvider: providerNames[0] ?? "gemini",
+    fallbackProvider: null,
     useKeychain: true,
     overlay: {
       position: "bottom-right",
@@ -241,6 +242,35 @@ describe("ProviderManager", () => {
     });
   });
 
+  describe("setFallbackProvider", () => {
+    it("should use fallback when active provider fails", async () => {
+      const config = makeConfig(["openai1", "openai2"]);
+      config.activeProvider = "gemini";
+      config.fallbackProvider = "openai2";
+      manager = new ProviderManager(config);
+
+      const geminiProvider = manager.getProvider("gemini") as unknown as MockProvider;
+      if (geminiProvider) geminiProvider.setFailAnalyze(true);
+
+      const result = await manager.analyze("img", "image/png", "sys", "msg");
+      expect(result.provider).toBe("openai2");
+    });
+
+    it("should clear fallback when set to null", async () => {
+      const config = makeConfig(["openai1", "openai2"]);
+      config.activeProvider = "gemini";
+      config.fallbackProvider = "openai2";
+      manager = new ProviderManager(config);
+
+      const geminiProvider = manager.getProvider("gemini") as unknown as MockProvider;
+      if (geminiProvider) geminiProvider.setFailAnalyze(true);
+
+      manager.setFallbackProvider(null);
+      const result = await manager.analyze("img", "image/png", "sys", "msg");
+      expect(result.provider).toBe("openai1");
+    });
+  });
+
   describe("analyze", () => {
     it("should throw if no providers are configured", async () => {
       const config = makeConfig([]);
@@ -282,6 +312,49 @@ describe("ProviderManager", () => {
       await expect(manager.analyze("img", "image/png", "sys", "msg")).rejects.toThrow(
         "All AI providers failed",
       );
+    });
+
+    it("should try fallback provider before others when active fails", async () => {
+      const config = makeConfig(["openai1", "openai2"]);
+      config.activeProvider = "gemini";
+      config.fallbackProvider = "openai2";
+      manager = new ProviderManager(config);
+
+      const geminiProvider = manager.getProvider("gemini") as unknown as MockProvider;
+      const openai1 = manager.getProvider("openai1") as unknown as MockProvider;
+
+      if (geminiProvider) geminiProvider.setFailAnalyze(true);
+      const openai1Spy = vi.spyOn(openai1, "analyze");
+
+      const result = await manager.analyze("img", "image/png", "sys", "msg");
+      expect(result.provider).toBe("openai2");
+      expect(openai1Spy).not.toHaveBeenCalled();
+    });
+
+    it("should skip fallback when it is the same as active", async () => {
+      const config = makeConfig(["openai1"]);
+      config.activeProvider = "gemini";
+      config.fallbackProvider = "gemini";
+      manager = new ProviderManager(config);
+
+      const result = await manager.analyze("img", "image/png", "sys", "msg");
+      expect(result.provider).toBe("gemini");
+    });
+
+    it("should try remaining providers when both active and fallback fail", async () => {
+      const config = makeConfig(["openai1", "openai2"]);
+      config.activeProvider = "gemini";
+      config.fallbackProvider = "openai1";
+      manager = new ProviderManager(config);
+
+      const geminiProvider = manager.getProvider("gemini") as unknown as MockProvider;
+      const openai1 = manager.getProvider("openai1") as unknown as MockProvider;
+
+      if (geminiProvider) geminiProvider.setFailAnalyze(true);
+      if (openai1) openai1.setFailAnalyze(true);
+
+      const result = await manager.analyze("img", "image/png", "sys", "msg");
+      expect(result.provider).toBe("openai2");
     });
   });
 

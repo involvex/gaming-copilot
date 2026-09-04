@@ -40,6 +40,7 @@ import {
   configImportSchema,
   endpointConfigSchema,
   exeNameSchema,
+  fallbackProviderSchema,
   geminiProviderConfigSchema,
   hotkeySchema,
   overlayConfigSchema,
@@ -834,6 +835,23 @@ ipcMain.handle("config:set-active-provider", (_event, name: unknown) => {
   providerManager?.setActiveProvider(validName);
   setConfigValue("activeProvider", validName);
   logger.info("Providers", `Active provider set to: ${validName}`);
+  emitConfigUpdated();
+});
+
+ipcMain.handle("config:set-fallback-provider", (_event, name: unknown) => {
+  const validName = validateIPC(fallbackProviderSchema, name);
+  if (validName) {
+    if (
+      validName !== "gemini" &&
+      !appConfig.providers.openaiCompat?.endpoints.some((e) => e.name === validName)
+    ) {
+      throw new Error(`Unknown provider: ${validName}`);
+    }
+  }
+  appConfig.fallbackProvider = validName || null;
+  providerManager?.setFallbackProvider(validName || null);
+  setConfigValue("fallbackProvider", validName || null);
+  logger.info("Providers", `Fallback provider set to: ${validName || "none"}`);
   emitConfigUpdated();
 });
 

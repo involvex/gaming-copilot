@@ -16,10 +16,12 @@ interface CacheEntry {
 export class ProviderManager {
   private providers: AIProvider[] = [];
   private activeProviderName: string;
+  private fallbackProviderName: string | null;
   private cache: Map<string, CacheEntry> = new Map();
 
   constructor(config: AppConfig) {
     this.activeProviderName = config.activeProvider;
+    this.fallbackProviderName = config.fallbackProvider ?? null;
 
     // Initialize Gemini
     if (config.providers.gemini?.apiKey) {
@@ -77,6 +79,10 @@ export class ProviderManager {
     this.activeProviderName = name;
   }
 
+  setFallbackProvider(name: string | null): void {
+    this.fallbackProviderName = name;
+  }
+
   private getCacheKey(imageBase64: string, systemPrompt: string, userMessage: string): string {
     return createHash("sha1")
       .update(imageBase64 + systemPrompt + userMessage)
@@ -122,11 +128,15 @@ export class ProviderManager {
       throw new Error("No AI providers configured. Add an API key in Settings.");
     }
 
-    // Try active provider first, then fallback chain
+    // Try active provider first, then explicit fallback, then remaining providers
     const active = available.find((p) => p.name === this.activeProviderName);
-    const ordered = active
-      ? [active, ...available.filter((p) => p.name !== this.activeProviderName)]
-      : available;
+    const fallback = this.fallbackProviderName
+      ? available.find((p) => p.name === this.fallbackProviderName && p.name !== active?.name)
+      : undefined;
+    const others = available.filter(
+      (p) => p.name !== this.activeProviderName && p.name !== this.fallbackProviderName,
+    );
+    const ordered = [...(active ? [active] : []), ...(fallback ? [fallback] : []), ...others];
 
     for (const provider of ordered) {
       const rateLimit = provider.getRateLimitInfo();
@@ -192,10 +202,15 @@ export class ProviderManager {
       throw new Error("No AI providers configured. Add an API key in Settings.");
     }
 
+    // Try active provider first, then explicit fallback, then remaining providers
     const active = available.find((p) => p.name === this.activeProviderName);
-    const ordered = active
-      ? [active, ...available.filter((p) => p.name !== this.activeProviderName)]
-      : available;
+    const fallback = this.fallbackProviderName
+      ? available.find((p) => p.name === this.fallbackProviderName && p.name !== active?.name)
+      : undefined;
+    const others = available.filter(
+      (p) => p.name !== this.activeProviderName && p.name !== this.fallbackProviderName,
+    );
+    const ordered = [...(active ? [active] : []), ...(fallback ? [fallback] : []), ...others];
 
     let lastError: unknown;
     for (const provider of ordered) {

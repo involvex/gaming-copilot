@@ -23,6 +23,8 @@ export const endpointConfigSchema = z.object({
 
 export const providerNameSchema = z.string().min(1);
 
+export const fallbackProviderSchema = providerNameSchema.optional().nullable();
+
 export const overlayPositionSchema = z.enum([
   "bottom-right",
   "bottom-left",
@@ -101,5 +103,6 @@ export type OverlayConfigInput = z.infer<typeof overlayConfigSchema>;
 export type TtsConfigInput = z.infer<typeof ttsConfigSchema>;
 export type PromptsConfigInput = z.infer<typeof promptsConfigSchema>;
 export type ChatMessageInput = z.infer<typeof chatMessageSchema>;
+export type FallbackProviderInput = z.infer<typeof fallbackProviderSchema>;
 
 export const configImportSchema = z.record(z.string(), z.unknown());

@@ -5,6 +5,7 @@ import { Button, Input, Select } from "./ui";
 export default function ProviderConfig({ config }: { config: Record<string, unknown> | null }) {
   const providers = (config?.providers as Record<string, unknown>) || {};
   const activeProvider = (config?.activeProvider as string) || "gemini";
+  const fallbackProvider = (config?.fallbackProvider as string) || null;
 
   const openaiCompat = providers.openaiCompat as Record<string, unknown> | undefined;
   const endpoints = (openaiCompat?.endpoints as Array<Record<string, unknown>>) || [];
@@ -140,6 +141,11 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     await window.electronAPI.setActiveProvider(name);
   };
 
+  const handleFallbackProviderChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const name = e.target.value;
+    await window.electronAPI.setFallbackProvider(name || null);
+  };
+
   const handleAddCustomProvider = async () => {
     if (!newCustomName.trim() || !newCustomBaseUrl.trim()) return;
     await window.electronAPI.setProvider(newCustomName.trim(), {
@@ -173,6 +179,30 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
         <Select id="active-provider" value={activeProvider} onChange={handleActiveProviderChange}>
           {availableProviders
             .filter((p) => p.configured)
+            .map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+        </Select>
+      </div>
+
+      <div>
+        <label htmlFor="fallback-provider" className="field-label">
+          Fallback Provider
+        </label>
+        <p className="field-label-description">
+          The provider to try when the primary fails. Falls back to all other configured providers
+          if not set.
+        </p>
+        <Select
+          id="fallback-provider"
+          value={fallbackProvider || ""}
+          onChange={handleFallbackProviderChange}
+        >
+          <option value="">(None — auto fallback order)</option>
+          {availableProviders
+            .filter((p) => p.configured && p.value !== activeProvider)
             .map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}
