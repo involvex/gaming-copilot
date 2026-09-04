@@ -88,6 +88,8 @@ export interface ElectronAPI {
   ) => Promise<Array<{ filename: string; path: string; size: number; mtime: number }>>;
   deleteScreenshot: (filepath: string) => Promise<boolean>;
   openScreenshot: (filepath: string) => Promise<boolean>;
+  openContainingFolder: (filename: string) => Promise<boolean>;
+  copyPath: (path: string) => Promise<boolean>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -203,6 +205,9 @@ const electronAPI: ElectronAPI = {
   listScreenshots: (dir?: string) => ipcRenderer.invoke("screenshots:list", dir ? { dir } : {}),
   deleteScreenshot: (filepath: string) => ipcRenderer.invoke("screenshots:delete", filepath),
   openScreenshot: (filepath: string) => ipcRenderer.invoke("screenshots:open", filepath),
+  openContainingFolder: (filename: string) =>
+    ipcRenderer.invoke("screenshots:open-containing-folder", filename),
+  copyPath: (path: string) => ipcRenderer.invoke("screenshots:copy-path", path),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),

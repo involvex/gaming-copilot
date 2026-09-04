@@ -5,6 +5,7 @@ import { is } from "@electron-toolkit/utils";
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   globalShortcut,
   ipcMain,
@@ -1170,6 +1171,31 @@ ipcMain.handle("screenshots:open", async (_event, filepath: unknown) => {
     return true;
   } catch (error) {
     logger.error("Screenshots", `Failed to open screenshot: ${error}`);
+    return false;
+  }
+});
+
+ipcMain.handle("screenshots:open-containing-folder", async (_event, filename: unknown) => {
+  const _validName = validateIPC(z.string(), filename);
+  if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
+    return false;
+  }
+  try {
+    await shell.openPath(appConfig.screenshotDir);
+    return true;
+  } catch (error) {
+    logger.error("Screenshots", `Failed to open containing folder: ${error}`);
+    return false;
+  }
+});
+
+ipcMain.handle("screenshots:copy-path", async (_event, path: unknown) => {
+  const validPath = validateIPC(z.string(), path);
+  try {
+    clipboard.writeText(validPath);
+    return true;
+  } catch (error) {
+    logger.error("Screenshots", `Failed to copy path: ${error}`);
     return false;
   }
 });

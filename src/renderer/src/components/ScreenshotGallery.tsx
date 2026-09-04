@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Card } from "./ui";
 
 interface ScreenshotEntry {
@@ -8,18 +8,31 @@ interface ScreenshotEntry {
   mtime: number;
 }
 
+const PAGE_SIZE = 20;
+
 export default function ScreenshotGallery() {
-  const [screenshots, setScreenshots] = useState<ScreenshotEntry[]>([]);
+  const [allScreenshots, setAllScreenshots] = useState<ScreenshotEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(PAGE_SIZE);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    shot: ScreenshotEntry;
+  } | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const loadScreenshots = async () => {
     setLoading(true);
     setError(null);
     try {
       const entries = await window.electronAPI.listScreenshots();
-      setScreenshots(entries);
+      setAllScreenshots(entries);
+      setPage(PAGE_SIZE);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load screenshots";
       setError(msg);
@@ -32,17 +45,65 @@ export default function ScreenshotGallery() {
     loadScreenshots();
   }, []);
 
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    const handleScroll = () => setContextMenu(null);
+    document.addEventListener("click", handleClick);
+    document.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("click", handleClick);
+      document.removeEventListener("scroll", handleScroll, true);
+    };
+  }, []);
+
+  const filtered = allScreenshots.filter((shot) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q && !shot.filename.toLowerCase().includes(q)) return false;
+    const shotDate = new Date(shot.mtime);
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      if (shotDate < from) return false;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      if (shotDate > to) return false;
+    }
+    return true;
+  });
+
+  const visible = filtered.slice(0, page);
+  const hasMore = filtered.length > page;
+
   const handleDelete = async (filename: string) => {
     if (!window.confirm(`Delete ${filename}?`)) return;
     const ok = await window.electronAPI.deleteScreenshot(filename);
     if (ok) {
-      setScreenshots((prev) => prev.filter((s) => s.filename !== filename));
+      setAllScreenshots((prev) => prev.filter((s) => s.filename !== filename));
       if (preview === filename) setPreview(null);
     }
   };
 
   const handleOpen = async (filename: string) => {
     await window.electronAPI.openScreenshot(filename);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, shot: ScreenshotEntry) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, shot });
+  };
+
+  const handleOpenContainingFolder = async () => {
+    if (!contextMenu) return;
+    await window.electronAPI.openContainingFolder(contextMenu.shot.filename);
+    setContextMenu(null);
+  };
+
+  const handleCopyPath = async () => {
+    if (!contextMenu) return;
+    await window.electronAPI.copyPath(contextMenu.shot.path);
+    setContextMenu(null);
   };
 
   const formatSize = (bytes: number) => {
@@ -64,21 +125,70 @@ export default function ScreenshotGallery() {
 
       {error && <p className="text-sm text-[var(--color-error)] mb-4">{error}</p>}
 
-      {screenshots.length === 0 && !loading && (
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Search by filename..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setPage(PAGE_SIZE);
+          }}
+          className="input flex-1"
+        />
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => {
+            setDateFrom(e.target.value);
+            setPage(PAGE_SIZE);
+          }}
+          className="input"
+          aria-label="From date"
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => {
+            setDateTo(e.target.value);
+            setPage(PAGE_SIZE);
+          }}
+          className="input"
+          aria-label="To date"
+        />
+        {(searchQuery || dateFrom || dateTo) && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setSearchQuery("");
+              setDateFrom("");
+              setDateTo("");
+              setPage(PAGE_SIZE);
+            }}
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+
+      {filtered.length === 0 && !loading && (
         <p className="text-sm text-[var(--color-text-tertiary)] text-center py-8">
-          No screenshots saved yet. Enable &quot;Save Screenshots&quot; in Capture settings and take
-          a capture to build your gallery.
+          {allScreenshots.length === 0
+            ? 'No screenshots saved yet. Enable "Save Screenshots" in Capture settings and take a capture to build your gallery.'
+            : "No screenshots match your filters."}
         </p>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {screenshots.map((shot) => (
+        {visible.map((shot) => (
           <div
             key={shot.filename}
             className="group relative rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]"
           >
             <button
               type="button"
+              onContextMenu={(e) => handleContextMenu(e, shot)}
               onClick={() => setPreview(shot.path)}
               className="w-full aspect-video cursor-pointer"
             >
@@ -118,6 +228,60 @@ export default function ScreenshotGallery() {
           </div>
         ))}
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <Button variant="secondary" size="sm" onClick={() => setPage((p) => p + PAGE_SIZE)}>
+            Load More ({filtered.length - page} remaining)
+          </Button>
+        </div>
+      )}
+
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          role="menu"
+          aria-label="Screenshot actions"
+          className="fixed bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl py-1 z-50 min-w-[200px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setContextMenu(null);
+            }
+          }}
+        >
+          <button
+            type="button"
+            className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--color-surface-hover)] transition-colors"
+            onClick={handleOpenContainingFolder}
+          >
+            Open Containing Folder
+          </button>
+          <button
+            type="button"
+            className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--color-surface-hover)] transition-colors"
+            onClick={handleCopyPath}
+          >
+            Copy Path
+          </button>
+          <div className="border-t border-[var(--color-border)] my-1" />
+          <button
+            type="button"
+            className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--color-surface-hover)] transition-colors"
+            onClick={() => handleOpen(contextMenu.shot.filename)}
+          >
+            Open Image
+          </button>
+          <button
+            type="button"
+            className="w-full text-left px-4 py-2 text-sm text-[var(--color-error)] hover:bg-[var(--color-surface-hover)] transition-colors"
+            onClick={() => handleDelete(contextMenu.shot.filename)}
+          >
+            Delete
+          </button>
+        </div>
+      )}
 
       {preview && (
         <div
