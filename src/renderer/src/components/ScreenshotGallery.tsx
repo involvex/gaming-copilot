@@ -40,6 +40,12 @@ export default function ScreenshotGallery() {
   const panStart = useRef({ x: 0, y: 0 });
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
+  const [tags, setTags] = useState<Record<string, string[]>>({});
+  const [tagInput, setTagInput] = useState<Record<string, string>>({});
+  const [compareWith, setCompareWith] = useState<string | null>(null);
+  const [compareSliderPos, setCompareSliderPos] = useState(50);
+  const [exporting, setExporting] = useState(false);
+
   const loadScreenshots = async () => {
     setLoading(true);
     setError(null);
@@ -48,6 +54,8 @@ export default function ScreenshotGallery() {
       setAllScreenshots(entries);
       setPage(PAGE_SIZE);
       setSelection(new Set());
+      const loadedTags = await window.electronAPI.getTags();
+      setTags(loadedTags);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load screenshots";
       setError(msg);
@@ -84,6 +92,13 @@ export default function ScreenshotGallery() {
   const filtered = allScreenshots.filter((shot) => {
     const q = searchQuery.trim().toLowerCase();
     if (q && !shot.filename.toLowerCase().includes(q)) return false;
+    const shotTags = tags[shot.filename] || [];
+    if (
+      q &&
+      !shot.filename.toLowerCase().includes(q) &&
+      !shotTags.some((t) => t.toLowerCase().includes(q))
+    )
+      return false;
     const shotDate = new Date(shot.mtime);
     if (dateFrom) {
       const from = new Date(dateFrom);
@@ -123,7 +138,13 @@ export default function ScreenshotGallery() {
         next.delete(filename);
         return next;
       });
+      setTags((prev) => {
+        const next = { ...prev };
+        delete next[filename];
+        return next;
+      });
       if (preview === filename) setPreview(null);
+      if (compareWith === filename) setCompareWith(null);
     }
   };
 
@@ -138,8 +159,31 @@ export default function ScreenshotGallery() {
     }
     if (deleted > 0) {
       setAllScreenshots((prev) => prev.filter((s) => !selection.has(s.filename)));
+      setTags((prev) => {
+        const next = { ...prev };
+        for (const filename of toDelete) delete next[filename];
+        return next;
+      });
       setSelection(new Set());
       setSelectMode(false);
+    }
+  };
+
+  const handleExportZip = async () => {
+    if (selection.size === 0) return;
+    setExporting(true);
+    try {
+      const filenames = Array.from(selection);
+      const result = await window.electronAPI.exportZip(filenames, `screenshots-${Date.now()}.zip`);
+      if (result.success) {
+        alert(`Exported ${filenames.length} screenshots to:\n${result.path}`);
+      } else {
+        alert(`Export failed: ${result.error}`);
+      }
+    } catch (err) {
+      alert(`Export failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -182,6 +226,24 @@ export default function ScreenshotGallery() {
     if (!contextMenu) return;
     await window.electronAPI.copyPath(contextMenu.shot.path);
     setContextMenu(null);
+  };
+
+  const handleAddTag = async (filename: string) => {
+    const input = tagInput[filename]?.trim();
+    if (!input) return;
+    const currentTags = tags[filename] || [];
+    const newTags = input.includes(",")
+      ? input
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [input];
+    const updated = [...new Set([...currentTags, ...newTags])];
+    const ok = await window.electronAPI.setTags(filename, updated);
+    if (ok) {
+      setTags((prev) => ({ ...prev, [filename]: updated }));
+      setTagInput((prev) => ({ ...prev, [filename]: "" }));
+    }
   };
 
   const formatSize = (bytes: number) => {
@@ -233,8 +295,18 @@ export default function ScreenshotGallery() {
   useEffect(() => {
     if (!preview) {
       resetZoom();
+      setCompareWith(null);
     }
   }, [preview, resetZoom]);
+
+  const openCompare = (filename: string) => {
+    setCompareWith(filename);
+  };
+
+  const closeCompare = () => {
+    setCompareWith(null);
+    setCompareSliderPos(50);
+  };
 
   return (
     <Card>
@@ -242,9 +314,14 @@ export default function ScreenshotGallery() {
         <h2 className="section-heading">Screenshot Gallery</h2>
         <div className="flex gap-2">
           {selectMode && selection.size > 0 && (
-            <Button variant="danger" size="sm" onClick={handleBatchDelete}>
-              Delete Selected ({selection.size})
-            </Button>
+            <>
+              <Button variant="danger" size="sm" onClick={handleBatchDelete}>
+                Delete Selected ({selection.size})
+              </Button>
+              <Button variant="secondary" size="sm" onClick={handleExportZip} disabled={exporting}>
+                {exporting ? "Exporting..." : "Export ZIP"}
+              </Button>
+            </>
           )}
           <Button
             variant={selectMode ? "primary" : "secondary"}
@@ -267,7 +344,7 @@ export default function ScreenshotGallery() {
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
           type="text"
-          placeholder="Search by filename..."
+          placeholder="Search by filename or tag..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
@@ -346,6 +423,7 @@ export default function ScreenshotGallery() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {visible.map((shot) => {
           const isSelected = selection.has(shot.filename);
+          const shotTags = tags[shot.filename] || [];
           return (
             <div
               key={shot.filename}
@@ -407,24 +485,75 @@ export default function ScreenshotGallery() {
                 <p className="text-[10px] text-[var(--color-text-tertiary)]">
                   {formatSize(shot.size)} · {formatDate(shot.mtime)}
                 </p>
-                <div className="flex gap-1 pt-1">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="flex-1 text-[10px] py-1"
-                    onClick={() => handleOpen(shot.filename)}
-                  >
-                    Open
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    className="flex-1 text-[10px] py-1"
-                    onClick={() => handleDelete(shot.filename)}
-                  >
-                    Delete
-                  </Button>
-                </div>
+                {shotTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {shotTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[10px] bg-[var(--color-accent)]/20 text-[var(--color-accent)] px-1.5 py-0.5 rounded"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {!selectMode && (
+                  <div className="flex gap-1 pt-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 text-[10px] py-1"
+                      onClick={() => handleOpen(shot.filename)}
+                    >
+                      Open
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 text-[10px] py-1"
+                      onClick={() => openCompare(shot.filename)}
+                    >
+                      Compare
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="flex-1 text-[10px] py-1"
+                      onClick={() => handleDelete(shot.filename)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                )}
+                {!selectMode && (
+                  <div className="flex gap-1 pt-1">
+                    <input
+                      type="text"
+                      placeholder="Add tag..."
+                      value={tagInput[shot.filename] || ""}
+                      onChange={(e) =>
+                        setTagInput((prev) => ({
+                          ...prev,
+                          [shot.filename]: e.target.value,
+                        }))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleAddTag(shot.filename);
+                        }
+                      }}
+                      className="input text-[10px] py-0.5 px-1.5 flex-1"
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="text-[10px] py-0.5 px-1.5"
+                      onClick={() => handleAddTag(shot.filename)}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -485,7 +614,7 @@ export default function ScreenshotGallery() {
         </div>
       )}
 
-      {preview && (
+      {preview && !compareWith && (
         <div
           role="dialog"
           aria-modal="true"
@@ -546,6 +675,16 @@ export default function ScreenshotGallery() {
                 Open
               </Button>
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const filename = preview.split(/[\\/]/).pop() || "";
+                  openCompare(filename);
+                }}
+              >
+                Compare
+              </Button>
+              <Button
                 variant="danger"
                 size="sm"
                 onClick={() => {
@@ -585,6 +724,104 @@ export default function ScreenshotGallery() {
               >
                 Reset
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {preview && compareWith && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image comparison"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={closeCompare}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              closeCompare();
+            }
+          }}
+        >
+          <div className="relative w-full h-full max-w-6xl max-h-[90vh] flex items-center justify-center">
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img
+                src={`file:///${preview.replace(/\\/g, "/")}`}
+                alt="Before"
+                className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none"
+                style={{ clipPath: `inset(0 ${100 - compareSliderPos}% 0 0)` }}
+                draggable={false}
+              />
+              <img
+                src={`file:///${compareWith.replace(/\\/g, "/")}`}
+                alt="After"
+                className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none"
+                style={{ clipPath: `inset(0 0 0 ${compareSliderPos}%)` }}
+                draggable={false}
+              />
+              <button
+                type="button"
+                aria-label="Comparison slider. Drag left and right to compare images."
+                className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize border-none p-0"
+                style={{ left: `${compareSliderPos}%` }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  const handleMove = (moveEvent: MouseEvent) => {
+                    const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+                    if (!rect) return;
+                    const x = moveEvent.clientX - rect.left;
+                    const pct = (x / rect.width) * 100;
+                    setCompareSliderPos(Math.max(0, Math.min(100, pct)));
+                  };
+                  const handleUp = () => {
+                    document.removeEventListener("mousemove", handleMove);
+                    document.removeEventListener("mouseup", handleUp);
+                  };
+                  document.addEventListener("mousemove", handleMove);
+                  document.addEventListener("mouseup", handleUp);
+                }}
+              >
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="absolute -left-3"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </button>
+            </div>
+            <div className="absolute top-2 right-2 flex gap-2">
+              <Button variant="secondary" size="sm" onClick={closeCompare}>
+                Close
+              </Button>
+            </div>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 rounded-full px-4 py-2">
+              <span className="text-white text-xs font-medium">Before</span>
+              <span className="text-white/50 text-xs">|</span>
+              <span className="text-white text-xs font-medium">After</span>
             </div>
           </div>
         </div>

@@ -90,6 +90,12 @@ export interface ElectronAPI {
   openScreenshot: (filepath: string) => Promise<boolean>;
   openContainingFolder: (filename: string) => Promise<boolean>;
   copyPath: (path: string) => Promise<boolean>;
+  getTags: () => Promise<Record<string, string[]>>;
+  setTags: (filename: string, tags: string[]) => Promise<boolean>;
+  exportZip: (
+    filenames: string[],
+    zipName?: string,
+  ) => Promise<{ success: boolean; path?: string; error?: string }>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -208,6 +214,14 @@ const electronAPI: ElectronAPI = {
   openContainingFolder: (filename: string) =>
     ipcRenderer.invoke("screenshots:open-containing-folder", filename),
   copyPath: (path: string) => ipcRenderer.invoke("screenshots:copy-path", path),
+  getTags: () => ipcRenderer.invoke("screenshots:get-tags"),
+  setTags: (filename: string, tags: string[]) =>
+    ipcRenderer.invoke("screenshots:set-tags", { filename, tags }),
+  exportZip: (filenames: string[], zipName?: string) =>
+    ipcRenderer.invoke("screenshots:export-zip", {
+      filenames,
+      zipName: zipName || "screenshots-export.zip",
+    }),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),

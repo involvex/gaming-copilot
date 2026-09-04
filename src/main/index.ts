@@ -2,6 +2,7 @@ import { readdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
+import AdmZip from "adm-zip";
 import {
   app,
   BrowserWindow,
@@ -1197,6 +1198,67 @@ ipcMain.handle("screenshots:copy-path", async (_event, path: unknown) => {
   } catch (error) {
     logger.error("Screenshots", `Failed to copy path: ${error}`);
     return false;
+  }
+});
+
+const tagsFilePath = (dir: string) => join(dir, "screenshot-tags.json");
+
+async function loadTags(dir: string): Promise<Record<string, string[]>> {
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const data = await readFile(tagsFilePath(dir), "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function saveTags(dir: string, tags: Record<string, string[]>): Promise<void> {
+  await writeFile(tagsFilePath(dir), JSON.stringify(tags, null, 2), "utf-8");
+}
+
+ipcMain.handle("screenshots:get-tags", async () => {
+  if (!appConfig.screenshotDir) return {};
+  return loadTags(appConfig.screenshotDir);
+});
+
+ipcMain.handle("screenshots:set-tags", async (_event, input: unknown) => {
+  const parsed = validateIPC(z.object({ filename: z.string(), tags: z.array(z.string()) }), input);
+  if (!appConfig.screenshotDir) return false;
+  const tags = await loadTags(appConfig.screenshotDir);
+  tags[parsed.filename] = parsed.tags;
+  await saveTags(appConfig.screenshotDir, tags);
+  return true;
+});
+
+ipcMain.handle("screenshots:export-zip", async (_event, input: unknown) => {
+  const parsed = validateIPC(
+    z.object({
+      filenames: z.array(z.string()),
+      zipName: z.string().default("screenshots-export.zip"),
+    }),
+    input,
+  );
+  if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
+    return { success: false, error: "Screenshot saving is not enabled" };
+  }
+  try {
+    const zip = new AdmZip();
+    for (const filename of parsed.filenames) {
+      const filepath = join(appConfig.screenshotDir, filename);
+      zip.addLocalFile(filepath, "", filename);
+    }
+    const zipPath = join(appConfig.screenshotDir, parsed.zipName);
+    zip.writeZip(zipPath);
+    logger.info("Screenshots", `Exported ZIP: ${zipPath}`);
+    await shell.openPath(appConfig.screenshotDir);
+    return { success: true, path: zipPath };
+  } catch (error) {
+    logger.error("Screenshots", `Failed to export ZIP: ${error}`);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Export failed",
+    };
   }
 });
 
