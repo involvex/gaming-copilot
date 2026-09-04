@@ -118,6 +118,7 @@ export interface AppConfig {
     theme: OverlayTheme;
     clickThrough: boolean;
     customCSS: string;
+    showScreenshot: boolean;
   };
 
   // Overlay Custom Theme

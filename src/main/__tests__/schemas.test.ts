@@ -201,6 +201,19 @@ describe("overlayConfigSchema", () => {
     );
   });
 
+  it("should accept showScreenshot boolean", () => {
+    const result = validateIPC(overlayConfigSchema, {
+      showScreenshot: true,
+    });
+    expect(result.showScreenshot).toBe(true);
+  });
+
+  it("should reject non-boolean showScreenshot", () => {
+    expect(() => validateIPC(overlayConfigSchema, { showScreenshot: "yes" })).toThrow(
+      "IPC validation failed",
+    );
+  });
+
   it("should accept configImportSchema with arbitrary keys including saveScreenshots", () => {
     const result = validateIPC(configImportSchema, {
       saveScreenshots: true,

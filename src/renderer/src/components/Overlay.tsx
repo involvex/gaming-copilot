@@ -21,6 +21,7 @@ interface OverlayConfig {
   position: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   theme: "dark" | "light" | "game" | "hacker" | "monokai";
   clickThrough: boolean;
+  showScreenshot: boolean;
 }
 
 export default function Overlay() {
@@ -29,6 +30,7 @@ export default function Overlay() {
   const [opacity, setOpacity] = useState(0);
   const [_streaming, setStreaming] = useState(false);
   const [customCSS, setCustomCSS] = useState<string>("");
+  const [screenshot, setScreenshot] = useState<string>("");
   const [providerInfo, setProviderInfo] = useState<{
     displayName: string;
     model: string;
@@ -47,6 +49,7 @@ export default function Overlay() {
     position: DEFAULT_OVERLAY.position,
     theme: DEFAULT_OVERLAY.theme as OverlayConfig["theme"],
     clickThrough: DEFAULT_OVERLAY.clickThrough,
+    showScreenshot: true,
   });
   const [customTheme, setCustomTheme] = useState<OverlayCustomTheme>({
     backgroundColor: "#111827",
@@ -94,6 +97,7 @@ export default function Overlay() {
       position: (overlay.position as OverlayConfig["position"]) || prev.position,
       theme: themeName as OverlayConfig["theme"],
       clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
+      showScreenshot: (overlay.showScreenshot as boolean) ?? prev.showScreenshot,
     }));
 
     setCustomCSS((overlay.customCSS as string) || "");
@@ -111,6 +115,7 @@ export default function Overlay() {
         position: (overlay.position as OverlayConfig["position"]) || prev.position,
         theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
         clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
+        showScreenshot: (overlay.showScreenshot as boolean) ?? prev.showScreenshot,
       }));
       setCustomCSS((overlay.customCSS as string) || "");
       const customThemeConfig = config?.overlayCustomTheme as Record<string, unknown> | undefined;
@@ -191,6 +196,15 @@ export default function Overlay() {
   }, []);
 
   useEffect(() => {
+    window.electronAPI.onOverlayScreenshot((dataUrl) => {
+      setScreenshot(dataUrl);
+    });
+    return () => {
+      window.electronAPI.removeAllListeners("overlay:screenshot");
+    };
+  }, []);
+
+  useEffect(() => {
     window.electronAPI.onOverlayPosition((pos) => {
       setOverlayConfig((prev) => ({ ...prev, position: pos }));
     });
@@ -220,6 +234,7 @@ export default function Overlay() {
         stop();
         setStreaming(false);
         setProviderInfo(null);
+        setScreenshot("");
         setTimeout(() => {
           setVisible(false);
           window.electronAPI.hideOverlay();
@@ -237,6 +252,7 @@ export default function Overlay() {
       stop();
       setStreaming(false);
       setProviderInfo(null);
+      setScreenshot("");
       setTimeout(() => {
         setVisible(false);
         window.electronAPI.hideOverlay();
@@ -288,6 +304,13 @@ export default function Overlay() {
             via {providerInfo.displayName}
             {providerInfo.model && ` · ${providerInfo.model}`}
           </div>
+        )}
+        {screenshot && overlayConfig.showScreenshot && (
+          <img
+            src={screenshot}
+            alt="Captured screenshot"
+            className="rounded mb-2 max-h-32 object-contain border border-[var(--color-border)]"
+          />
         )}
         <p
           className="overlay-text leading-relaxed whitespace-pre-wrap"

@@ -16,6 +16,9 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
     (overlay.clickThrough as boolean) || true,
   );
   const [customCSS, setCustomCSS] = useState<string>((overlay.customCSS as string) || "");
+  const [showScreenshot, setShowScreenshot] = useState<boolean>(
+    (overlay.showScreenshot as boolean) ?? true,
+  );
   const [backgroundColor, setBackgroundColor] = useState<string>(
     (customTheme.backgroundColor as string) || "#111827",
   );
@@ -94,6 +97,11 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
   const handleClickThroughToggle = async (next: boolean) => {
     setClickThrough(next);
     await window.electronAPI.setClickThrough(next);
+  };
+
+  const handleShowScreenshotToggle = async (next: boolean) => {
+    setShowScreenshot(next);
+    await window.electronAPI.setOverlayConfig({ showScreenshot: next });
   };
 
   return (
@@ -185,6 +193,14 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         onChange={handleClickThroughToggle}
         label="Click-Through"
         description="When enabled, mouse clicks pass through the overlay to the game underneath."
+      />
+
+      <Toggle
+        id="overlay-show-screenshot"
+        checked={showScreenshot}
+        onChange={handleShowScreenshotToggle}
+        label="Show Screenshot"
+        description="Display a small thumbnail of the captured screenshot in the overlay during analysis."
       />
 
       <div className="border-t border-divider pt-4">

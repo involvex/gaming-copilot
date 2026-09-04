@@ -100,6 +100,7 @@ export interface ElectronAPI {
   // Events
   onCaptureResult: (callback: (dataUrl: string) => void) => void;
   onOverlayData: (callback: (text: string) => void) => void;
+  onOverlayScreenshot: (callback: (dataUrl: string) => void) => void;
   onOverlayCSS: (callback: (css: string) => void) => void;
   onOverlayStreamDone: (callback: (text: string) => void) => void;
   onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => void;
@@ -210,6 +211,9 @@ const electronAPI: ElectronAPI = {
   },
   onOverlayData: (callback: (text: string) => void) => {
     ipcRenderer.on("overlay:data", (_event, text) => callback(text));
+  },
+  onOverlayScreenshot: (callback: (dataUrl: string) => void) => {
+    ipcRenderer.on("overlay:screenshot", (_event, dataUrl) => callback(dataUrl));
   },
   onOverlayCSS: (callback: (css: string) => void) => {
     ipcRenderer.on("overlay:set-css", (_event, css) => callback(css));

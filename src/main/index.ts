@@ -280,6 +280,7 @@ function registerHotkey(): void {
     }
 
     overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
+    overlayWindow?.webContents.send("overlay:screenshot", resizedDataUrl);
     overlayWindow?.show();
 
     const providerInfo = providerManager?.getActiveProviderInfo();

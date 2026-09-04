@@ -52,6 +52,7 @@ const schema = {
       theme: { type: "string", default: "system" },
       clickThrough: { type: "boolean", default: true },
       customCSS: { type: "string", default: "" },
+      showScreenshot: { type: "boolean", default: true },
     },
     default: {},
   },

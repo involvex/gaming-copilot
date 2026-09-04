@@ -42,6 +42,7 @@ export const overlayConfigSchema = z.object({
   theme: overlayThemeSchema.optional(),
   clickThrough: z.boolean().optional(),
   customCSS: z.string().optional(),
+  showScreenshot: z.boolean().optional(),
 });
 
 export const ttsConfigSchema = z.object({
