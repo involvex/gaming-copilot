@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
@@ -12,6 +12,7 @@ import {
   Notification,
   nativeImage,
   screen,
+  shell,
   Tray,
 } from "electron";
 import { autoUpdater } from "electron-updater";
@@ -650,6 +651,11 @@ ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?:
     return;
   }
 
+  const dataUrl = `data:image/png;base64,${imageBase64}`;
+  event.sender.send("overlay:data", "Analyzing screenshot...");
+  event.sender.send("overlay:screenshot", dataUrl);
+  overlayWindow?.show();
+
   const gameSpecificPrompt = gameExe ? appConfig.prompts.gameSpecific?.[gameExe] : undefined;
   const finalPrompt = gameSpecificPrompt
     ? `${appConfig.prompts.system}\n\n${gameSpecificPrompt}`
@@ -658,7 +664,6 @@ ipcMain.on("ai:analyze-stream", async (event, imageBase64: string, userMessage?:
   let ocrContext: string | undefined;
   if (appConfig.ocr.enabled) {
     try {
-      const dataUrl = `data:image/png;base64,${imageBase64}`;
       const ocrResult = await extractText(dataUrl, appConfig.ocr);
       if (ocrResult.text) {
         ocrContext = `On-screen text (OCR):\n${ocrResult.text}`;
@@ -1096,6 +1101,75 @@ ipcMain.handle("capture:save-screenshot", async (_event, dataUrl: unknown) => {
     return true;
   } catch (error) {
     logger.error("Capture", `Failed to save screenshot: ${error}`);
+    return false;
+  }
+});
+
+// IPC Handlers — Screenshot Gallery
+const screenshotsListSchema = z.object({
+  dir: z.string().optional(),
+});
+
+ipcMain.handle("screenshots:list", async (_event, input: unknown) => {
+  const parsed = validateIPC(screenshotsListSchema, input);
+  const dir = parsed.dir || appConfig.screenshotDir;
+  if (!dir) return [];
+  try {
+    const files = await readdir(dir);
+    const imageFiles = files.filter((f) => /\.(png|jpe?g|gif|webp)$/i.test(f));
+    const entries = await Promise.all(
+      imageFiles.map(async (filename) => {
+        const filepath = join(dir, filename);
+        try {
+          const info = await stat(filepath);
+          return {
+            filename,
+            path: filepath,
+            size: info.size,
+            mtime: info.mtimeMs,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return entries
+      .filter((e): e is NonNullable<typeof e> => e !== null)
+      .sort((a, b) => b.mtime - a.mtime);
+  } catch (error) {
+    logger.error("Screenshots", `Failed to list screenshots: ${error}`);
+    return [];
+  }
+});
+
+ipcMain.handle("screenshots:delete", async (_event, filepath: unknown) => {
+  const validPath = validateIPC(z.string(), filepath);
+  if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
+    return false;
+  }
+  const resolved = join(appConfig.screenshotDir, validPath);
+  try {
+    const { unlink } = await import("node:fs/promises");
+    await unlink(resolved);
+    logger.info("Screenshots", `Deleted: ${resolved}`);
+    return true;
+  } catch (error) {
+    logger.error("Screenshots", `Failed to delete screenshot: ${error}`);
+    return false;
+  }
+});
+
+ipcMain.handle("screenshots:open", async (_event, filepath: unknown) => {
+  const validPath = validateIPC(z.string(), filepath);
+  if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
+    return false;
+  }
+  const resolved = join(appConfig.screenshotDir, validPath);
+  try {
+    await shell.openPath(resolved);
+    return true;
+  } catch (error) {
+    logger.error("Screenshots", `Failed to open screenshot: ${error}`);
     return false;
   }
 });

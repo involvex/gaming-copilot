@@ -106,6 +106,20 @@ function MainWindow() {
               </div>
             )}
           </Card>
+
+          <Card>
+            <h2 className="section-heading mb-2">Screenshot Gallery</h2>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-3">
+              Browse, preview, and manage your saved screenshots.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => (window.location.hash = "#/settings")}
+            >
+              Open Gallery
+            </Button>
+          </Card>
         </div>
 
         {/* Right: Chat History */}
