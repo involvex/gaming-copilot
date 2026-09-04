@@ -1,1 +1,479 @@
 @import "tailwindcss";
+
+/* ==========================================================================
+   Design Tokens — spacing, typography, transitions
+   ========================================================================== */
+
+:root {
+  --font-body:
+    "Inter", "Work Sans", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================================================
+   Theme: Dark (default)
+   ========================================================================== */
+
+:root.theme-dark,
+:root:not(.theme-light):not(.theme-hacker):not(.theme-monokai) {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-surface-hover: #334155;
+  --color-text: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-tertiary: #94a3b8;
+  --color-border: #334155;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-card-bg: #1e293b;
+  --color-card-border: #334155;
+  --color-input-bg: #1e293b;
+  --color-input-border: #334155;
+  --color-code: #38bdf8;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+  --color-text-inverse: #ffffff;
+}
+
+/* ==========================================================================
+   Theme: Light
+   ========================================================================== */
+
+:root.theme-light {
+  --color-bg: #ffffff;
+  --color-surface: #f8fafc;
+  --color-surface-hover: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-card-bg: #f8fafc;
+  --color-card-border: #e2e8f0;
+  --color-input-bg: #f8fafc;
+  --color-input-border: #cbd5e1;
+  --color-code: #0ea5e9;
+  --color-success: #16a34a;
+  --color-warning: #ca8a04;
+  --color-error: #dc2626;
+  --color-text-inverse: #ffffff;
+}
+
+/* ==========================================================================
+   Theme: Hacker (Matrix terminal)
+   ========================================================================== */
+
+:root.theme-hacker {
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-surface-hover: #001100;
+  --color-text: #00ff41;
+  --color-text-secondary: #00cc00;
+  --color-text-tertiary: #009900;
+  --color-border: #004400;
+  --color-accent: #00ff41;
+  --color-accent-hover: #00cc33;
+  --color-card-bg: #000500;
+  --color-card-border: #004400;
+  --color-input-bg: #001100;
+  --color-input-border: #003300;
+  --color-code: #00ff41;
+  --color-success: #00ff41;
+  --color-warning: #ffff00;
+  --color-error: #ff0066;
+
+  /* Hacker-specific glow effect */
+  --glow-accent: 0 0 8px var(--color-accent), inset 0 0 4px var(--color-accent);
+  --color-text-inverse: #000000;
+}
+
+/* ==========================================================================
+   Theme: Monokai
+   ========================================================================== */
+
+:root.theme-monokai {
+  --color-bg: #272822;
+  --color-surface: #2e2f29;
+  --color-surface-hover: #3a3b36;
+  --color-text: #f8f8f2;
+  --color-text-secondary: #95a5a6;
+  --color-text-tertiary: #75715e;
+  --color-border: #3a3b36;
+  --color-accent: #f92672;
+  --color-accent-hover: #ff3b99;
+  --color-card-bg: #2e2f29;
+  --color-card-border: #3a3b36;
+  --color-input-bg: #3a3b36;
+  --color-input-border: #3a3b36;
+  --color-code: #aeff63;
+  --color-success: #8fc63f;
+  --color-warning: #fd971f;
+  --color-error: #f92672;
+  --color-text-inverse: #272822;
+}
+
+/* ==========================================================================
+   Base styles
+   ========================================================================== */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-width: 100%;
+  min-height: 100%;
+}
+
+/* ==========================================================================
+   Component utilities (using CSS variables)
+   ========================================================================== */
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  transition: background-color var(--transition-fast);
+  outline: none;
+  outline-offset: 2px;
+  outline-color: transparent;
+  background-color: var(--color-accent);
+  color: var(--color-text-inverse);
+  padding: 6px 14px;
+  font-size: 0.875rem;
+}
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  transition: background-color var(--transition-fast);
+  outline: none;
+  outline-offset: 2px;
+  outline-color: transparent;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  padding: 6px 14px;
+  font-size: 0.875rem;
+}
+.btn-secondary:hover {
+  background-color: var(--color-surface-hover);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  transition: background-color var(--transition-fast);
+  outline: none;
+  outline-offset: 2px;
+  outline-color: transparent;
+  color: var(--color-text-secondary);
+  padding: 6px 14px;
+  font-size: 0.875rem;
+  background: transparent;
+}
+.btn-ghost:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  transition: background-color var(--transition-fast);
+  outline: none;
+  outline-offset: 2px;
+  outline-color: transparent;
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+  padding: 6px 14px;
+  font-size: 0.875rem;
+}
+.btn-danger:hover {
+  opacity: 0.85;
+}
+
+/* Button sizes */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
+.btn-md {
+  padding: 6px 14px;
+  font-size: 0.875rem;
+}
+.btn-lg {
+  padding: 8px 18px;
+  font-size: 1rem;
+}
+
+/* Cards */
+.card {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-card-border);
+  padding: 1rem;
+  background-color: var(--color-card-bg);
+}
+.card-lg {
+  padding: 1.5rem;
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-input-border);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: border-color var(--transition-fast);
+  outline: none;
+  outline-offset: 2px;
+  outline-color: transparent;
+  background-color: var(--color-input-bg);
+  color: var(--color-text);
+}
+.input:focus {
+  border-color: var(--color-accent);
+}
+
+.input-bordered {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-input-border);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: border-color var(--transition-fast);
+  outline: none;
+  outline-offset: 2px;
+  outline-color: transparent;
+  background-color: var(--color-input-bg);
+  color: var(--color-text);
+}
+.input-bordered:focus {
+  border-color: var(--color-accent);
+}
+
+/* Textarea */
+.textarea {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-input-border);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: border-color var(--transition-fast);
+  outline: none;
+  outline-offset: 2px;
+  outline-color: transparent;
+  background-color: var(--color-input-bg);
+  color: var(--color-text);
+  resize: vertical;
+}
+.textarea:focus {
+  border-color: var(--color-accent);
+}
+
+/* Toggle switch */
+.toggle-track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 1.5rem;
+  width: 2.5rem;
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-fast);
+}
+.toggle-track-checked {
+  background-color: var(--color-accent);
+}
+.toggle-track-unchecked {
+  background-color: var(--color-surface-hover);
+}
+.toggle-thumb {
+  display: inline-block;
+  height: 1.25rem;
+  width: 1.25rem;
+  transform: translateX(0);
+  border-radius: var(--radius-full);
+  background-color: var(--color-text-inverse);
+  transition: transform var(--transition-fast);
+}
+.toggle-thumb-checked {
+  transform: translateX(0.75rem);
+}
+
+/* Labels */
+.field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: var(--color-text-secondary);
+}
+.field-label-description {
+  display: block;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-tertiary);
+}
+
+/* Section heading */
+.section-heading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* KBD */
+.kbd {
+  display: inline-block;
+  background-color: var(--color-surface-hover);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+}
+
+/* Muted text */
+.text-muted {
+  color: var(--color-text-secondary);
+}
+.text-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+/* Border divider */
+.border-divider {
+  border-color: var(--color-border);
+}
+
+/* ==========================================================================
+   Responsive layout helpers
+   ========================================================================== */
+
+/* Content container with max width and responsive padding */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 72rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 640px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Grid that stacks on mobile, two-column on desktop */
+.layout-grid-2 {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .layout-grid-2 {
+    gap: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .layout-grid-2 {
+    grid-template-columns: 300px 1fr;
+  }
+}
+
+/* ==========================================================================
+   Hacker theme accents
+   ========================================================================== */
+
+.theme-hacker .btn-primary,
+.theme-hacker .btn-primary:hover {
+  box-shadow: var(--glow-accent);
+}
+
+/* ==========================================================================
+   Scrollbar styling
+   ========================================================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background-color: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-tertiary);
+}
+
+/* ==========================================================================
+   Smooth transitions for theme changes
+   ========================================================================== */
+
+body {
+  transition:
+    background-color var(--transition-normal),
+    color var(--transition-normal);
+}

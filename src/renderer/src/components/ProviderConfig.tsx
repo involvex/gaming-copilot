@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { OPENAI_COMPAT_PRESETS } from "../../../shared/constants";
+import { Button, Input, Select } from "./ui";
 
 export default function ProviderConfig({ config }: { config: Record<string, unknown> | null }) {
   const providers = (config?.providers as Record<string, unknown>) || {};
@@ -97,7 +98,7 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     const preset = OPENAI_COMPAT_PRESETS.zen;
     await window.electronAPI.setProvider("zen", {
       apiKey: zenKey,
-      baseUrl: preset.baseUrl,
+      baseUrl: preset?.baseUrl ?? "https://opencode.ai/zen/v1",
       model: zenModel,
     });
   };
@@ -106,7 +107,7 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     const preset = OPENAI_COMPAT_PRESETS.kilo;
     await window.electronAPI.setProvider("kilo", {
       apiKey: kiloKey,
-      baseUrl: preset.baseUrl,
+      baseUrl: preset?.baseUrl ?? "https://api.kilo.ai/api/gateway",
       model: kiloModel,
     });
   };
@@ -140,7 +141,7 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
   };
 
   const handleAddCustomProvider = async () => {
-    if (!newCustomName.trim() || !newCustomBaseUrl.trim() || !newCustomKey.trim()) return;
+    if (!newCustomName.trim() || !newCustomBaseUrl.trim()) return;
     await window.electronAPI.setProvider(newCustomName.trim(), {
       apiKey: newCustomKey,
       baseUrl: newCustomBaseUrl.trim(),
@@ -159,22 +160,17 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">AI Providers</h2>
+      <h2 className="section-heading">AI Providers</h2>
 
       <div>
-        <label htmlFor="active-provider" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="active-provider" className="field-label">
           Primary Provider
         </label>
-        <p className="text-xs text-gray-500 mb-2">
+        <p className="field-label-description">
           The first provider tried when analyzing. Falls back to other configured providers on
           failure.
         </p>
-        <select
-          id="active-provider"
-          value={activeProvider}
-          onChange={handleActiveProviderChange}
-          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-        >
+        <Select id="active-provider" value={activeProvider} onChange={handleActiveProviderChange}>
           {availableProviders
             .filter((p) => p.configured)
             .map((p) => (
@@ -182,86 +178,94 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
                 {p.label}
               </option>
             ))}
-        </select>
+        </Select>
       </div>
 
       {/* Gemini */}
-      <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+      <div className="bg-[var(--color-surface)]/50 rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-medium">Google Gemini</h3>
           {activeProvider === "gemini" && (
-            <span className="text-xs bg-blue-600 px-2 py-1 rounded">Active</span>
+            <span className="text-xs bg-[var(--color-accent)] px-2 py-1 rounded">Active</span>
           )}
         </div>
         <div>
-          <label htmlFor="gemini-key" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="gemini-key"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             API Key
           </label>
-          <input
+          <Input
             id="gemini-key"
             type="password"
             value={geminiKey}
             onChange={(e) => setGeminiKey(e.target.value)}
             onBlur={handleSaveGemini}
             placeholder="AIza..."
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="gemini-model" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="gemini-model"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             Model
           </label>
-          <select
+          <Select
             id="gemini-model"
             value={geminiModel}
             onChange={(e) => setGeminiModel(e.target.value)}
             onBlur={handleSaveGemini}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           >
             <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
             <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
             <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-          </select>
+          </Select>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => handleTest("gemini")}
           disabled={!geminiKey || testing === "gemini"}
-          className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 px-3 py-1.5 rounded text-sm transition-colors"
         >
           {testing === "gemini" ? "Testing..." : "Test Connection"}
-        </button>
+        </Button>
       </div>
 
       {/* OpenCode Zen */}
-      <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+      <div className="bg-[var(--color-surface)]/50 rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-medium">OpenCode Zen</h3>
           {activeProvider === "zen" && (
-            <span className="text-xs bg-blue-600 px-2 py-1 rounded">Active</span>
+            <span className="text-xs bg-[var(--color-accent)] px-2 py-1 rounded">Active</span>
           )}
         </div>
-        <p className="text-xs text-gray-400">Base URL: https://opencode.ai/zen/v1</p>
+        <p className="text-xs text-[var(--color-text-tertiary)]">
+          Base URL: https://opencode.ai/zen/v1
+        </p>
         <div>
-          <label htmlFor="zen-key" className="block text-xs text-gray-400 mb-1">
+          <label htmlFor="zen-key" className="block text-xs text-[var(--color-text-tertiary)] mb-1">
             API Key
           </label>
-          <input
+          <Input
             id="zen-key"
             type="password"
             value={zenKey}
             onChange={(e) => setZenKey(e.target.value)}
             onBlur={handleSaveZen}
             placeholder="Enter your Zen API key"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="zen-model" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="zen-model"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             Model
           </label>
           <div className="flex gap-2">
-            <input
+            <Input
               id="zen-model"
               type="text"
               list="zen-models"
@@ -269,62 +273,69 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
               onChange={(e) => setZenModel(e.target.value)}
               onBlur={handleSaveZen}
               placeholder="gpt-4-vision-preview"
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="flex-1"
             />
             <datalist id="zen-models">
               {zenModels.map((model) => (
                 <option key={model} value={model} />
               ))}
             </datalist>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => handleFetchModels("zen", setZenModels, setZenFetching)}
               disabled={!zenKey || zenFetching}
-              className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 px-2 py-1 rounded text-xs transition-colors"
             >
               {zenFetching ? "..." : "Fetch"}
-            </button>
+            </Button>
           </div>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => handleTest("zen")}
           disabled={!zenKey || testing === "zen"}
-          className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 px-3 py-1.5 rounded text-sm transition-colors"
         >
           {testing === "zen" ? "Testing..." : "Test Connection"}
-        </button>
+        </Button>
       </div>
 
       {/* Kilo Gateway */}
-      <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+      <div className="bg-[var(--color-surface)]/50 rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-medium">Kilo Gateway</h3>
           {activeProvider === "kilo" && (
-            <span className="text-xs bg-blue-600 px-2 py-1 rounded">Active</span>
+            <span className="text-xs bg-[var(--color-accent)] px-2 py-1 rounded">Active</span>
           )}
         </div>
-        <p className="text-xs text-gray-400">Base URL: https://api.kilo.ai/api/gateway</p>
+        <p className="text-xs text-[var(--color-text-tertiary)]">
+          Base URL: https://api.kilo.ai/api/gateway
+        </p>
         <div>
-          <label htmlFor="kilo-key" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="kilo-key"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             API Key
           </label>
-          <input
+          <Input
             id="kilo-key"
             type="password"
             value={kiloKey}
             onChange={(e) => setKiloKey(e.target.value)}
             onBlur={handleSaveKilo}
             placeholder="Enter your Kilo API key"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="kilo-model" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="kilo-model"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             Model
           </label>
           <div className="flex gap-2">
-            <input
+            <Input
               id="kilo-model"
               type="text"
               list="kilo-models"
@@ -332,104 +343,112 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
               onChange={(e) => setKiloModel(e.target.value)}
               onBlur={handleSaveKilo}
               placeholder="gpt-4-vision-preview"
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="flex-1"
             />
             <datalist id="kilo-models">
               {kiloModels.map((model) => (
                 <option key={model} value={model} />
               ))}
             </datalist>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => handleFetchModels("kilo", setKiloModels, setKiloFetching)}
               disabled={!kiloKey || kiloFetching}
-              className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 px-2 py-1 rounded text-xs transition-colors"
             >
               {kiloFetching ? "..." : "Fetch"}
-            </button>
+            </Button>
           </div>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => handleTest("kilo")}
           disabled={!kiloKey || testing === "kilo"}
-          className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 px-3 py-1.5 rounded text-sm transition-colors"
         >
           {testing === "kilo" ? "Testing..." : "Test Connection"}
-        </button>
+        </Button>
       </div>
 
       {/* Custom OpenAI-Compatible Provider */}
-      <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+      <div className="bg-[var(--color-surface)]/50 rounded-lg p-4 space-y-3">
         <h3 className="font-medium">Custom OpenAI-Compatible Provider</h3>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-[var(--color-text-tertiary)]">
           Add your own OpenAI-compatible API endpoint (e.g., Ollama, LMStudio, local proxies).
         </p>
         <div>
-          <label htmlFor="custom-name" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="custom-name"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             Name
           </label>
-          <input
+          <Input
             id="custom-name"
             type="text"
             value={newCustomName}
             onChange={(e) => setNewCustomName(e.target.value)}
             placeholder="ollama"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="custom-base-url" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="custom-base-url"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             Base URL
           </label>
-          <input
+          <Input
             id="custom-base-url"
             type="url"
             value={newCustomBaseUrl}
             onChange={(e) => setNewCustomBaseUrl(e.target.value)}
             placeholder="http://localhost:11434/v1"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="custom-key" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="custom-key"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             API Key
           </label>
-          <input
+          <Input
             id="custom-key"
             type="password"
             value={newCustomKey}
             onChange={(e) => setNewCustomKey(e.target.value)}
             placeholder="Leave empty if not required"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="custom-model" className="block text-xs text-gray-400 mb-1">
+          <label
+            htmlFor="custom-model"
+            className="block text-xs text-[var(--color-text-tertiary)] mb-1"
+          >
             Model
           </label>
-          <input
+          <Input
             id="custom-model"
             type="text"
             value={newCustomModel}
             onChange={(e) => setNewCustomModel(e.target.value)}
             placeholder="gpt-4-vision-preview"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={handleAddCustomProvider}
           disabled={!newCustomName.trim() || !newCustomBaseUrl.trim()}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-3 py-1.5 rounded text-sm font-medium transition-colors"
         >
           Add Provider
-        </button>
+        </Button>
       </div>
 
       {/* List of custom providers */}
       {customProviders.length > 0 && (
-        <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+        <div className="bg-[var(--color-surface)]/50 rounded-lg p-4 space-y-3">
           <h3 className="font-medium">Configured Custom Providers</h3>
           {customProviders.map((ep) => {
             const name = ep.name as string;
@@ -437,24 +456,26 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
               <div key={name} className="flex items-center justify-between py-2">
                 <div>
                   <span className="font-medium text-sm">{name}</span>
-                  <p className="text-xs text-gray-400">{ep.baseUrl as string}</p>
+                  <p className="text-xs text-[var(--color-text-tertiary)]">
+                    {ep.baseUrl as string}
+                  </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => handleTest(name)}
                     disabled={testing === name}
-                    className="bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded text-xs transition-colors"
                   >
                     {testing === name ? "..." : "Test"}
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => handleRemoveCustomProvider(name)}
-                    className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs transition-colors"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               </div>
             );
@@ -463,16 +484,18 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
       )}
 
       <div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={async () => {
             await window.electronAPI.clearCache();
           }}
-          className="bg-gray-600 hover:bg-gray-500 px-3 py-1.5 rounded text-sm transition-colors"
         >
           Clear Response Cache
-        </button>
-        <p className="text-xs text-gray-500 mt-1">Cached AI responses expire after 60 seconds.</p>
+        </Button>
+        <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+          Cached AI responses expire after 60 seconds.
+        </p>
       </div>
     </div>
   );

@@ -1,4 +1,8 @@
 // Shared types between main and renderer processes
+import type { AppTheme } from "./constants";
+
+export type { AppTheme };
+export type OverlayTheme = "dark" | "light" | "game" | "hacker" | "monokai";
 
 export interface GameState {
   name: string;
@@ -65,7 +69,7 @@ export interface AppConfig {
   autoStart: boolean;
   minimizeToTray: boolean;
   notifications: boolean;
-  theme: "dark" | "light" | "system";
+  theme: AppTheme;
 
   // Capture
   gameExe: string;
@@ -103,7 +107,7 @@ export interface AppConfig {
     duration: number;
     opacity: number;
     fontSize: number;
-    theme: "dark" | "light" | "game";
+    theme: OverlayTheme;
     clickThrough: boolean;
     customCSS: string;
   };

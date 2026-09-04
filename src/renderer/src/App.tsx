@@ -3,6 +3,7 @@ import ChatHistory from "./components/ChatHistory";
 import Overlay from "./components/Overlay";
 import RegionSelector from "./components/RegionSelector";
 import Settings from "./components/Settings";
+import { Button, Card } from "./components/ui";
 
 function MainWindow() {
   const [showRegionSelector, setShowRegionSelector] = useState(false);
@@ -39,7 +40,7 @@ function MainWindow() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] p-4 sm:p-6 lg:p-8">
       {showRegionSelector && (
         <RegionSelector
           onComplete={handleRegionComplete}
@@ -47,85 +48,73 @@ function MainWindow() {
         />
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Gaming Copilot</h1>
-        <button
-          type="button"
-          onClick={() => (window.location.hash = "#/settings")}
-          className="text-gray-400 hover:text-white text-sm"
-        >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold">Gaming Copilot</h1>
+        <Button variant="ghost" size="sm" onClick={() => (window.location.hash = "#/settings")}>
           Settings
-        </button>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="layout-grid-2 xl:gap-8">
         {/* Left: Controls */}
         <div className="space-y-4">
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h2 className="text-xl font-semibold mb-2">Quick Capture</h2>
-            <p className="text-gray-400 text-sm mb-4">
-              Press <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Shift+G</kbd> anywhere to
-              capture and analyze your screen.
+          <Card>
+            <h2 className="section-heading mb-2">Quick Capture</h2>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+              Press <kbd className="kbd">Ctrl+Shift+G</kbd> anywhere to capture and analyze your
+              screen.
             </p>
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="md"
               onClick={async () => {
                 const result = await window.electronAPI.captureRecord();
                 if (result) {
                   window.location.hash = "#/settings";
                 }
               }}
-              className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               Record Screen (Composite)
-            </button>
-          </div>
+            </Button>
+          </Card>
 
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h2 className="text-xl font-semibold mb-2">Capture Region</h2>
+          <Card>
+            <h2 className="section-heading mb-2">Capture Region</h2>
             {captureRegion ? (
               <div className="space-y-2">
-                <p className="text-green-400 text-sm">
-                  Region: {captureRegion.width}×{captureRegion.height} at ({captureRegion.x},{" "}
+                <p className="text-sm text-[var(--color-success)]">
+                  Region: {captureRegion.width}\u00d7{captureRegion.height} at ({captureRegion.x},{" "}
                   {captureRegion.y})
                 </p>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowRegionSelector(true)}
-                    className="bg-gray-600 hover:bg-gray-500 px-3 py-1.5 rounded text-sm transition-colors"
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => setShowRegionSelector(true)}>
                     Redraw
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRegionClear}
-                    className="bg-gray-600 hover:bg-gray-500 px-3 py-1.5 rounded text-sm transition-colors"
-                  >
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={handleRegionClear}>
                     Clear (Full Screen)
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-gray-400 text-sm">Capturing full screen (no region set)</p>
-                <button
-                  type="button"
-                  onClick={() => setShowRegionSelector(true)}
-                  className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
-                >
+                <p className="text-sm text-[var(--color-text-secondary)] mb-3">
+                  Capturing full screen (no region set)
+                </p>
+                <Button variant="primary" size="sm" onClick={() => setShowRegionSelector(true)}>
                   Select Region
-                </button>
+                </Button>
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
         {/* Right: Chat History */}
-        <div className="bg-gray-800 rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-2">Chat</h2>
+        <Card padding="none">
+          <div className="p-4 border-b border-[var(--color-border)]">
+            <h2 className="section-heading">Chat</h2>
+          </div>
           <ChatHistory />
-        </div>
+        </Card>
       </div>
     </div>
   );

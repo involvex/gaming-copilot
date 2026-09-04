@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
-import { DEFAULT_OVERLAY } from "../../../shared/constants";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_OVERLAY,
+  OVERLAY_PRESET_THEMES,
+  type OverlayCustomTheme,
+} from "../../../shared/constants";
 import { speak, stop } from "../tts";
 
 interface TtsConfig {
@@ -15,16 +19,8 @@ interface OverlayConfig {
   opacity: number;
   fontSize: number;
   position: "bottom-right" | "bottom-left" | "top-right" | "top-left";
-  theme: "dark" | "light" | "game";
+  theme: "dark" | "light" | "game" | "hacker" | "monokai";
   clickThrough: boolean;
-}
-
-interface OverlayCustomTheme {
-  backgroundColor: string;
-  textColor: string;
-  borderRadius: number;
-  padding: number;
-  borderColor: string;
 }
 
 export default function Overlay() {
@@ -49,7 +45,7 @@ export default function Overlay() {
     opacity: DEFAULT_OVERLAY.opacity,
     fontSize: DEFAULT_OVERLAY.fontSize,
     position: DEFAULT_OVERLAY.position,
-    theme: DEFAULT_OVERLAY.theme,
+    theme: DEFAULT_OVERLAY.theme as OverlayConfig["theme"],
     clickThrough: DEFAULT_OVERLAY.clickThrough,
   });
   const [customTheme, setCustomTheme] = useState<OverlayCustomTheme>({
@@ -59,10 +55,86 @@ export default function Overlay() {
     padding: 16,
     borderColor: "#374151",
   });
+  const loadedConfigRef = useRef<Record<string, unknown> | null>(null);
+
+  const applyPresetIfNeeded = useCallback((cfg: Record<string, unknown>) => {
+    const overlay = cfg.overlay as Record<string, unknown> | undefined;
+    const custom = cfg.overlayCustomTheme as Record<string, unknown> | undefined;
+
+    if (!overlay) return;
+
+    const themeName = (overlay.theme as string) || "dark";
+    const preset = OVERLAY_PRESET_THEMES[themeName];
+
+    let theme: OverlayCustomTheme;
+    if (custom && Object.keys(custom).length > 0) {
+      theme = {
+        backgroundColor: (custom.backgroundColor as string) || preset?.backgroundColor || "#111827",
+        textColor: (custom.textColor as string) || preset?.textColor || "#ffffff",
+        borderRadius: Number(custom.borderRadius) || preset?.borderRadius || 8,
+        padding: Number(custom.padding) || preset?.padding || 16,
+        borderColor: (custom.borderColor as string) || preset?.borderColor || "#374151",
+      };
+    } else if (preset) {
+      theme = preset;
+    } else {
+      theme = {
+        backgroundColor: "#111827",
+        textColor: "#ffffff",
+        borderRadius: 8,
+        padding: 16,
+        borderColor: "#374151",
+      };
+    }
+
+    setOverlayConfig((prev) => ({
+      duration: Number(overlay.duration) || prev.duration,
+      opacity: Number(overlay.opacity) || prev.opacity,
+      fontSize: Number(overlay.fontSize) || prev.fontSize,
+      position: (overlay.position as OverlayConfig["position"]) || prev.position,
+      theme: themeName as OverlayConfig["theme"],
+      clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
+    }));
+
+    setCustomCSS((overlay.customCSS as string) || "");
+    setCustomTheme(theme);
+  });
+
+  const applyOverlayConfig = useCallback(
+    (config: Record<string, unknown>) => {
+      const overlay = config?.overlay as Record<string, unknown> | undefined;
+      if (!overlay) return;
+      setOverlayConfig((prev) => ({
+        duration: Number(overlay.duration) || prev.duration,
+        opacity: Number(overlay.opacity) || prev.opacity,
+        fontSize: Number(overlay.fontSize) || prev.fontSize,
+        position: (overlay.position as OverlayConfig["position"]) || prev.position,
+        theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
+        clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
+      }));
+      setCustomCSS((overlay.customCSS as string) || "");
+      const customThemeConfig = config?.overlayCustomTheme as Record<string, unknown> | undefined;
+      if (customThemeConfig) {
+        const themeName = (overlay.theme as string) || "dark";
+        const preset = OVERLAY_PRESET_THEMES[themeName];
+        setCustomTheme({
+          backgroundColor:
+            (customThemeConfig.backgroundColor as string) || preset?.backgroundColor || "#111827",
+          textColor: (customThemeConfig.textColor as string) || preset?.textColor || "#ffffff",
+          borderRadius: Number(customThemeConfig.borderRadius) || preset?.borderRadius || 8,
+          padding: Number(customThemeConfig.padding) || preset?.padding || 16,
+          borderColor:
+            (customThemeConfig.borderColor as string) || preset?.borderColor || "#374151",
+        });
+      }
+    },
+    [setOverlayConfig, setCustomCSS, setCustomTheme],
+  );
 
   useEffect(() => {
     window.electronAPI.getConfig().then((cfg) => {
       const config = cfg as Record<string, unknown>;
+      loadedConfigRef.current = config;
       const tts = config?.tts as Record<string, unknown> | undefined;
       if (tts) {
         setTtsConfig({
@@ -73,67 +145,28 @@ export default function Overlay() {
           volume: (tts.volume as number) || 0.8,
         });
       }
-      const overlay = config?.overlay as Record<string, unknown> | undefined;
-      if (overlay) {
-        setOverlayConfig((prev) => ({
-          duration: Number(overlay.duration) || prev.duration,
-          opacity: Number(overlay.opacity) || prev.opacity,
-          fontSize: Number(overlay.fontSize) || prev.fontSize,
-          position: (overlay.position as OverlayConfig["position"]) || prev.position,
-          theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
-          clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
-        }));
-        setCustomCSS((overlay.customCSS as string) || "");
-      }
-      const theme = config?.overlayCustomTheme as Record<string, unknown> | undefined;
-      if (theme) {
-        setCustomTheme({
-          backgroundColor: (theme.backgroundColor as string) || "#111827",
-          textColor: (theme.textColor as string) || "#ffffff",
-          borderRadius: Number(theme.borderRadius) || 8,
-          padding: Number(theme.padding) || 16,
-          borderColor: (theme.borderColor as string) || "#374151",
-        });
-      }
+      applyPresetIfNeeded(config);
     });
-  }, []);
+  }, [applyPresetIfNeeded]);
 
   useEffect(() => {
     let active = true;
-    const configLoaded = { current: false };
     window.electronAPI.onOverlayData((data) => {
       setText(data);
       setVisible(true);
       setStreaming(true);
       setTimeout(() => setOpacity(1), 50);
-      if (!active || configLoaded.current) return;
-      configLoaded.current = true;
-      window.electronAPI.getConfig().then((cfg) => {
-        if (!active) return;
-        const config = cfg as Record<string, unknown>;
-        const overlay = config?.overlay as Record<string, unknown> | undefined;
-        if (overlay) {
-          setOverlayConfig((prev) => ({
-            duration: Number(overlay.duration) || prev.duration,
-            opacity: Number(overlay.opacity) || prev.opacity,
-            fontSize: Number(overlay.fontSize) || prev.fontSize,
-            position: (overlay.position as OverlayConfig["position"]) || prev.position,
-            theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
-            clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
-          }));
-          setCustomCSS((overlay.customCSS as string) || "");
-          const theme = config?.overlayCustomTheme as Record<string, unknown> | undefined;
-          if (theme) {
-            setCustomTheme({
-              backgroundColor: (theme.backgroundColor as string) || "#111827",
-              textColor: (theme.textColor as string) || "#ffffff",
-              borderRadius: Number(theme.borderRadius) || 8,
-              padding: Number(theme.padding) || 16,
-              borderColor: (theme.borderColor as string) || "#374151",
-            });
-          }
-        }
-      });
+      if (!active) return;
+      const config = loadedConfigRef.current;
+      if (!config) {
+        window.electronAPI.getConfig().then((cfg) => {
+          if (!active) return;
+          loadedConfigRef.current = cfg as Record<string, unknown>;
+          applyOverlayConfig(cfg as Record<string, unknown>);
+        });
+        return;
+      }
+      applyOverlayConfig(config);
     });
     return () => {
       active = false;
@@ -237,7 +270,7 @@ export default function Overlay() {
     >
       {customCSS && <style>{customCSS}</style>}
       <div
-        className="overlay-container max-w-xs backdrop-blur-sm shadow-2xl border"
+        className="overlay-container max-w-xs sm:max-w-sm md:max-w-md backdrop-blur-sm shadow-2xl border"
         style={{
           backgroundColor: customTheme.backgroundColor,
           opacity: overlayConfig.opacity,

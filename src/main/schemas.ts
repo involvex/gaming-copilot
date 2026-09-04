@@ -30,7 +30,7 @@ export const overlayPositionSchema = z.enum([
   "top-left",
 ]);
 
-export const overlayThemeSchema = z.enum(["dark", "light", "game"]);
+export const overlayThemeSchema = z.enum(["dark", "light", "game", "hacker", "monokai"]);
 
 export const overlayConfigSchema = z.object({
   position: overlayPositionSchema.optional(),
@@ -69,7 +69,7 @@ export const exeNameSchema = z.string().min(1);
 
 export const booleanSchema = z.boolean();
 
-export const themeSchema = z.enum(["dark", "light", "system"]);
+export const themeSchema = z.enum(["dark", "light", "system", "hacker", "monokai"]);
 
 export const chatFormatSchema = z.enum(["markdown", "json"]);
 

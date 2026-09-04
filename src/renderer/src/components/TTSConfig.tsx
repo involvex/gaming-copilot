@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAvailableVoices, preview, stop } from "../tts";
+import { Button, Select, Toggle } from "./ui";
 
 export default function TTSConfig({ config }: { config: Record<string, unknown> | null }) {
   const tts = (config?.tts as Record<string, unknown>) || {};
@@ -25,42 +26,32 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Text-to-Speech</h2>
+      <h2 className="section-heading">Text-to-Speech</h2>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-medium">Enable TTS</p>
-          <p className="text-xs text-gray-400">Read AI responses aloud</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            const next = !enabled;
-            setEnabled(next);
-            persist({ enabled: next });
-          }}
-          className={`w-12 h-6 rounded-full transition-colors ${enabled ? "bg-blue-600" : "bg-gray-600"}`}
-        >
-          <div
-            className={`w-5 h-5 bg-white rounded-full transition-transform ${enabled ? "translate-x-6" : "translate-x-0.5"}`}
-          />
-        </button>
-      </div>
+      <Toggle
+        id="tts-enable"
+        checked={enabled}
+        onChange={(next) => {
+          setEnabled(next);
+          persist({ enabled: next });
+        }}
+        label="Enable TTS"
+        description="Read AI responses aloud"
+      />
 
       {enabled && (
         <>
           <div>
-            <label htmlFor="tts-voice" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="tts-voice" className="field-label">
               Voice
             </label>
-            <select
+            <Select
               id="tts-voice"
               value={voice}
               onChange={(e) => {
                 setVoice(e.target.value);
                 persist({ voice: e.target.value });
               }}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="">System Default</option>
               {voices.map((v) => (
@@ -68,11 +59,11 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
                   {v.name} ({v.lang})
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>
-            <label htmlFor="tts-rate" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="tts-rate" className="field-label">
               Speed: {rate.toFixed(1)}x
             </label>
             <input
@@ -92,7 +83,7 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
           </div>
 
           <div>
-            <label htmlFor="tts-pitch" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="tts-pitch" className="field-label">
               Pitch: {pitch.toFixed(1)}
             </label>
             <input
@@ -112,7 +103,7 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
           </div>
 
           <div>
-            <label htmlFor="tts-volume" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="tts-volume" className="field-label">
               Volume: {(volume * 100).toFixed(0)}%
             </label>
             <input
@@ -132,16 +123,17 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="tts-preview">
+            <label className="field-label" htmlFor="tts-preview">
               Preview
             </label>
-            <p className="text-xs text-gray-400 mb-2">
+            <p className="field-label-description">
               Hear a sample of the current voice, speed, pitch, and volume settings.
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
                 id="tts-preview"
-                type="button"
+                variant="primary"
+                size="md"
                 onClick={() =>
                   preview({
                     enabled: true,
@@ -151,17 +143,12 @@ export default function TTSConfig({ config }: { config: Record<string, unknown> 
                     volume,
                   })
                 }
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 Preview Voice
-              </button>
-              <button
-                type="button"
-                onClick={() => stop()}
-                className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
+              </Button>
+              <Button variant="secondary" size="md" onClick={() => stop()}>
                 Stop
-              </button>
+              </Button>
             </div>
           </div>
         </>

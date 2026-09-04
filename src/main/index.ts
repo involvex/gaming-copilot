@@ -1083,11 +1083,15 @@ ipcMain.handle("overlay:set-click-through", (_event, enable: unknown) => {
 });
 
 ipcMain.handle("overlay:set-css", (_event, css: unknown) => {
-  const validCss = validateIPC(z.string(), css);
-  appConfig.overlay.customCSS = validCss;
+  const rawCss = validateIPC(z.string(), css);
+  const sanitizedCss = rawCss
+    .replace(/@import\b[^;]+;?/gi, "")
+    .replace(/@font-face\b[^{]*\{[^}]*\}/gi, "")
+    .replace(/url\s*\([^)]*\)/gi, "url('' )");
+  appConfig.overlay.customCSS = sanitizedCss;
   setConfigValue("overlay", appConfig.overlay);
   emitConfigUpdated();
-  overlayWindow?.webContents.send("overlay:set-css", validCss);
+  overlayWindow?.webContents.send("overlay:set-css", sanitizedCss);
 });
 
 // IPC Handlers — Window

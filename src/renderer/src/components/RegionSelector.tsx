@@ -12,14 +12,24 @@ interface Props {
   onCancel: () => void;
 }
 
+function getCssColor(varName: string): string {
+  if (typeof window === "undefined") return "#3b82f6";
+  const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return val || "#3b82f6";
+}
+
 export default function RegionSelector({ onComplete, onCancel }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [start, setStart] = useState<{ x: number; y: number } | null>(null);
   const [current, setCurrent] = useState<{ x: number; y: number } | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [accentColor, setAccentColor] = useState("#3b82f6");
 
   useEffect(() => {
-    // Take a screenshot to use as background
+    setAccentColor(getCssColor("--color-accent"));
+  }, []);
+
+  useEffect(() => {
     window.electronAPI.captureScreenshot().then((data) => {
       setScreenshot(data);
     });
@@ -43,7 +53,6 @@ export default function RegionSelector({ onComplete, onCancel }: Props) {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      // Draw screenshot scaled to fit
       const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
       const w = img.width * scale;
       const h = img.height * scale;
@@ -52,7 +61,6 @@ export default function RegionSelector({ onComplete, onCancel }: Props) {
 
       ctx.drawImage(img, x, y, w, h);
 
-      // Darken
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
@@ -80,7 +88,6 @@ export default function RegionSelector({ onComplete, onCancel }: Props) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Clear the selected region
       const rx = Math.min(start.x, current.x);
       const ry = Math.min(start.y, current.y);
       const rw = Math.abs(current.x - start.x);
@@ -89,22 +96,20 @@ export default function RegionSelector({ onComplete, onCancel }: Props) {
       ctx.clearRect(rx, ry, rw, rh);
       ctx.drawImage(img, ox, oy, w, h);
 
-      // Draw border
-      ctx.strokeStyle = "#3b82f6";
+      ctx.strokeStyle = accentColor;
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(rx, ry, rw, rh);
       ctx.setLineDash([]);
 
-      // Draw size label
-      ctx.fillStyle = "#3b82f6";
+      ctx.fillStyle = accentColor;
       ctx.fillRect(rx, ry - 24, 120, 22);
-      ctx.fillStyle = "white";
+      ctx.fillStyle = "#ffffff";
       ctx.font = "12px sans-serif";
-      ctx.fillText(`${Math.round(rw)} × ${Math.round(rh)}`, rx + 4, ry - 8);
+      ctx.fillText(`${Math.round(rw)} \u00d7 ${Math.round(rh)}`, rx + 4, ry - 8);
     };
     img.src = screenshot;
-  }, [start, current, screenshot]);
+  }, [start, current, screenshot, accentColor]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setStart({ x: e.clientX, y: e.clientY });
@@ -141,7 +146,7 @@ export default function RegionSelector({ onComplete, onCancel }: Props) {
         onMouseUp={handleMouseUp}
       />
       <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-lg text-sm">
-        Drag to select a region · <kbd className="bg-gray-700 px-1 rounded">Esc</kbd> to cancel
+        Drag to select a region · <kbd className="kbd">Esc</kbd> to cancel
       </div>
     </div>
   );

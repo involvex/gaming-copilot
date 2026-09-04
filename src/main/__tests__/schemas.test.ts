@@ -167,6 +167,26 @@ describe("overlayConfigSchema", () => {
     );
   });
 
+  it("should accept hacker overlay theme", () => {
+    const result = validateIPC(overlayConfigSchema, {
+      theme: "hacker",
+    });
+    expect(result.theme).toBe("hacker");
+  });
+
+  it("should accept monokai overlay theme", () => {
+    const result = validateIPC(overlayConfigSchema, {
+      theme: "monokai",
+    });
+    expect(result.theme).toBe("monokai");
+  });
+
+  it("should reject invalid overlay theme", () => {
+    expect(() => validateIPC(overlayConfigSchema, { theme: "cyberpunk" })).toThrow(
+      "IPC validation failed",
+    );
+  });
+
   it("should accept customCSS string", () => {
     const result = validateIPC(overlayConfigSchema, {
       customCSS: ".overlay-text { font-weight: bold; }",

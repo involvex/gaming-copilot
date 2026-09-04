@@ -1,21 +1,16 @@
 import { useEffect, useState } from "react";
-
 import OverlayStyle from "./OverlayStyle";
 import PromptEditor from "./PromptEditor";
 import ProviderConfig from "./ProviderConfig";
+import { useTheme } from "./ThemeProvider";
 import TTSConfig from "./TTSConfig";
+import { Button, Card, Input, Select, Toggle } from "./ui";
 
 type Tab = "providers" | "capture" | "overlay" | "tts" | "prompts" | "general";
 
-function resolveSystemTheme(): "dark" | "light" {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState<Tab>("providers");
+  const { theme, setTheme } = useTheme();
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
-  const [theme, setTheme] = useState<"dark" | "light" | "system">("system");
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -30,29 +25,10 @@ export default function Settings() {
   }, []);
 
   useEffect(() => {
-    const updateResolved = () => {
-      if (theme === "system") {
-        setResolvedTheme(resolveSystemTheme());
-      } else {
-        setResolvedTheme(theme);
-      }
-    };
-    updateResolved();
-
-    if (theme === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = () => setResolvedTheme(resolveSystemTheme());
-      mediaQuery.addEventListener("change", handler);
-      return () => mediaQuery.removeEventListener("change", handler);
-    }
-  }, [theme]);
-
-  useEffect(() => {
     const loadConfig = () => {
       window.electronAPI.getConfig().then((cfg) => {
         const c = cfg as Record<string, unknown>;
         setConfig(c);
-        setTheme((c.theme as "dark" | "light" | "system") || "system");
       });
     };
     loadConfig();
@@ -156,6 +132,8 @@ export default function Settings() {
     },
   ];
 
+  const [activeTab, setActiveTab] = useState<Tab>("providers");
+
   const filteredTabs = tabs.filter((tab) => {
     if (!search) return true;
     const query = search.toLowerCase();
@@ -185,115 +163,76 @@ export default function Settings() {
   }, []);
 
   return (
-    <div
-      className={`min-h-screen p-6 transition-colors ${
-        resolvedTheme === "dark" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
-      }`}
-    >
-      {resolvedTheme === "light" && (
-        <style>{`
-          [data-light] .bg-gray-800 { background-color: #f3f4f6; }
-          [data-light] .bg-gray-700 { background-color: #e5e7eb; }
-          [data-light] .bg-gray-600 { background-color: #d1d5db; }
-          [data-light] .bg-gray-700\\/50 { background-color: #e5e7eb; }
-          [data-light] .border-gray-600 { border-color: #9ca3af; }
-          [data-light] .border-gray-700 { border-color: #d1d5db; }
-          [data-light] .text-gray-300 { color: #6b7280; }
-          [data-light] .text-gray-400 { color: #6b7280; }
-          [data-light] .text-gray-500 { color: #4b5563; }
-          [data-light] .text-gray-100 { color: #111827; }
-          [data-light] input { background-color: #f9fafb; border-color: #9ca3af; color: #111827; }
-          [data-light] select { background-color: #f9fafb; border-color: #9ca3af; color: #111827; }
-        `}</style>
-      )}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <button
-          type="button"
-          onClick={() => {
-            window.location.hash = "#/";
-          }}
-          className={`text-sm px-3 py-1.5 rounded transition-colors ${
-            resolvedTheme === "dark"
-              ? "text-gray-400 hover:text-white hover:bg-gray-800"
-              : "text-gray-600 hover:text-gray-900 hover:bg-gray-300"
-          }}`}
-        >
-          Back to App
-        </button>
-      </div>
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] p-4 sm:p-6">
+      <div className="container mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+          <h1 className="text-2xl font-bold">Settings</h1>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              window.location.hash = "#/";
+            }}
+          >
+            Back to App
+          </Button>
+        </div>
 
-      <div className="mb-6">
-        <label htmlFor="settings-search" className="sr-only">
-          Search settings
-        </label>
-        <input
-          id="settings-search"
-          type="text"
-          placeholder="Search settings..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-sm transition-colors ${
-            resolvedTheme === "dark"
-              ? "border-gray-600 focus:border-blue-500 text-white"
-              : "border-gray-300 focus:border-blue-500 text-gray-900"
-          }}`}
-          data-light={resolvedTheme === "light" ? "" : undefined}
-        />
-      </div>
-
-      <div
-        className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 flex-wrap"
-        data-light={resolvedTheme === "light" ? "" : undefined}
-      >
-        {filteredTabs.length === 0 && search ? (
-          <div className="w-full text-center py-4 text-gray-500 text-sm">
-            No settings found matching "{search}"
-          </div>
-        ) : (
-          filteredTabs.map((tab) => {
-            const matchesSearch =
-              search &&
-              (tab.label.toLowerCase().includes(search.toLowerCase()) ||
-                tab.keywords.some((kw) => kw.toLowerCase().includes(search.toLowerCase())));
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  if (search) setSearch("");
-                }}
-                className={`relative flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-700"
-                } ${matchesSearch ? "ring-2 ring-blue-400" : ""}`}
-              >
-                {tab.label}
-              </button>
-            );
-          })
-        )}
-      </div>
-
-      <div
-        className="bg-gray-800 rounded-lg p-6"
-        data-light={resolvedTheme === "light" ? "" : undefined}
-      >
-        {activeTab === "providers" && <ProviderConfig config={config} />}
-        {activeTab === "capture" && <CaptureConfig config={config} />}
-        {activeTab === "overlay" && <OverlayStyle config={config} />}
-        {activeTab === "tts" && <TTSConfig config={config} />}
-        {activeTab === "prompts" && <PromptEditor config={config} />}
-        {activeTab === "general" && (
-          <GeneralConfig
-            config={config}
-            theme={theme}
-            resolvedTheme={resolvedTheme}
-            onThemeChange={setTheme}
+        <div className="mb-6">
+          <label htmlFor="settings-search" className="sr-only">
+            Search settings
+          </label>
+          <Input
+            id="settings-search"
+            type="text"
+            placeholder="Search settings..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-        )}
+        </div>
+
+        <div className="flex gap-1 mb-6 bg-[var(--color-surface)] rounded-lg p-1 flex-wrap overflow-x-auto">
+          {filteredTabs.length === 0 && search ? (
+            <div className="w-full text-center py-4 text-[var(--color-text-tertiary)] text-sm">
+              No settings found matching "{search}"
+            </div>
+          ) : (
+            filteredTabs.map((tab) => {
+              const matchesSearch =
+                search &&
+                (tab.label.toLowerCase().includes(search.toLowerCase()) ||
+                  tab.keywords.some((kw) => kw.toLowerCase().includes(search.toLowerCase())));
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    if (search) setSearch("");
+                  }}
+                  className={`relative flex-1 min-w-[120px] px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? "bg-[var(--color-accent)] text-white"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                  } ${matchesSearch ? "ring-2 ring-[var(--color-accent)]/50" : ""}`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <Card>
+          {activeTab === "providers" && <ProviderConfig config={config} />}
+          {activeTab === "capture" && <CaptureConfig config={config} />}
+          {activeTab === "overlay" && <OverlayStyle config={config} />}
+          {activeTab === "tts" && <TTSConfig config={config} />}
+          {activeTab === "prompts" && <PromptEditor config={config} />}
+          {activeTab === "general" && (
+            <GeneralConfig config={config} theme={theme} onThemeChange={setTheme} />
+          )}
+        </Card>
       </div>
     </div>
   );
@@ -373,24 +312,21 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     }
   };
 
-  const handleAutoStartToggle = async () => {
-    const newValue = !autoStart;
-    setAutoStart(newValue);
-    await window.electronAPI.setAutoStart(newValue);
+  const handleAutoStartToggle = async (next: boolean) => {
+    setAutoStart(next);
+    await window.electronAPI.setAutoStart(next);
   };
 
-  const handleNotificationsToggle = async () => {
-    const newValue = !notifications;
-    setNotifications(newValue);
-    await window.electronAPI.setSetting("notifications", newValue);
+  const handleNotificationsToggle = async (next: boolean) => {
+    setNotifications(next);
+    await window.electronAPI.setSetting("notifications", next);
   };
 
-  const handleOcrToggle = async () => {
-    const newValue = !ocrEnabled;
-    setOcrEnabled(newValue);
+  const handleOcrToggle = async (next: boolean) => {
+    setOcrEnabled(next);
     await window.electronAPI.setSetting("ocr", {
       ...(config?.ocr as Record<string, unknown> | undefined),
-      enabled: newValue,
+      enabled: next,
     });
   };
 
@@ -402,10 +338,9 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     });
   };
 
-  const handleHotkeyToggle = async () => {
-    const newValue = !hotkeyEnabled;
-    setHotkeyEnabled(newValue);
-    await window.electronAPI.setHotkeyEnabled(newValue);
+  const handleHotkeyToggle = async (next: boolean) => {
+    setHotkeyEnabled(next);
+    await window.electronAPI.setHotkeyEnabled(next);
   };
 
   const handleHotkeyChange = async () => {
@@ -429,20 +364,19 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     }
   };
 
-  const handleSaveScreenshotsToggle = async () => {
-    const newValue = !saveScreenshots;
-    setSaveScreenshots(newValue);
-    if (newValue && !screenshotDir) {
+  const handleSaveScreenshotsToggle = async (next: boolean) => {
+    setSaveScreenshots(next);
+    if (next && !screenshotDir) {
       const dir = await window.electronAPI.pickScreenshotDir();
       if (dir) {
         setScreenshotDir(dir);
-        await window.electronAPI.setSaveScreenshots(newValue, dir);
+        await window.electronAPI.setSaveScreenshots(next, dir);
       } else {
         setSaveScreenshots(false);
         await window.electronAPI.setSaveScreenshots(false, null);
       }
     } else {
-      await window.electronAPI.setSaveScreenshots(newValue, screenshotDir || null);
+      await window.electronAPI.setSaveScreenshots(next, screenshotDir || null);
     }
   };
 
@@ -456,46 +390,41 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Game Capture</h2>
+      <h2 className="section-heading">Game Capture</h2>
 
       <div>
-        <label htmlFor="game-exe" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="game-exe" className="field-label">
           Game Executable
         </label>
-        <p className="text-xs text-gray-500 mb-2">
+        <p className="field-label-description">
           Enter the .exe name of your game (e.g., Neuz.exe, NewWorld.exe)
         </p>
         <div className="flex gap-2">
-          <input
+          <Input
             id="game-exe"
             type="text"
             value={gameExe}
             onChange={(e) => setGameExe(e.target.value)}
             placeholder="Neuz.exe"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
-          <button
-            type="button"
-            onClick={handleCheckGame}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          <Button variant="primary" size="md" onClick={handleCheckGame}>
             Check
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="secondary"
+            size="md"
             onClick={handlePreview}
             disabled={previewLoading}
-            className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
             title="Capture a preview thumbnail"
           >
-            {previewLoading ? "…" : "Preview"}
-          </button>
+            {previewLoading ? "..." : "Preview"}
+          </Button>
         </div>
         {gameStatus === "running" && (
-          <p className="text-green-400 text-sm mt-2">Game detected and running</p>
+          <p className="text-sm text-[var(--color-success)] mt-2">Game detected and running</p>
         )}
         {gameStatus === "not-found" && (
-          <p className="text-yellow-400 text-sm mt-2">
+          <p className="text-sm text-[var(--color-warning)] mt-2">
             Game not found — screenshot will use fullscreen
           </p>
         )}
@@ -503,101 +432,81 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
           <img
             src={preview}
             alt="Capture preview"
-            className="mt-3 rounded border border-gray-600 max-w-full max-h-40 object-contain"
+            className="mt-3 rounded border border-[var(--color-border)] max-w-full max-h-40 object-contain"
           />
         )}
       </div>
 
       <div>
-        <label htmlFor="hotkey-input" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="hotkey-input" className="field-label">
           Screenshot Hotkey
         </label>
-        <p className="text-xs text-gray-500 mb-2">
-          Current: <kbd className="bg-gray-700 px-1 rounded">{hotkey}</kbd>
+        <p className="field-label-description">
+          Current: <kbd className="kbd">{hotkey}</kbd>
         </p>
         <div className="flex gap-2">
-          <input
+          <Input
             id="hotkey-input"
             type="text"
             value={hotkeyInput}
             onChange={(e) => setHotkeyInput(e.target.value)}
             onBlur={handleHotkeyChange}
             placeholder="Ctrl+Shift+G"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleHotkeyChange}
             disabled={!hotkeyInput.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Save
-          </button>
+          </Button>
         </div>
       </div>
 
       <div>
-        <label
-          htmlFor="overlay-hotkey-input"
-          className="block text-sm font-medium text-gray-300 mb-2"
-        >
+        <label htmlFor="overlay-hotkey-input" className="field-label">
           Overlay Toggle Hotkey
         </label>
-        <p className="text-xs text-gray-500 mb-2">
-          Current: <kbd className="bg-gray-700 px-1 rounded">{overlayHotkey}</kbd>
+        <p className="field-label-description">
+          Current: <kbd className="kbd">{overlayHotkey}</kbd>
         </p>
         <div className="flex gap-2">
-          <input
+          <Input
             id="overlay-hotkey-input"
             type="text"
             value={overlayHotkeyInput}
             onChange={(e) => setOverlayHotkeyInput(e.target.value)}
             onBlur={handleOverlayHotkeyChange}
             placeholder="Ctrl+Shift+O"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleOverlayHotkeyChange}
             disabled={!overlayHotkeyInput.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Save
-          </button>
+          </Button>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="field-label-description">
           Show/hide the overlay window. Also available in the tray context menu.
         </p>
       </div>
 
-      <div>
-        <label className="flex items-center justify-between cursor-pointer">
-          <span className="text-sm font-medium text-gray-300">Enable Hotkey</span>
-          <button
-            id="hotkey-enabled"
-            type="button"
-            onClick={handleHotkeyToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              hotkeyEnabled ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                hotkeyEnabled ? "translate-x-5" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </label>
-        <p className="text-xs text-gray-500 mt-1">
-          Disable to temporarily stop the global hotkey from triggering.
-        </p>
-      </div>
+      <Toggle
+        id="hotkey-enabled"
+        checked={hotkeyEnabled}
+        onChange={handleHotkeyToggle}
+        label="Enable Hotkey"
+        description="Disable to temporarily stop the global hotkey from triggering."
+      />
 
       <div>
-        <label htmlFor="capture-quality" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="capture-quality" className="field-label">
           Capture Quality: {captureQuality}
         </label>
-        <p className="text-xs text-gray-400 mb-2">
+        <p className="field-label-description">
           JPEG quality for screenshot compression. Lower values reduce token cost but may lose
           detail.
         </p>
@@ -618,10 +527,10 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
       </div>
 
       <div>
-        <label htmlFor="max-image-width" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="max-image-width" className="field-label">
           Max Image Width: {maxImageWidth}px
         </label>
-        <p className="text-xs text-gray-400 mb-2">
+        <p className="field-label-description">
           Resizes screenshots to this maximum width before sending to AI. Lower values reduce token
           cost.
         </p>
@@ -642,14 +551,14 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
       </div>
 
       <div>
-        <label htmlFor="monitor-select" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="monitor-select" className="field-label">
           Monitor
         </label>
-        <p className="text-xs text-gray-400 mb-2">
-          Select which monitor to capture when the game is not detectable.
+        <p className="field-label-description">
+          Select which monitor to capture when the game is not detectible.
         </p>
         {screens.length > 0 ? (
-          <select
+          <Select
             id="monitor-select"
             value={monitorIndex}
             onChange={(e) => {
@@ -657,28 +566,27 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
               setMonitorIndex(v);
               window.electronAPI.setSetting("monitorIndex", v);
             }}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           >
             {screens.map((s) => (
               <option key={s.index} value={s.index}>
                 {s.name} {s.primary ? "(Primary)" : ""}
               </option>
             ))}
-          </select>
+          </Select>
         ) : (
-          <p className="text-xs text-gray-500">Loading displays...</p>
+          <p className="text-xs text-[var(--color-text-tertiary)]">Loading displays...</p>
         )}
       </div>
 
       <div>
-        <label htmlFor="capture-mode" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="capture-mode" className="field-label">
           Capture Mode
         </label>
-        <p className="text-xs text-gray-400 mb-2">
+        <p className="field-label-description">
           Auto tries window capture first, then GDI+ fallback, then fullscreen. Override to force a
           specific method.
         </p>
-        <select
+        <Select
           id="capture-mode"
           value={captureMode}
           onChange={(e) => {
@@ -686,20 +594,19 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
             setCaptureMode(v);
             window.electronAPI.setCaptureMode(v as "auto" | "window" | "fullscreen" | "gdi");
           }}
-          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
         >
           <option value="auto">Auto (window → GDI+ → fullscreen)</option>
           <option value="window">Window Only</option>
           <option value="gdi">GDI+ Fallback Only</option>
           <option value="fullscreen">Fullscreen Only</option>
-        </select>
+        </Select>
       </div>
 
       <div>
-        <label htmlFor="record-duration" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="record-duration" className="field-label">
           Recording Duration: {recordDuration}s
         </label>
-        <p className="text-xs text-gray-400 mb-2">
+        <p className="field-label-description">
           Seconds to record when using the screen recording capture mode. Multiple keyframes are
           combined into a single composite image.
         </p>
@@ -719,144 +626,76 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         />
       </div>
 
-      <div>
-        <label
-          htmlFor="save-screenshots"
-          className="flex items-center justify-between cursor-pointer"
-        >
-          <span className="text-sm font-medium text-gray-300">Save Screenshots</span>
-          <button
-            id="save-screenshots"
-            type="button"
-            onClick={handleSaveScreenshotsToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              saveScreenshots ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                saveScreenshots ? "translate-x-5" : "translate-x-1"
-              }`}
+      <Toggle
+        id="save-screenshots"
+        checked={saveScreenshots}
+        onChange={handleSaveScreenshotsToggle}
+        label="Save Screenshots"
+        description="When enabled, captured screenshots are automatically saved to the selected directory with timestamped filenames."
+      />
+
+      {saveScreenshots && (
+        <div className="mt-3 space-y-2">
+          <div className="flex gap-2 items-center">
+            <Input
+              type="text"
+              value={screenshotDir}
+              onChange={(e) => setScreenshotDir(e.target.value)}
+              placeholder="C:\Screenshots"
             />
-          </button>
-        </label>
-        <p className="text-xs text-gray-500 mt-1">
-          When enabled, captured screenshots are automatically saved to the selected directory with
-          timestamped filenames.
-        </p>
-        {saveScreenshots && (
-          <div className="mt-3 space-y-2">
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={screenshotDir}
-                onChange={(e) => setScreenshotDir(e.target.value)}
-                placeholder="C:\Screenshots"
-                className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
-              />
-              <button
-                type="button"
-                onClick={handleScreenshotDirChange}
-                className="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-sm font-medium transition-colors"
-              >
-                Browse
-              </button>
-            </div>
-            <p className="text-xs text-gray-500">
-              Files will be saved as{" "}
-              <code className="bg-gray-700 px-1 rounded">
-                gaming-copilot_yyyy-mm-dd-hh-mm-ss.jpg
-              </code>
-            </p>
+            <Button variant="secondary" size="sm" onClick={handleScreenshotDirChange}>
+              Browse
+            </Button>
           </div>
-        )}
-      </div>
+          <p className="text-xs text-[var(--color-text-tertiary)]">
+            Files will be saved as{" "}
+            <code className="bg-[var(--color-input-bg)] px-1 rounded">
+              gaming-copilot_yyyy-mm-dd-hh-mm-ss.jpg
+            </code>
+          </p>
+        </div>
+      )}
 
-      <div>
-        <label htmlFor="auto-start" className="flex items-center justify-between cursor-pointer">
-          <span className="text-sm font-medium text-gray-300">Start with Windows</span>
-          <button
-            id="auto-start"
-            type="button"
-            onClick={handleAutoStartToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              autoStart ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                autoStart ? "translate-x-5" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </label>
-        <p className="text-xs text-gray-500 mt-1">
-          Launch Gaming Copilot automatically when Windows starts.
-        </p>
-      </div>
+      <Toggle
+        id="auto-start"
+        checked={autoStart}
+        onChange={handleAutoStartToggle}
+        label="Start with Windows"
+        description="Launch Gaming Copilot automatically when Windows starts."
+      />
 
-      <div>
-        <label htmlFor="notifications" className="flex items-center justify-between cursor-pointer">
-          <span className="text-sm font-medium text-gray-300">System Notifications</span>
-          <button
-            id="notifications"
-            type="button"
-            onClick={handleNotificationsToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              notifications ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                notifications ? "translate-x-5" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </label>
-        <p className="text-xs text-gray-500 mt-1">
-          Show a system notification when AI analysis completes.
-        </p>
-      </div>
+      <Toggle
+        id="notifications"
+        checked={notifications}
+        onChange={handleNotificationsToggle}
+        label="System Notifications"
+        description="Show a system notification when AI analysis completes."
+      />
 
-      <div>
-        <label htmlFor="ocr-enabled" className="flex items-center justify-between cursor-pointer">
-          <span className="text-sm font-medium text-gray-300">OCR Text Extraction</span>
-          <button
-            id="ocr-enabled"
-            type="button"
-            onClick={handleOcrToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              ocrEnabled ? "bg-blue-600" : "bg-gray-600"
-            }}`}
+      <Toggle
+        id="ocr-enabled"
+        checked={ocrEnabled}
+        onChange={handleOcrToggle}
+        label="OCR Text Extraction"
+        description="Extract on-screen text via OCR and include it in AI prompts for better context."
+      />
+
+      {ocrEnabled && (
+        <div className="mt-2">
+          <label htmlFor="ocr-language" className="field-label">
+            OCR Language
+          </label>
+          <Select
+            id="ocr-language"
+            value={ocrLanguage}
+            onChange={(e) => handleOcrLanguageChange(e.target.value)}
           >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                ocrEnabled ? "translate-x-5" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </label>
-        <p className="text-xs text-gray-500 mt-1">
-          Extract on-screen text via OCR and include it in AI prompts for better context.
-        </p>
-        {ocrEnabled && (
-          <div className="mt-2">
-            <label htmlFor="ocr-language" className="block text-sm font-medium text-gray-300 mb-1">
-              OCR Language
-            </label>
-            <select
-              id="ocr-language"
-              value={ocrLanguage}
-              onChange={(e) => handleOcrLanguageChange(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
-            >
-              <option value="eng">English</option>
-              <option value="eng+osd">English + Orientation</option>
-              <option value="universal">Universal (all scripts)</option>
-            </select>
-          </div>
-        )}
-      </div>
+            <option value="eng">English</option>
+            <option value="eng+osd">English + Orientation</option>
+            <option value="universal">Universal (all scripts)</option>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }
@@ -864,13 +703,11 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
 function GeneralConfig({
   config,
   theme,
-  resolvedTheme,
   onThemeChange,
 }: {
   config: Record<string, unknown> | null;
-  theme: "dark" | "light" | "system";
-  resolvedTheme: "dark" | "light";
-  onThemeChange: (theme: "dark" | "light" | "system") => void;
+  theme: "dark" | "light" | "system" | "hacker" | "monokai";
+  onThemeChange: (theme: "dark" | "light" | "system" | "hacker" | "monokai") => void;
 }) {
   const [telemetry, setTelemetry] = useState<boolean>(
     ((config?.telemetry as Record<string, unknown>)?.enabled as boolean) ?? false,
@@ -895,16 +732,9 @@ function GeneralConfig({
     return () => window.electronAPI.removeAllListeners("app:update-status");
   }, []);
 
-  const handleTelemetryToggle = async () => {
-    const newValue = !telemetry;
-    setTelemetry(newValue);
-    await window.electronAPI.setTelemetry(newValue);
-  };
-
-  const handleThemeToggle = async () => {
-    const nextTheme = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
-    onThemeChange(nextTheme);
-    await window.electronAPI.setSetting("theme", nextTheme);
+  const handleTelemetryToggle = async (next: boolean) => {
+    setTelemetry(next);
+    await window.electronAPI.setTelemetry(next);
   };
 
   const handleCheckUpdates = async () => {
@@ -962,113 +792,57 @@ function GeneralConfig({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">General</h2>
+      <h2 className="section-heading">General</h2>
+
+      <Toggle
+        id="telemetry-toggle"
+        checked={telemetry}
+        onChange={handleTelemetryToggle}
+        label="Anonymous Usage Analytics"
+        description="Send anonymous usage data (hotkey usage, capture frequency, provider success rates) to help improve Gaming Copilot. No screenshots or personal data are ever sent."
+      />
 
       <div>
-        <label
-          htmlFor="telemetry-toggle"
-          className="flex items-center justify-between cursor-pointer"
-        >
-          <div>
-            <span className="text-sm font-medium text-gray-300">Anonymous Usage Analytics</span>
-            <p className="text-xs text-gray-500 mt-1">
-              Send anonymous usage data (hotkey usage, capture frequency, provider success rates) to
-              help improve Gaming Copilot. No screenshots or personal data are ever sent.
-            </p>
-          </div>
-          <button
-            id="telemetry-toggle"
-            type="button"
-            onClick={handleTelemetryToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              telemetry ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                telemetry ? "translate-x-5" : "translate-x-1"
-              }`}
-            />
-          </button>
+        <label htmlFor="app-theme-select" className="field-label">
+          Color Theme
         </label>
+        <p className="field-label-description">
+          Choose a color theme for the application. The overlay has its own separate theme settings.
+        </p>
+        <Select
+          id="app-theme-select"
+          value={theme}
+          onChange={(e) => onThemeChange(e.target.value as typeof theme)}
+        >
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="system">System (Auto-detect)</option>
+          <option value="hacker">Hacker (Matrix)</option>
+          <option value="monokai">Monokai</option>
+        </Select>
       </div>
 
-      <div>
-        <label
-          htmlFor="theme-toggle"
-          className="flex items-center justify-between cursor-pointer"
-          data-light={resolvedTheme === "light" ? "" : undefined}
-        >
-          <div>
-            <span className="text-sm font-medium text-gray-300">Color Theme</span>
-            <p className="text-xs text-gray-500 mt-1">
-              Current: <strong>{theme}</strong>. Cycle through Dark, Light, and System (auto-detect)
-              modes for the Settings window. The overlay has its own separate theme settings.
-            </p>
-          </div>
-          <button
-            id="theme-toggle"
-            type="button"
-            onClick={handleThemeToggle}
-            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${
-              theme === "dark" ? "bg-gray-700" : theme === "light" ? "bg-blue-600" : "bg-purple-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                theme === "dark"
-                  ? "translate-x-1"
-                  : theme === "light"
-                    ? "translate-x-7"
-                    : "translate-x-4"
-              }`}
-            />
-          </button>
-        </label>
-      </div>
-
-      <div>
-        <label
-          htmlFor="keychain-toggle"
-          className="flex items-center justify-between cursor-pointer"
-          data-light={resolvedTheme === "light" ? "" : undefined}
-        >
-          <div>
-            <span className="text-sm font-medium text-gray-300">Encrypt API Keys</span>
-            <p className="text-xs text-gray-500 mt-1">
-              Store API keys in your OS keychain (Windows Credential Manager) instead of plaintext
-              config. Toggling off will move keys back to the config file.
-            </p>
-          </div>
-          <button
-            id="keychain-toggle"
-            type="button"
-            onClick={async () => {
-              const useKc = !((config?.useKeychain as boolean) ?? true);
-              await window.electronAPI.setSetting("useKeychain", useKc);
-              window.location.reload();
-            }}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              ((config?.useKeychain as boolean) ?? true) ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                ((config?.useKeychain as boolean) ?? true) ? "translate-x-5" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </label>
-      </div>
+      <Toggle
+        id="keychain-toggle"
+        checked={(config?.useKeychain as boolean) ?? true}
+        onChange={async (next) => {
+          await window.electronAPI.setSetting("useKeychain", next);
+          window.location.reload();
+        }}
+        label="Encrypt API Keys"
+        description="Store API keys in your OS keychain (Windows Credential Manager) instead of plaintext config. Toggling off will move keys back to the config file."
+      />
 
       <div>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-medium text-gray-300 mb-1">Application Updates</h3>
-            <p className="text-xs text-gray-500 mt-1">
+            <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+              Application Updates
+            </h3>
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
               Current version: <strong>v{version}</strong> ·{" "}
               {updateStatus === "idle" && "No updates checked"}
-              {updateStatus === "checking" && "Checking for updates…"}
+              {updateStatus === "checking" && "Checking for updates..."}
               {updateStatus === "available" && `Update ${updateVersion} available!`}
               {updateStatus === "not-available" && "You are up to date"}
               {updateStatus === "downloaded" && `Update ${updateVersion} ready to install!`}
@@ -1076,39 +850,35 @@ function GeneralConfig({
             </p>
           </div>
           {updateStatus === "available" || updateStatus === "downloaded" ? (
-            <button
-              type="button"
-              onClick={handleInstallUpdate}
-              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
+            <Button variant="primary" size="sm" onClick={handleInstallUpdate}>
               Install Update
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleCheckUpdates}
               disabled={updateStatus === "checking"}
-              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              data-light={resolvedTheme === "light" ? "" : undefined}
             >
               Check for Updates
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="config-export">
+        <label className="field-label" htmlFor="config-export">
           Configuration Backup &amp; Restore
         </label>
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="field-label-description">
           Export your app settings to a JSON file for backup or migration. API keys are redacted in
           the exported file for security — re-enter them after importing.
         </p>
         <div className="flex flex-col gap-3">
-          <button
+          <Button
+            variant="primary"
+            size="md"
             id="config-export"
-            type="button"
             onClick={async () => {
               try {
                 const cfg = await window.electronAPI.exportConfig();
@@ -1127,13 +897,12 @@ function GeneralConfig({
                 console.error("Config export failed:", error);
               }
             }}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start"
           >
             Export Config
-          </button>
+          </Button>
 
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="file"
               id="config-import"
               accept=".json,application/json"
@@ -1142,24 +911,24 @@ function GeneralConfig({
             />
             <label
               htmlFor="config-import"
-              className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors inline-block"
-              data-light={resolvedTheme === "light" ? "" : undefined}
+              className="btn-secondary btn-sm cursor-pointer inline-block"
             >
               Choose Config File
             </label>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               id="config-import-btn"
-              type="button"
               onClick={() => document.getElementById("config-import")?.click()}
-              className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              data-light={resolvedTheme === "light" ? "" : undefined}
             >
               Import
-            </button>
+            </Button>
           </div>
 
           {importStatus?.message && (
-            <p className={`text-xs ${importStatus.success ? "text-green-400" : "text-red-400"}`}>
+            <p
+              className={`text-xs ${importStatus.success ? "text-[var(--color-success)]" : "text-[var(--color-error)]"}`}
+            >
               {importStatus.message}
             </p>
           )}
@@ -1167,27 +936,19 @@ function GeneralConfig({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="export-markdown">
+        <label className="field-label" htmlFor="export-markdown">
           Export Chat History
         </label>
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="field-label-description">
           Export all chat messages to a file for saving or sharing.
         </p>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleExport("markdown")}
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          <Button variant="primary" size="md" onClick={() => handleExport("markdown")}>
             Export as Markdown
-          </button>
-          <button
-            type="button"
-            onClick={() => handleExport("json")}
-            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          </Button>
+          <Button variant="secondary" size="md" onClick={() => handleExport("json")}>
             Export as JSON
-          </button>
+          </Button>
         </div>
       </div>
     </div>

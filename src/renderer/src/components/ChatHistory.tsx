@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ChatMessage } from "../../../shared/types";
+import { Button } from "./ui";
 
 interface PendingRequest {
   msgId: string;
@@ -34,7 +35,7 @@ export default function ChatHistory() {
   const startAnalysis = (screenshot: string | null, userMessage: string) => {
     setAnalyzing(true);
     const mimeType = screenshot?.match(/^data:(image\/(?:png|jpeg))/)?.[1] ?? "image/png";
-    const base64 = screenshot?.replace(/^data:image\/(png|jpeg);base64,/, "") ?? "";
+    const base64 = screenshot?.replace(/^data:image\/(?:png|jpeg);base64,/, "") ?? "";
 
     const assistantMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -62,7 +63,7 @@ export default function ChatHistory() {
           ),
         );
       },
-      (_fullText) => {
+      () => {
         setAnalyzing(false);
         setPendingRequest(null);
       },
@@ -220,12 +221,11 @@ export default function ChatHistory() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)]">
-      <div className="flex-1 overflow-y-auto space-y-3 mb-4 p-4 bg-gray-900 rounded-lg">
+    <div className="flex flex-col h-[calc(100vh-260px)] sm:h-[calc(100vh-280px)]">
+      <div className="flex-1 overflow-y-auto space-y-3 mb-4 px-4 py-3">
         {messages.length === 0 && (
-          <p className="text-gray-500 text-center text-sm py-8">
-            Press <kbd className="bg-gray-700 px-1.5 py-0.5 rounded">Ctrl+Shift+G</kbd> or type a
-            message to analyze a screenshot.
+          <p className="text-[var(--color-text-tertiary)] text-center text-sm py-8">
+            Press <kbd className="kbd">Ctrl+Shift+G</kbd> or type a message to analyze a screenshot.
           </p>
         )}
         {messages.map((msg) => (
@@ -234,12 +234,12 @@ export default function ChatHistory() {
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 relative group ${
+              className={`max-w-[80%] rounded-lg px-4 py-2 relative group border ${
                 msg.role === "user"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
                   : msg.isError
-                    ? "bg-red-900/30 border border-red-700 text-red-100"
-                    : "bg-gray-700 text-gray-100"
+                    ? "bg-[var(--color-error)]/10 border-[var(--color-error)] text-[var(--color-error)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)]"
               }`}
             >
               {msg.screenshot && (
@@ -260,7 +260,7 @@ export default function ChatHistory() {
                     <button
                       type="button"
                       onClick={() => handleCopy(msg.text, msg.id)}
-                      className="p-0.5 hover:bg-gray-600 rounded"
+                      className="p-0.5 hover:bg-[var(--color-surface-hover)] rounded transition-colors"
                       title="Copy to clipboard"
                     >
                       {copiedId === msg.id ? <CheckIcon /> : <CopyIcon />}
@@ -270,7 +270,7 @@ export default function ChatHistory() {
                     <button
                       type="button"
                       onClick={handleRetry}
-                      className="p-0.5 hover:bg-gray-600 rounded"
+                      className="p-0.5 hover:bg-[var(--color-surface-hover)] rounded transition-colors"
                       title="Retry"
                     >
                       <RefreshIcon />
@@ -283,75 +283,74 @@ export default function ChatHistory() {
         ))}
         {analyzing && (
           <div className="flex justify-start">
-            <div className="bg-gray-700 rounded-lg px-4 py-2 text-gray-400 text-sm">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-2 text-[var(--color-text-secondary)] text-sm">
               Analyzing screenshot...
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 px-4 pb-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask about your game..."
-          className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+          className="input flex-1"
+          disabled={analyzing}
         />
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="md"
           onClick={handleSend}
           disabled={analyzing || !input.trim()}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           Send
-        </button>
+        </Button>
         {messages.length > 0 && (
-          <button
-            type="button"
-            onClick={handleClearHistory}
-            disabled={analyzing}
-            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          <Button variant="danger" size="md" onClick={handleClearHistory} disabled={analyzing}>
             Clear
-          </button>
+          </Button>
         )}
       </div>
 
       {showShortcuts && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+G</kbd>
-                <span className="text-gray-400">Capture &amp; analyze screenshot</span>
+                <kbd className="kbd">Ctrl+G</kbd>
+                <span className="text-[var(--color-text-secondary)]">
+                  Capture &amp; analyze screenshot
+                </span>
               </div>
               <div className="flex justify-between">
-                <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+Enter</kbd>
-                <span className="text-gray-400">Send message (in chat)</span>
+                <kbd className="kbd">Ctrl+Enter</kbd>
+                <span className="text-[var(--color-text-secondary)]">Send message (in chat)</span>
               </div>
               <div className="flex justify-between">
-                <kbd className="bg-gray-700 px-2 py-1 rounded">Escape</kbd>
-                <span className="text-gray-400">Dismiss overlay</span>
+                <kbd className="kbd">Escape</kbd>
+                <span className="text-[var(--color-text-secondary)]">Dismiss overlay</span>
               </div>
               <div className="flex justify-between">
-                <kbd className="bg-gray-700 px-2 py-1 rounded">Ctrl+1–6</kbd>
-                <span className="text-gray-400">Switch Settings tab</span>
+                <kbd className="kbd">Ctrl+1–6</kbd>
+                <span className="text-[var(--color-text-secondary)]">Switch Settings tab</span>
               </div>
               <div className="flex justify-between">
-                <kbd className="bg-gray-700 px-2 py-1 rounded">?</kbd>
-                <span className="text-gray-400">Show this help (in chat)</span>
+                <kbd className="kbd">Shift+?</kbd>
+                <span className="text-[var(--color-text-secondary)]">Show this help (in chat)</span>
               </div>
             </div>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-4 w-full"
               onClick={() => setShowShortcuts(false)}
-              className="mt-4 w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm transition-colors"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       )}

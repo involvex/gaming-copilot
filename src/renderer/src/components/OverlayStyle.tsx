@@ -1,12 +1,17 @@
 import { useState } from "react";
+import type { OverlayCustomTheme } from "../../../shared/constants";
+import { OVERLAY_PRESET_THEMES } from "../../../shared/constants";
+import { Card, Input, Select, Toggle } from "./ui";
 
 export default function OverlayStyle({ config }: { config: Record<string, unknown> | null }) {
   const overlay = (config?.overlay as Record<string, unknown>) || {};
   const customTheme = (config?.overlayCustomTheme as Record<string, unknown>) || {};
+
   const [position, setPosition] = useState((overlay.position as string) || "bottom-right");
   const [duration, setDuration] = useState((overlay.duration as number) || 8000);
   const [opacity, setOpacity] = useState((overlay.opacity as number) || 0.9);
   const [fontSize, setFontSize] = useState((overlay.fontSize as number) || 14);
+  const [overlayTheme, setOverlayTheme] = useState<string>((overlay.theme as string) || "dark");
   const [clickThrough, setClickThrough] = useState<boolean>(
     (overlay.clickThrough as boolean) || true,
   );
@@ -33,15 +38,34 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
     window.electronAPI.setSetting("overlayCustomTheme", update);
   };
 
-  const handleThemeChange = (field: string, value: string | number) => {
-    const newTheme: Record<string, unknown> = {
+  const handlePresetChange = (preset: string) => {
+    const presetTheme = OVERLAY_PRESET_THEMES[preset];
+    if (!presetTheme) return;
+    setOverlayTheme(preset);
+    setBackgroundColor(presetTheme.backgroundColor);
+    setTextColor(presetTheme.textColor);
+    setBorderColor(presetTheme.borderColor);
+    setBorderRadius(presetTheme.borderRadius);
+    setPadding(presetTheme.padding);
+    persist({ theme: preset });
+    persistTheme({
+      backgroundColor: presetTheme.backgroundColor,
+      textColor: presetTheme.textColor,
+      borderColor: presetTheme.borderColor,
+      borderRadius: presetTheme.borderRadius,
+      padding: presetTheme.padding,
+    });
+  };
+
+  const handleThemeChange = (field: keyof OverlayCustomTheme, value: string | number) => {
+    const newTheme: OverlayCustomTheme = {
       backgroundColor,
       textColor,
       borderColor,
       borderRadius,
       padding,
       [field]: value,
-    };
+    } as OverlayCustomTheme;
     if (typeof value === "string") {
       switch (field) {
         case "backgroundColor":
@@ -67,38 +91,36 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
     persistTheme(newTheme);
   };
 
-  const handleClickThroughToggle = async () => {
-    const newValue = !clickThrough;
-    setClickThrough(newValue);
-    await window.electronAPI.setClickThrough(newValue);
+  const handleClickThroughToggle = async (next: boolean) => {
+    setClickThrough(next);
+    await window.electronAPI.setClickThrough(next);
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Overlay Settings</h2>
+      <h2 className="section-heading">Overlay Settings</h2>
 
       <div>
-        <label htmlFor="overlay-position" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="overlay-position" className="field-label">
           Position
         </label>
-        <select
+        <Select
           id="overlay-position"
           value={position}
           onChange={(e) => {
             setPosition(e.target.value);
             persist({ position: e.target.value });
           }}
-          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
         >
           <option value="bottom-right">Bottom Right</option>
           <option value="bottom-left">Bottom Left</option>
           <option value="top-right">Top Right</option>
           <option value="top-left">Top Left</option>
-        </select>
+        </Select>
       </div>
 
       <div>
-        <label htmlFor="overlay-duration" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="overlay-duration" className="field-label">
           Auto-dismiss Duration: {(duration / 1000).toFixed(1)}s
         </label>
         <input
@@ -118,7 +140,7 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
       </div>
 
       <div>
-        <label htmlFor="overlay-opacity" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="overlay-opacity" className="field-label">
           Opacity: {(opacity * 100).toFixed(0)}%
         </label>
         <input
@@ -138,7 +160,7 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
       </div>
 
       <div>
-        <label htmlFor="overlay-font-size" className="block text-sm font-medium text-gray-300 mb-2">
+        <label htmlFor="overlay-font-size" className="field-label">
           Font Size: {fontSize}px
         </label>
         <input
@@ -157,55 +179,58 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         />
       </div>
 
-      <div>
-        <label
-          htmlFor="overlay-click-through"
-          className="flex items-center justify-between cursor-pointer"
-        >
-          <span className="text-sm font-medium text-gray-300">Click-Through</span>
-          <button
-            id="overlay-click-through"
-            type="button"
-            onClick={handleClickThroughToggle}
-            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-              clickThrough ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                clickThrough ? "translate-x-5" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </label>
-        <p className="text-xs text-gray-500 mt-1">
-          When enabled, mouse clicks pass through the overlay to the game underneath.
+      <Toggle
+        id="overlay-click-through"
+        checked={clickThrough}
+        onChange={handleClickThroughToggle}
+        label="Click-Through"
+        description="When enabled, mouse clicks pass through the overlay to the game underneath."
+      />
+
+      <div className="border-t border-divider pt-4">
+        <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-3">
+          Theme Presets
+        </h3>
+        <p className="text-xs text-[var(--color-text-tertiary)] mb-3">
+          Select a preset theme for the overlay. You can further customize colors below.
         </p>
+        <Select
+          id="overlay-theme-preset"
+          value={overlayTheme}
+          onChange={(e) => handlePresetChange(e.target.value)}
+        >
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="game">Game (Green on Black)</option>
+          <option value="hacker">Hacker (Matrix Green)</option>
+          <option value="monokai">Monokai</option>
+        </Select>
       </div>
 
-      <div className="border-t border-gray-600 pt-4">
-        <h3 className="text-sm font-medium text-gray-300 mb-3">Custom Theme</h3>
+      <div className="border-t border-divider pt-4">
+        <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-3">
+          Custom Theme Colors
+        </h3>
 
         <div>
           <label
             htmlFor="overlay-bg-color"
-            className="block text-sm font-medium text-gray-300 mb-1"
+            className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
           >
             Background Color
           </label>
           <div className="flex gap-2">
-            <input
+            <Input
               id="overlay-bg-color"
               type="color"
               value={backgroundColor}
               onChange={(e) => handleThemeChange("backgroundColor", e.target.value)}
-              className="w-12 h-8 p-0 border border-gray-600 rounded cursor-pointer"
+              className="w-12 h-8 p-0 border border-[var(--color-border)] rounded cursor-pointer"
             />
-            <input
+            <Input
               type="text"
               value={backgroundColor}
               onChange={(e) => handleThemeChange("backgroundColor", e.target.value)}
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
@@ -213,23 +238,22 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         <div>
           <label
             htmlFor="overlay-text-color"
-            className="block text-sm font-medium text-gray-300 mb-1"
+            className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
           >
             Text Color
           </label>
           <div className="flex gap-2">
-            <input
+            <Input
               id="overlay-text-color"
               type="color"
               value={textColor}
               onChange={(e) => handleThemeChange("textColor", e.target.value)}
-              className="w-12 h-8 p-0 border border-gray-600 rounded cursor-pointer"
+              className="w-12 h-8 p-0 border border-[var(--color-border)] rounded cursor-pointer"
             />
-            <input
+            <Input
               type="text"
               value={textColor}
               onChange={(e) => handleThemeChange("textColor", e.target.value)}
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
@@ -237,23 +261,22 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         <div>
           <label
             htmlFor="overlay-border-color"
-            className="block text-sm font-medium text-gray-300 mb-1"
+            className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
           >
             Border Color
           </label>
           <div className="flex gap-2">
-            <input
+            <Input
               id="overlay-border-color"
               type="color"
               value={borderColor}
               onChange={(e) => handleThemeChange("borderColor", e.target.value)}
-              className="w-12 h-8 p-0 border border-gray-600 rounded cursor-pointer"
+              className="w-12 h-8 p-0 border border-[var(--color-border)] rounded cursor-pointer"
             />
-            <input
+            <Input
               type="text"
               value={borderColor}
               onChange={(e) => handleThemeChange("borderColor", e.target.value)}
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
@@ -261,7 +284,7 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         <div>
           <label
             htmlFor="overlay-border-radius"
-            className="block text-sm font-medium text-gray-300 mb-1"
+            className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
           >
             Border Radius: {borderRadius}px
           </label>
@@ -278,7 +301,10 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         </div>
 
         <div>
-          <label htmlFor="overlay-padding" className="block text-sm font-medium text-gray-300 mb-1">
+          <label
+            htmlFor="overlay-padding"
+            className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
+          >
             Padding: {padding}px
           </label>
           <input
@@ -294,23 +320,23 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         </div>
       </div>
 
-      <div className="border-t border-gray-600 pt-4">
-        <h3 className="text-sm font-medium text-gray-300 mb-3">Custom CSS</h3>
-
-        <label
-          htmlFor="overlay-custom-css"
-          className="block text-sm font-medium text-gray-300 mb-1"
-        >
-          CSS Editor
-        </label>
-        <p className="text-xs text-gray-500 mb-2">
+      <div className="border-t border-divider pt-4">
+        <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-3">Custom CSS</h3>
+        <p className="text-xs text-[var(--color-text-tertiary)] mb-2">
           Write custom CSS to style the overlay. Use selectors like{" "}
-          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-container</code>,{" "}
-          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-text</code>,{" "}
-          <code className="bg-gray-700 px-1 rounded text-xs">.overlay-provider</code>. Note: use
-          valid CSS — <code className="bg-gray-700 px-1 rounded text-xs">position: absolute</code>{" "}
-          or <code className="bg-gray-700 px-1 rounded text-xs">position: fixed</code>
-          (not <code className="bg-gray-700 px-1 rounded text-xs">position: flex</code>
+          <code className="bg-[var(--color-input-bg)] px-1 rounded text-xs">
+            .overlay-container
+          </code>
+          , <code className="bg-[var(--color-input-bg)] px-1 rounded text-xs">.overlay-text</code>,{" "}
+          <code className="bg-[var(--color-input-bg)] px-1 rounded text-xs">.overlay-provider</code>
+          . Note: use valid CSS —{" "}
+          <code className="bg-[var(--color-input-bg)] px-1 rounded text-xs">
+            position: absolute
+          </code>{" "}
+          or{" "}
+          <code className="bg-[var(--color-input-bg)] px-1 rounded text-xs">position: fixed</code>
+          (not{" "}
+          <code className="bg-[var(--color-input-bg)] px-1 rounded text-xs">position: flex</code>
           ).
         </p>
         <textarea
@@ -322,13 +348,13 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
             window.electronAPI.setOverlayCSS(v);
           }}
           placeholder={"/* e.g. */\n.overlay-text {\n  font-weight: bold;\n}"}
-          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500 resize-y"
+          className="textarea font-mono"
           rows={8}
         />
       </div>
 
-      <div className="bg-gray-700/50 rounded-lg p-4">
-        <p className="text-sm text-gray-400">
+      <Card className="bg-[var(--color-surface)]/50">
+        <p className="text-sm text-[var(--color-text-secondary)]">
           Preview: The overlay will appear in the <strong>{position.replace("-", " ")}</strong>{" "}
           corner with <strong>{(opacity * 100).toFixed(0)}%</strong> opacity and{" "}
           <strong>{fontSize}px</strong> font size. Click-through is{" "}
@@ -341,13 +367,13 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
             color: textColor,
             borderRadius: `${borderRadius}px`,
             padding: `${padding}px`,
-            borderColor: borderColor,
+            borderColor,
             border: `1px solid ${borderColor}`,
           }}
         >
           Sample overlay text preview
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
