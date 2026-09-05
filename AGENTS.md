@@ -7,8 +7,13 @@ Instructions for AI agents working on this codebase.
 ```powershell
 cd "E:\Game\gaming-copilot\gaming-copilot"
 bun run build        # format + lint + typecheck + electron-vite build
+bun run test         # vitest run (12 files, 177 tests)
 bun run package      # build Windows installer
 ```
+
+> **Test runner**: always use `bun run test` (vitest). Never use `bun test` —
+> Bun's native runner lacks `vi.resetModules`/`vi.mocked` and ignores the
+> JSDOM projects in `vitest.config.ts`, so renderer tests fail spuriously.
 
 Always run `bun run build` before committing. It runs:
 1. `biome format --write src/` — auto-format

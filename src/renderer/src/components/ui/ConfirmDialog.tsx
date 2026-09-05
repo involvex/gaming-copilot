@@ -49,25 +49,23 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
       {open && (
-        <button
-          type="button"
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={options.title || "Confirm"}
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => handleClose(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleClose(false);
+            }
+          }}
           onKeyDown={(e) => {
-            if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
+            if (e.key === "Escape") {
               handleClose(false);
             }
           }}
         >
-          <div
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-sm w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={options.title || "Confirm"}
-          >
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-sm w-full mx-4">
             <h3 className="text-lg font-semibold mb-2">{options.title || "Confirm"}</h3>
             <p className="text-sm text-[var(--color-text-secondary)] mb-6">{options.message}</p>
             <div className="flex gap-2">
@@ -89,7 +87,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               </Button>
             </div>
           </div>
-        </button>
+        </div>
       )}
     </ConfirmContext.Provider>
   );
