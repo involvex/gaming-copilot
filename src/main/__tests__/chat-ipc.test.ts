@@ -1,72 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const mockStore: Record<string, unknown> = {};
-
-vi.mock("electron-store", () => {
-  return {
-    default: class MockStore {
-      path = "/fake/path/config.json";
-      store: Record<string, unknown> = {};
-
-      constructor(opts?: { defaults?: Record<string, unknown> }) {
-        this.store = opts?.defaults ? { ...opts.defaults } : {};
-        mockStore.path = this.path;
-      }
-
-      get(key: string, defaultValue?: unknown) {
-        if (!(key in this.store)) return defaultValue;
-        return this.store[key];
-      }
-
-      set(key: string, value: unknown) {
-        this.store[key] = value;
-        mockStore[key] = value;
-      }
-    },
-  };
-});
-
-vi.mock("../logger", () => ({
-  logger: {
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    errorWithStack: vi.fn(),
-  },
-}));
-
-vi.mock("../../shared/constants", () => ({
-  DEFAULT_SYSTEM_PROMPT: "You are a helpful AI assistant.",
-  APP_THEME_VALUES: ["dark", "light", "system"] as const,
-  APP_THEME_LABELS: { dark: "Dark", light: "Light", system: "System" } as const,
-  THEME_CLASS_NAMES: ["theme-dark", "theme-light"] as const,
-}));
-
-const capturedHandlers: Map<string, (...args: unknown[]) => unknown> = new Map();
-
-vi.mock("electron", () => {
-  return {
-    app: {
-      getPath: vi.fn(() => "/fake/path"),
-    },
-    ipcMain: {
-      handle: (_channel: string, handler: (...args: unknown[]) => unknown) => {
-        capturedHandlers.set(_channel, handler);
-      },
-    },
-  };
-});
+import { createCtx, createTestLogger, getCapturedHandlers, resetIpcTestState } from "./helpers";
 
 describe("ipc/chat handlers", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    capturedHandlers.clear();
-    const keys = Object.keys(mockStore);
-    for (const key of keys) {
-      delete mockStore[key];
-    }
+    resetIpcTestState();
     const { initConfig, initChatStore } = await import("../config");
     initConfig();
     initChatStore();
@@ -76,20 +15,17 @@ describe("ipc/chat handlers", () => {
     vi.restoreAllMocks();
   });
 
+  const makeCtx = (): Record<string, unknown> =>
+    createCtx({
+      logger: { ...createTestLogger(), debug: vi.fn() },
+    });
+
   it("should save chat messages", async () => {
     const { registerChatHandlers } = await import("../ipc/chat");
-    const ctx = {
-      logger: {
-        info: vi.fn(),
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        errorWithStack: vi.fn(),
-      },
-    };
+    const ctx = makeCtx();
     registerChatHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("chat:save") as (
+    const handler = getCapturedHandlers().get("chat:save") as (
       _event: unknown,
       messages: unknown,
     ) => boolean;
@@ -105,18 +41,10 @@ describe("ipc/chat handlers", () => {
 
   it("should load chat messages", async () => {
     const { registerChatHandlers } = await import("../ipc/chat");
-    const ctx = {
-      logger: {
-        info: vi.fn(),
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        errorWithStack: vi.fn(),
-      },
-    };
+    const ctx = makeCtx();
     registerChatHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("chat:load") as () => unknown[];
+    const handler = getCapturedHandlers().get("chat:load") as () => unknown[];
 
     const result = handler();
     expect(Array.isArray(result)).toBe(true);
@@ -124,18 +52,10 @@ describe("ipc/chat handlers", () => {
 
   it("should clear chat messages", async () => {
     const { registerChatHandlers } = await import("../ipc/chat");
-    const ctx = {
-      logger: {
-        info: vi.fn(),
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        errorWithStack: vi.fn(),
-      },
-    };
+    const ctx = makeCtx();
     registerChatHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("chat:clear") as () => boolean;
+    const handler = getCapturedHandlers().get("chat:clear") as () => boolean;
 
     const result = handler();
     expect(result).toBe(true);
@@ -144,15 +64,7 @@ describe("ipc/chat handlers", () => {
   it("should export chat as markdown", async () => {
     const { registerChatHandlers } = await import("../ipc/chat");
     const { saveChatHistory } = await import("../config");
-    const ctx = {
-      logger: {
-        info: vi.fn(),
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        errorWithStack: vi.fn(),
-      },
-    };
+    const ctx = makeCtx();
     registerChatHandlers(ctx as never);
 
     saveChatHistory([
@@ -166,7 +78,7 @@ describe("ipc/chat handlers", () => {
       },
     ]);
 
-    const handler = capturedHandlers.get("chat:export") as (
+    const handler = getCapturedHandlers().get("chat:export") as (
       _event: unknown,
       format: string,
     ) => string;
@@ -179,18 +91,10 @@ describe("ipc/chat handlers", () => {
 
   it("should export chat as json", async () => {
     const { registerChatHandlers } = await import("../ipc/chat");
-    const ctx = {
-      logger: {
-        info: vi.fn(),
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        errorWithStack: vi.fn(),
-      },
-    };
+    const ctx = makeCtx();
     registerChatHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("chat:export") as (
+    const handler = getCapturedHandlers().get("chat:export") as (
       _event: unknown,
       format: string,
     ) => string;
@@ -201,18 +105,10 @@ describe("ipc/chat handlers", () => {
 
   it("should reject invalid chat format", async () => {
     const { registerChatHandlers } = await import("../ipc/chat");
-    const ctx = {
-      logger: {
-        info: vi.fn(),
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        errorWithStack: vi.fn(),
-      },
-    };
+    const ctx = makeCtx();
     registerChatHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("chat:export") as (
+    const handler = getCapturedHandlers().get("chat:export") as (
       _event: unknown,
       format: string,
     ) => string;

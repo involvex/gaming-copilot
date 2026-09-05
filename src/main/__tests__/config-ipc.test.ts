@@ -1,64 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const mockStore: Record<string, unknown> = {};
-
-vi.mock("electron-store", () => {
-  return {
-    default: class MockStore {
-      path = "/fake/path/config.json";
-      store: Record<string, unknown> = {};
-
-      constructor(opts?: { defaults?: Record<string, unknown> }) {
-        this.store = opts?.defaults ? { ...opts.defaults } : {};
-        mockStore.path = this.path;
-      }
-
-      get(key: string, defaultValue?: unknown) {
-        if (!(key in this.store)) return defaultValue;
-        return this.store[key];
-      }
-
-      set(key: string, value: unknown) {
-        this.store[key] = value;
-        mockStore[key] = value;
-      }
-    },
-  };
-});
-
-vi.mock("../logger", () => ({
-  logger: {
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    errorWithStack: vi.fn(),
-  },
-}));
-
-vi.mock("../../shared/constants", () => ({
-  DEFAULT_SYSTEM_PROMPT: "You are a helpful AI assistant.",
-  APP_THEME_VALUES: ["dark", "light", "system"] as const,
-  APP_THEME_LABELS: { dark: "Dark", light: "Light", system: "System" } as const,
-  THEME_CLASS_NAMES: ["theme-dark", "theme-light"] as const,
-}));
-
-const capturedHandlers: Map<string, (...args: unknown[]) => unknown> = new Map();
-
-vi.mock("electron", () => {
-  return {
-    app: {
-      getPath: vi.fn(() => "/fake/path"),
-      isPackaged: false,
-      setLoginItemSettings: vi.fn(),
-    },
-    ipcMain: {
-      handle: (_channel: string, handler: (...args: unknown[]) => unknown) => {
-        capturedHandlers.set(_channel, handler);
-      },
-    },
-  };
-});
+import { createCtx, createTestLogger, getCapturedHandlers, resetIpcTestState } from "./helpers";
 
 vi.mock("../config", async () => {
   const actual = await vi.importActual<typeof import("../config")>("../config");
@@ -96,11 +37,7 @@ describe("ipc/config handlers", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    capturedHandlers.clear();
-    const keys = Object.keys(mockStore);
-    for (const key of keys) {
-      delete mockStore[key];
-    }
+    resetIpcTestState();
     const { initConfig } = await import("../config");
     initConfig();
   });
@@ -109,37 +46,31 @@ describe("ipc/config handlers", () => {
     vi.restoreAllMocks();
   });
 
-  const createCtx = (): Record<string, unknown> => {
-    const appConfig: Record<string, unknown> = {
-      providers: {
-        gemini: { apiKey: "", model: "", grounding: false },
-      },
-      activeProvider: "gemini",
-      fallbackProvider: null,
-      overlay: {
-        position: "bottom-right" as const,
-        duration: 8000,
-        opacity: 0.9,
-        fontSize: 14,
-        theme: "dark" as const,
-        clickThrough: true,
-        customCSS: "",
-      },
-      autoStart: false,
-      captureMode: "auto",
-      hotkeyEnabled: true,
-      hotkey: "CommandOrControl+Shift+G",
-      overlayHotkey: "CommandOrControl+Shift+O",
-      telemetry: { enabled: false },
-    };
-    const ctx: Record<string, unknown> = {
-      appConfig,
-      logger: {
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        errorWithStack: vi.fn(),
-      },
+  const makeCtx = (): Record<string, unknown> =>
+    createCtx({
+      appConfig: {
+        providers: {
+          gemini: { apiKey: "", model: "", grounding: false },
+        },
+        activeProvider: "gemini",
+        fallbackProvider: null,
+        overlay: {
+          position: "bottom-right" as const,
+          duration: 8000,
+          opacity: 0.9,
+          fontSize: 14,
+          theme: "dark" as const,
+          clickThrough: true,
+          customCSS: "",
+        },
+        autoStart: false,
+        captureMode: "auto",
+        hotkeyEnabled: true,
+        hotkey: "CommandOrControl+Shift+G",
+        overlayHotkey: "CommandOrControl+Shift+O",
+        telemetry: { enabled: false },
+      } as Record<string, unknown>,
+      logger: createTestLogger(),
       emitConfigUpdated: vi.fn(),
       setConfigValue: vi.fn((_key: string, _value: unknown) => {}),
       setProviderManager: vi.fn(),
@@ -157,16 +88,14 @@ describe("ipc/config handlers", () => {
       overlayWindow: null,
       memreaderPlugin: null,
       autoUpdater: { on: vi.fn() },
-    };
-    return ctx;
-  };
+    });
 
   it("should reject unknown active provider", async () => {
     const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = createCtx();
+    const ctx = makeCtx();
     registerConfigHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("config:set-active-provider") as (
+    const handler = getCapturedHandlers().get("config:set-active-provider") as (
       _event: unknown,
       name: string,
     ) => void;
@@ -176,10 +105,10 @@ describe("ipc/config handlers", () => {
 
   it("should reject unknown fallback provider", async () => {
     const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = createCtx();
+    const ctx = makeCtx();
     registerConfigHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("config:set-fallback-provider") as (
+    const handler = getCapturedHandlers().get("config:set-fallback-provider") as (
       _event: unknown,
       name: string,
     ) => void;
@@ -189,37 +118,40 @@ describe("ipc/config handlers", () => {
 
   it("should accept null fallback provider", async () => {
     const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = createCtx();
+    const ctx = makeCtx();
     registerConfigHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("config:set-fallback-provider") as (
+    const handler = getCapturedHandlers().get("config:set-fallback-provider") as (
       _event: unknown,
       name: string | null,
     ) => void;
 
     handler(null, null);
-    expect(ctx.appConfig.fallbackProvider).toBeNull();
+    expect((ctx.appConfig as Record<string, unknown>).fallbackProvider).toBeNull();
   });
 
   it("should redact API keys on export", async () => {
     const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = createCtx();
-    (ctx.appConfig.providers.gemini as Record<string, unknown>).apiKey = "secret-key";
+    const ctx = makeCtx();
+    (
+      ((ctx.appConfig as Record<string, unknown>).providers as Record<string, unknown>)
+        .gemini as Record<string, unknown>
+    ).apiKey = "secret-key";
     registerConfigHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("config:export") as () => Record<string, unknown>;
+    const handler = getCapturedHandlers().get("config:export") as () => Record<string, unknown>;
 
     const result = handler();
     const providers = result.providers as Record<string, unknown>;
-    expect(providers.gemini?.apiKey).toBe("[REDACTED]");
+    expect((providers.gemini as Record<string, unknown>)?.apiKey).toBe("[REDACTED]");
   });
 
   it("should reject invalid hotkey format", async () => {
     const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = createCtx();
+    const ctx = makeCtx();
     registerConfigHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("config:set-hotkey") as (
+    const handler = getCapturedHandlers().get("config:set-hotkey") as (
       _event: unknown,
       hotkey: string,
     ) => Promise<boolean>;
@@ -230,10 +162,10 @@ describe("ipc/config handlers", () => {
 
   it("should accept valid hotkey format", async () => {
     const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = createCtx();
+    const ctx = makeCtx();
     registerConfigHandlers(ctx as never);
 
-    const handler = capturedHandlers.get("config:set-hotkey") as (
+    const handler = getCapturedHandlers().get("config:set-hotkey") as (
       _event: unknown,
       hotkey: string,
     ) => Promise<boolean>;
