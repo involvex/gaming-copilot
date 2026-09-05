@@ -60,49 +60,53 @@ export default function Overlay() {
   });
   const loadedConfigRef = useRef<Record<string, unknown> | null>(null);
 
-  const applyPresetIfNeeded = useCallback((cfg: Record<string, unknown>) => {
-    const overlay = cfg.overlay as Record<string, unknown> | undefined;
-    const custom = cfg.overlayCustomTheme as Record<string, unknown> | undefined;
+  const applyPresetIfNeeded = useCallback(
+    (cfg: Record<string, unknown>) => {
+      const overlay = cfg.overlay as Record<string, unknown> | undefined;
+      const custom = cfg.overlayCustomTheme as Record<string, unknown> | undefined;
 
-    if (!overlay) return;
+      if (!overlay) return;
 
-    const themeName = (overlay.theme as string) || "dark";
-    const preset = OVERLAY_PRESET_THEMES[themeName];
+      const themeName = (overlay.theme as string) || "dark";
+      const preset = OVERLAY_PRESET_THEMES[themeName];
 
-    let theme: OverlayCustomTheme;
-    if (custom && Object.keys(custom).length > 0) {
-      theme = {
-        backgroundColor: (custom.backgroundColor as string) || preset?.backgroundColor || "#111827",
-        textColor: (custom.textColor as string) || preset?.textColor || "#ffffff",
-        borderRadius: Number(custom.borderRadius) || preset?.borderRadius || 8,
-        padding: Number(custom.padding) || preset?.padding || 16,
-        borderColor: (custom.borderColor as string) || preset?.borderColor || "#374151",
-      };
-    } else if (preset) {
-      theme = preset;
-    } else {
-      theme = {
-        backgroundColor: "#111827",
-        textColor: "#ffffff",
-        borderRadius: 8,
-        padding: 16,
-        borderColor: "#374151",
-      };
-    }
+      let theme: OverlayCustomTheme;
+      if (custom && Object.keys(custom).length > 0) {
+        theme = {
+          backgroundColor:
+            (custom.backgroundColor as string) || preset?.backgroundColor || "#111827",
+          textColor: (custom.textColor as string) || preset?.textColor || "#ffffff",
+          borderRadius: Number(custom.borderRadius) || preset?.borderRadius || 8,
+          padding: Number(custom.padding) || preset?.padding || 16,
+          borderColor: (custom.borderColor as string) || preset?.borderColor || "#374151",
+        };
+      } else if (preset) {
+        theme = preset;
+      } else {
+        theme = {
+          backgroundColor: "#111827",
+          textColor: "#ffffff",
+          borderRadius: 8,
+          padding: 16,
+          borderColor: "#374151",
+        };
+      }
 
-    setOverlayConfig((prev) => ({
-      duration: Number(overlay.duration) || prev.duration,
-      opacity: Number(overlay.opacity) || prev.opacity,
-      fontSize: Number(overlay.fontSize) || prev.fontSize,
-      position: (overlay.position as OverlayConfig["position"]) || prev.position,
-      theme: themeName as OverlayConfig["theme"],
-      clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
-      showScreenshot: (overlay.showScreenshot as boolean) ?? prev.showScreenshot,
-    }));
+      setOverlayConfig((prev) => ({
+        duration: Number(overlay.duration) || prev.duration,
+        opacity: Number(overlay.opacity) || prev.opacity,
+        fontSize: Number(overlay.fontSize) || prev.fontSize,
+        position: (overlay.position as OverlayConfig["position"]) || prev.position,
+        theme: themeName as OverlayConfig["theme"],
+        clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
+        showScreenshot: (overlay.showScreenshot as boolean) ?? prev.showScreenshot,
+      }));
 
-    setCustomCSS((overlay.customCSS as string) || "");
-    setCustomTheme(theme);
-  });
+      setCustomCSS((overlay.customCSS as string) || "");
+      setCustomTheme(theme);
+    },
+    [setOverlayConfig, setCustomCSS, setCustomTheme],
+  );
 
   const applyOverlayConfig = useCallback(
     (config: Record<string, unknown>) => {

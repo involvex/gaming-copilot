@@ -80,7 +80,7 @@ describe("ScreenshotGallery", () => {
     await waitFor(() => expect(screen.getByText("a.png")).toBeInTheDocument());
 
     const deleteButtons = screen.getAllByText("Delete");
-    await user.click(deleteButtons[0]);
+    await user.click(deleteButtons[0]!);
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe("ScreenshotGallery", () => {
     await waitFor(() => expect(screen.getByText("a.png")).toBeInTheDocument());
 
     const favoriteButtons = screen.getAllByLabelText("Add to favorites");
-    await user.click(favoriteButtons[0]);
+    await user.click(favoriteButtons[0]!);
 
     expect(mockElectronAPI.toggleFavorite).toHaveBeenCalledTimes(1);
   });

@@ -18,8 +18,9 @@ bun run package      # build Windows installer
 Always run `bun run build` before committing. It runs:
 1. `biome format --write src/` — auto-format
 2. `biome check src/` — lint
-3. `tsc --noEmit -p tsconfig.node.json` — strict type check for main/preload/shared
-   (including `noUncheckedIndexedAccess`; keep it green — the pre-commit hook enforces it)
+3. `tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json` —
+   strict type check for main/preload/shared and renderer (including
+   `noUncheckedIndexedAccess`; keep both green — the pre-commit hook enforces them)
 4. `electron-vite build` — production bundle
 
 ## Project Structure

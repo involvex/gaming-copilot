@@ -477,6 +477,13 @@ app.whenReady().then(async () => {
   });
 });
 
+// Fires on every quit intent (Cmd+Q, app.quit(), OS shutdown) before any
+// window `close` event, so the minimize-to-tray intercept below lets real
+// quits through instead of hiding back to the tray.
+app.on("before-quit", () => {
+  isQuitting = true;
+});
+
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   memreaderPlugin?.stop();

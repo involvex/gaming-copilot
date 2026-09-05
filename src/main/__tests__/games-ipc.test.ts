@@ -41,7 +41,6 @@ describe("ipc/games handlers", () => {
       } as Record<string, unknown>,
       logger: createTestLogger(),
       emitConfigUpdated: vi.fn(),
-      setConfigValue: vi.fn((_key: string, _value: unknown) => {}),
     });
 
   it("should add a game and return it", async () => {
@@ -62,9 +61,8 @@ describe("ipc/games handlers", () => {
     };
 
     const result = handler(null, game);
-    expect(result.name).toBe("Test Game");
-    expect(result.exe).toBe("Test.exe");
-    expect((ctx.appConfig as Record<string, unknown>).games as unknown[]).toHaveLength(1);
+    expect(result).toEqual(game);
+    expect(ctx.emitConfigUpdated).toHaveBeenCalledTimes(1);
   });
 
   it("should update an existing game", async () => {
@@ -93,10 +91,8 @@ describe("ipc/games handlers", () => {
     };
 
     const result = handler(null, updated);
-    expect(result.name).toBe("New Name");
-    const games = (ctx.appConfig as Record<string, unknown>).games as Record<string, unknown>[];
-    expect(games).toHaveLength(1);
-    expect(games[0]?.name).toBe("New Name");
+    expect(result).toEqual(updated);
+    expect(ctx.emitConfigUpdated).toHaveBeenCalledTimes(1);
   });
 
   it("should throw when updating a nonexistent game", async () => {
@@ -140,6 +136,7 @@ describe("ipc/games handlers", () => {
     const result = handler(null, "550e8400-e29b-41d4-a716-446655440000");
     expect(result).toBe(true);
     expect((ctx.appConfig as Record<string, unknown>).games as unknown[]).toHaveLength(0);
+    expect(ctx.emitConfigUpdated).toHaveBeenCalledTimes(1);
   });
 
   it("should throw when removing a nonexistent game", async () => {

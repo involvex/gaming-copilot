@@ -24,7 +24,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const docEl = document.documentElement.classList;
     docEl.remove(...THEME_CLASS_NAMES);
     docEl.add(`theme-${resolved}`);
-  });
+  }, []);
 
   useEffect(() => {
     const loadConfig = () => {

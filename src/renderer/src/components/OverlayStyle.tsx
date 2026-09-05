@@ -37,7 +37,7 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
     window.electronAPI.setOverlayConfig(update);
   };
 
-  const persistTheme = (update: Record<string, unknown>) => {
+  const persistTheme = (update: OverlayCustomTheme) => {
     window.electronAPI.setSetting("overlayCustomTheme", update);
   };
 

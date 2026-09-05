@@ -102,6 +102,7 @@ export interface ElectronAPI {
   ) => Promise<{
     success: boolean;
     results?: Array<{ old: string; new: string }>;
+    conflicts?: string[];
     error?: string;
   }>;
   getMetadata: (filename: string) => Promise<{
@@ -146,7 +147,7 @@ export interface ElectronAPI {
   onOverlayProvider: (
     callback: (info: { displayName: string; model: string }) => void,
   ) => () => void;
-  onOverlayPosition: (callback: (position: string) => void) => () => void;
+  onOverlayPosition: (callback: (position: AppConfig["overlay"]["position"]) => void) => () => void;
   onNavigateSettings: (callback: () => void) => () => void;
   onUpdateStatus: (
     callback: (status: string, version?: string, message?: string) => void,
@@ -316,8 +317,11 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on("overlay:provider", handler);
     return () => ipcRenderer.removeListener("overlay:provider", handler);
   },
-  onOverlayPosition: (callback: (position: string) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, position: string) => callback(position);
+  onOverlayPosition: (callback: (position: AppConfig["overlay"]["position"]) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      position: AppConfig["overlay"]["position"],
+    ) => callback(position);
     ipcRenderer.on("overlay:set-position", handler);
     return () => ipcRenderer.removeListener("overlay:set-position", handler);
   },

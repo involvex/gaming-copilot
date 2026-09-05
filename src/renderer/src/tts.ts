@@ -45,7 +45,9 @@ export function getAvailableVoices(): Array<{ name: string; lang: string }> {
 }
 
 export function isSpeaking(): boolean {
-  return window.speechSynthesis.speaking;
+  // The held reference both guards against GC cut-off and tracks intent:
+  // only our own utterances count, and `stop()` clears it.
+  return _currentUtterance !== null && window.speechSynthesis.speaking;
 }
 
 export function preview(config: TTSConfig): void {
