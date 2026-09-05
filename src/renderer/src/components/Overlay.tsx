@@ -156,7 +156,7 @@ export default function Overlay() {
 
   useEffect(() => {
     let active = true;
-    window.electronAPI.onOverlayData((data) => {
+    const unsubscribe = window.electronAPI.onOverlayData((data) => {
       setText(data);
       setVisible(true);
       setStreaming(true);
@@ -175,54 +175,44 @@ export default function Overlay() {
     });
     return () => {
       active = false;
-      window.electronAPI.removeAllListeners("overlay:data");
+      unsubscribe();
     };
   }, []);
 
   useEffect(() => {
-    window.electronAPI.onOverlayCSS(setCustomCSS);
-    return () => {
-      window.electronAPI.removeAllListeners("overlay:set-css");
-    };
+    const unsubscribe = window.electronAPI.onOverlayCSS(setCustomCSS);
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    window.electronAPI.onOverlayProvider((info) => {
+    const unsubscribe = window.electronAPI.onOverlayProvider((info) => {
       setProviderInfo(info);
     });
-    return () => {
-      window.electronAPI.removeAllListeners("overlay:provider");
-    };
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    window.electronAPI.onOverlayScreenshot((dataUrl) => {
+    const unsubscribe = window.electronAPI.onOverlayScreenshot((dataUrl) => {
       setScreenshot(dataUrl);
     });
-    return () => {
-      window.electronAPI.removeAllListeners("overlay:screenshot");
-    };
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    window.electronAPI.onOverlayPosition((pos) => {
+    const unsubscribe = window.electronAPI.onOverlayPosition((pos) => {
       setOverlayConfig((prev) => ({ ...prev, position: pos }));
     });
-    return () => {
-      window.electronAPI.removeAllListeners("overlay:set-position");
-    };
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    window.electronAPI.onOverlayStreamDone((finalText) => {
+    const unsubscribe = window.electronAPI.onOverlayStreamDone((finalText) => {
       setStreaming(false);
       if (ttsConfig.enabled && finalText && !finalText.startsWith("Error:")) {
         speak(finalText, ttsConfig);
       }
     });
-    return () => {
-      window.electronAPI.removeAllListeners("overlay:stream-done");
-    };
+    return unsubscribe;
   }, [ttsConfig]);
 
   useEffect(() => {

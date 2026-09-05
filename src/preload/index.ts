@@ -138,17 +138,20 @@ export interface ElectronAPI {
   ) => Promise<{ status: string; version?: string; message?: string }>;
 
   // Events
-  onCaptureResult: (callback: (dataUrl: string) => void) => void;
-  onOverlayData: (callback: (text: string) => void) => void;
-  onOverlayScreenshot: (callback: (dataUrl: string) => void) => void;
-  onOverlayCSS: (callback: (css: string) => void) => void;
-  onOverlayStreamDone: (callback: (text: string) => void) => void;
-  onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => void;
-  onOverlayPosition: (callback: (position: string) => void) => void;
-  onNavigateSettings: (callback: () => void) => void;
-  onUpdateStatus: (callback: (status: string, version?: string, message?: string) => void) => void;
-  onConfigUpdated: (callback: () => void) => void;
-  removeAllListeners: (channel: string) => void;
+  onCaptureResult: (callback: (dataUrl: string) => void) => () => void;
+  onOverlayData: (callback: (text: string) => void) => () => void;
+  onOverlayScreenshot: (callback: (dataUrl: string) => void) => () => void;
+  onOverlayCSS: (callback: (css: string) => void) => () => void;
+  onOverlayStreamDone: (callback: (text: string) => void) => () => void;
+  onOverlayProvider: (
+    callback: (info: { displayName: string; model: string }) => void,
+  ) => () => void;
+  onOverlayPosition: (callback: (position: string) => void) => () => void;
+  onNavigateSettings: (callback: () => void) => () => void;
+  onUpdateStatus: (
+    callback: (status: string, version?: string, message?: string) => void,
+  ) => () => void;
+  onConfigUpdated: (callback: () => void) => () => void;
 }
 
 const electronAPI: ElectronAPI = {
@@ -281,41 +284,62 @@ const electronAPI: ElectronAPI = {
 
   // Events
   onCaptureResult: (callback: (dataUrl: string) => void) => {
-    ipcRenderer.on("capture:result", (_event, dataUrl) => callback(dataUrl));
+    const handler = (_event: Electron.IpcRendererEvent, dataUrl: string) => callback(dataUrl);
+    ipcRenderer.on("capture:result", handler);
+    return () => ipcRenderer.removeListener("capture:result", handler);
   },
   onOverlayData: (callback: (text: string) => void) => {
-    ipcRenderer.on("overlay:data", (_event, text) => callback(text));
+    const handler = (_event: Electron.IpcRendererEvent, text: string) => callback(text);
+    ipcRenderer.on("overlay:data", handler);
+    return () => ipcRenderer.removeListener("overlay:data", handler);
   },
   onOverlayScreenshot: (callback: (dataUrl: string) => void) => {
-    ipcRenderer.on("overlay:screenshot", (_event, dataUrl) => callback(dataUrl));
+    const handler = (_event: Electron.IpcRendererEvent, dataUrl: string) => callback(dataUrl);
+    ipcRenderer.on("overlay:screenshot", handler);
+    return () => ipcRenderer.removeListener("overlay:screenshot", handler);
   },
   onOverlayCSS: (callback: (css: string) => void) => {
-    ipcRenderer.on("overlay:set-css", (_event, css) => callback(css));
+    const handler = (_event: Electron.IpcRendererEvent, css: string) => callback(css);
+    ipcRenderer.on("overlay:set-css", handler);
+    return () => ipcRenderer.removeListener("overlay:set-css", handler);
   },
   onOverlayStreamDone: (callback: (text: string) => void) => {
-    ipcRenderer.on("overlay:stream-done", (_event, text) => callback(text));
+    const handler = (_event: Electron.IpcRendererEvent, text: string) => callback(text);
+    ipcRenderer.on("overlay:stream-done", handler);
+    return () => ipcRenderer.removeListener("overlay:stream-done", handler);
   },
   onOverlayProvider: (callback: (info: { displayName: string; model: string }) => void) => {
-    ipcRenderer.on("overlay:provider", (_event, info) => callback(info));
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      info: { displayName: string; model: string },
+    ) => callback(info);
+    ipcRenderer.on("overlay:provider", handler);
+    return () => ipcRenderer.removeListener("overlay:provider", handler);
   },
   onOverlayPosition: (callback: (position: string) => void) => {
-    ipcRenderer.on("overlay:set-position", (_event, position) => callback(position));
+    const handler = (_event: Electron.IpcRendererEvent, position: string) => callback(position);
+    ipcRenderer.on("overlay:set-position", handler);
+    return () => ipcRenderer.removeListener("overlay:set-position", handler);
   },
   onNavigateSettings: (callback: () => void) => {
-    ipcRenderer.on("navigate:settings", () => callback());
+    const handler = () => callback();
+    ipcRenderer.on("navigate:settings", handler);
+    return () => ipcRenderer.removeListener("navigate:settings", handler);
   },
   onUpdateStatus: (callback: (status: string, version?: string, message?: string) => void) => {
-    ipcRenderer.on(
-      "app:update-status",
-      (_event, status: string, version?: string, message?: string) =>
-        callback(status, version, message),
-    );
-  },
-  removeAllListeners: (channel: string) => {
-    ipcRenderer.removeAllListeners(channel);
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      status: string,
+      version?: string,
+      message?: string,
+    ) => callback(status, version, message);
+    ipcRenderer.on("app:update-status", handler);
+    return () => ipcRenderer.removeListener("app:update-status", handler);
   },
   onConfigUpdated: (callback: () => void) => {
-    ipcRenderer.on("config:updated", () => callback());
+    const handler = () => callback();
+    ipcRenderer.on("config:updated", handler);
+    return () => ipcRenderer.removeListener("config:updated", handler);
   },
 };
 

@@ -46,12 +46,10 @@ export default function Settings() {
     };
     loadConfig();
 
-    window.electronAPI.onConfigUpdated(() => {
+    const unsubscribeConfig = window.electronAPI.onConfigUpdated(() => {
       loadConfig();
     });
-    return () => {
-      window.electronAPI.removeAllListeners("config:updated");
-    };
+    return unsubscribeConfig;
   }, []);
 
   const tabs: Array<{ id: Tab; label: string; keywords: string[] }> = [
@@ -775,8 +773,8 @@ function GeneralConfig({
       if (newVersion) setUpdateVersion(newVersion);
       if (message) setUpdateMessage(message);
     };
-    window.electronAPI.onUpdateStatus(handler);
-    return () => window.electronAPI.removeAllListeners("app:update-status");
+    const unsubscribeStatus = window.electronAPI.onUpdateStatus(handler);
+    return unsubscribeStatus;
   }, []);
 
   const handleTelemetryToggle = async (next: boolean) => {

@@ -1,5 +1,7 @@
-import { resolve, sep } from "node:path";
-import { describe, expect, it } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve, sep } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   assertBareFilename,
   DEFAULT_EXPORT_ZIP_NAME,
@@ -7,29 +9,37 @@ import {
   sanitizeZipName,
 } from "../screenshot-paths";
 
-const DIR = resolve("screenshots-test-dir");
+let dir: string;
+
+beforeEach(async () => {
+  dir = await mkdtemp(join(tmpdir(), "gaming-copilot-shots-"));
+});
+
+afterEach(async () => {
+  await rm(dir, { recursive: true, force: true });
+});
 
 describe("resolveScreenshotPath", () => {
   it("resolves bare filenames inside the directory", () => {
-    expect(resolveScreenshotPath(DIR, "shot.png")).toBe(resolve(DIR, "shot.png"));
+    expect(resolveScreenshotPath(dir, "shot.png")).toBe(resolve(dir, "shot.png"));
   });
 
   it("allows nested paths that stay inside the directory", () => {
-    const nested = resolveScreenshotPath(DIR, `sub${sep}shot.png`);
-    expect(nested.startsWith(DIR + sep)).toBe(true);
+    const nested = resolveScreenshotPath(dir, `sub${sep}shot.png`);
+    expect(nested.startsWith(dir + sep)).toBe(true);
   });
 
   it("rejects parent-directory escapes", () => {
-    expect(() => resolveScreenshotPath(DIR, "..")).toThrow("Invalid screenshot path");
-    expect(() => resolveScreenshotPath(DIR, "../evil.png")).toThrow("Invalid screenshot path");
-    expect(() => resolveScreenshotPath(DIR, `sub${sep}..${sep}..${sep}evil.png`)).toThrow(
+    expect(() => resolveScreenshotPath(dir, "..")).toThrow("Invalid screenshot path");
+    expect(() => resolveScreenshotPath(dir, "../evil.png")).toThrow("Invalid screenshot path");
+    expect(() => resolveScreenshotPath(dir, `sub${sep}..${sep}..${sep}evil.png`)).toThrow(
       "Invalid screenshot path",
     );
   });
 
   it("rejects absolute paths outside the directory", () => {
-    const outside = resolve(DIR, "..", "evil.png");
-    expect(() => resolveScreenshotPath(DIR, outside)).toThrow("Invalid screenshot path");
+    const outside = resolve(dir, "..", "evil.png");
+    expect(() => resolveScreenshotPath(dir, outside)).toThrow("Invalid screenshot path");
   });
 });
 
@@ -49,7 +59,7 @@ describe("assertBareFilename", () => {
   it("rejects names with directory components", () => {
     expect(() => assertBareFilename("sub/shot.png")).toThrow();
     expect(() => assertBareFilename("../evil.png")).toThrow();
-    expect(() => assertBareFilename(resolve(DIR, "shot.png"))).toThrow();
+    expect(() => assertBareFilename(resolve(dir, "shot.png"))).toThrow();
   });
 });
 

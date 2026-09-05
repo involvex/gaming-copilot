@@ -38,13 +38,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     loadConfig();
 
-    window.electronAPI.onConfigUpdated(() => {
+    const unsubscribe = window.electronAPI.onConfigUpdated(() => {
       loadConfig();
     });
 
-    return () => {
-      window.electronAPI.removeAllListeners("config:updated");
-    };
+    return unsubscribe;
   }, [applyTheme]);
 
   useEffect(() => {

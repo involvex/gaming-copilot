@@ -34,12 +34,10 @@ function MainWindow() {
   };
 
   useEffect(() => {
-    window.electronAPI.onNavigateSettings(() => {
+    const unsubscribe = window.electronAPI.onNavigateSettings(() => {
       window.location.hash = "#/settings";
     });
-    return () => {
-      window.electronAPI.removeAllListeners("navigate:settings");
-    };
+    return unsubscribe;
   }, []);
 
   return (
