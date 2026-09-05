@@ -37,7 +37,7 @@ jobs:
         run: |
           bunx biome format --check src/
           bunx biome check src/
-          bunx tsc --noEmit
+          bun run typecheck
           bun run test
 
       - name: Build and package
