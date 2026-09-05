@@ -1256,8 +1256,7 @@ ipcMain.handle("screenshots:toggle-favorite", async (_event, filename: unknown) 
   const validName = validateIPC(z.string(), filename);
   if (!appConfig.screenshotDir) return false;
   try {
-    await toggleFavorite(appConfig.screenshotDir, validName);
-    return true;
+    return await toggleFavorite(appConfig.screenshotDir, validName);
   } catch {
     return false;
   }

@@ -359,11 +359,11 @@ export default function ScreenshotGallery() {
   };
 
   const handleToggleFavorite = async (filename: string) => {
-    const ok = await window.electronAPI.toggleFavorite(filename);
-    if (ok) {
+    const newState = await window.electronAPI.toggleFavorite(filename);
+    if (newState) {
       setFavorites((prev) => ({
         ...prev,
-        [filename]: !prev[filename],
+        [filename]: newState,
       }));
     }
   };

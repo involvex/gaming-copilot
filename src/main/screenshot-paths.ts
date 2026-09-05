@@ -74,13 +74,14 @@ export async function saveFavorites(
 
 /**
  * Flip the favorite flag for a screenshot. Throws on path traversal so
- * callers can fail closed.
+ * callers can fail closed. Returns the new state.
  */
-export async function toggleFavorite(dir: string, filename: string): Promise<void> {
+export async function toggleFavorite(dir: string, filename: string): Promise<boolean> {
   resolveScreenshotPath(dir, filename);
   const favorites = await loadFavorites(dir);
   favorites[filename] = !favorites[filename];
   await saveFavorites(dir, favorites);
+  return favorites[filename];
 }
 
 export interface BulkRenameInput {

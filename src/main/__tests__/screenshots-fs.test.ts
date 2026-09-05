@@ -86,15 +86,15 @@ describe("bulkRenameFiles (end-to-end on disk)", () => {
 });
 
 describe("toggleFavorite (end-to-end on disk)", () => {
-  it("flips the flag and persists it to screenshot-favorites.json", async () => {
+  it("flips the flag, persists it, and returns the new state", async () => {
     expect(await loadFavorites(dir)).toEqual({});
 
-    await toggleFavorite(dir, "a.png");
+    expect(await toggleFavorite(dir, "a.png")).toBe(true);
     expect(await loadFavorites(dir)).toEqual({ "a.png": true });
     const raw = await readFile(join(dir, "screenshot-favorites.json"), "utf-8");
     expect(JSON.parse(raw)).toEqual({ "a.png": true });
 
-    await toggleFavorite(dir, "a.png");
+    expect(await toggleFavorite(dir, "a.png")).toBe(false);
     expect(await loadFavorites(dir)).toEqual({ "a.png": false });
   });
 

@@ -94,7 +94,7 @@ describe("ScreenshotGallery", () => {
 
   it("toggles favorite on click", async () => {
     const user = userEvent.setup();
-    mockElectronAPI.toggleFavorite.mockResolvedValue(true);
+    mockElectronAPI.toggleFavorite.mockResolvedValue(false);
 
     renderWithProviders(<ScreenshotGallery />);
 
