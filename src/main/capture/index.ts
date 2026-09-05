@@ -454,7 +454,9 @@ export function compositeFrames(
 
   if (images.length === 0) return null;
 
-  const sampleSize = images[0].getSize();
+  const first = images[0];
+  if (!first) return null;
+  const sampleSize = first.getSize();
   const thumbW = Math.min(320, sampleSize.width);
   const thumbH = Math.min(180, sampleSize.height);
   const gap = 8;
@@ -477,10 +479,10 @@ export function compositeFrames(
         const srcIdx = (y * thumbW + x) * 4;
         const dstIdx = ((yOffset + y) * canvasWidth + (xOffset + x)) * 4;
         if (srcIdx + 3 < bitmap.length && dstIdx + 3 < compositeData.length) {
-          compositeData[dstIdx] = bitmap[srcIdx];
-          compositeData[dstIdx + 1] = bitmap[srcIdx + 1];
-          compositeData[dstIdx + 2] = bitmap[srcIdx + 2];
-          compositeData[dstIdx + 3] = bitmap[srcIdx + 3];
+          compositeData.writeUInt8(bitmap.readUInt8(srcIdx), dstIdx);
+          compositeData.writeUInt8(bitmap.readUInt8(srcIdx + 1), dstIdx + 1);
+          compositeData.writeUInt8(bitmap.readUInt8(srcIdx + 2), dstIdx + 2);
+          compositeData.writeUInt8(bitmap.readUInt8(srcIdx + 3), dstIdx + 3);
         }
       }
     }

@@ -1,6 +1,8 @@
 import { ipcMain } from "electron";
+import type { AppConfig } from "../../shared/types";
 import { initProviders, updateAutoStart } from "../app-helpers";
 import { setConfigValue } from "../config";
+import { exportConfigWithoutSecrets, isValidHotkeyFormat } from "../config-utils";
 import {
   booleanSchema,
   captureModeSchema,
@@ -66,9 +68,12 @@ export function registerConfigHandlers(ctx: IpcContext): void {
         (e) => e.name === validName,
       );
       if (existing >= 0) {
+        const current = ctx.appConfig.providers.openaiCompat.endpoints[existing];
         ctx.appConfig.providers.openaiCompat.endpoints[existing] = {
-          ...ctx.appConfig.providers.openaiCompat.endpoints[existing],
-          ...parsed,
+          name: validName,
+          baseUrl: parsed.baseUrl ?? current?.baseUrl ?? "",
+          apiKey: parsed.apiKey ?? current?.apiKey ?? "",
+          model: parsed.model ?? current?.model ?? "",
         };
       } else {
         ctx.appConfig.providers.openaiCompat.endpoints.push({
@@ -244,7 +249,7 @@ export function registerConfigHandlers(ctx: IpcContext): void {
 
   ipcMain.handle("config:set-hotkey", (_event, hotkey: unknown) => {
     const parsed = validateIPC(hotkeySchema, hotkey);
-    if (!parsed || !/^\w+([+-].+)*$/.test(parsed)) {
+    if (!isValidHotkeyFormat(parsed)) {
       return false;
     }
     ctx.setHotkey(parsed);
@@ -253,7 +258,7 @@ export function registerConfigHandlers(ctx: IpcContext): void {
 
   ipcMain.handle("config:set-overlay-hotkey", (_event, hotkey: unknown) => {
     const parsed = validateIPC(hotkeySchema, hotkey);
-    if (!parsed || !/^\w+([+-].+)*$/.test(parsed)) {
+    if (!isValidHotkeyFormat(parsed)) {
       return false;
     }
     ctx.appConfig.overlayHotkey = parsed;
@@ -278,23 +283,7 @@ export function registerConfigHandlers(ctx: IpcContext): void {
   });
 
   ipcMain.handle("config:export", () => {
-    const safeCopy = JSON.parse(JSON.stringify(ctx.appConfig)) as typeof ctx.appConfig;
-    safeCopy.providers = { gemini: undefined, openaiCompat: undefined };
-    if (ctx.appConfig.providers.gemini) {
-      safeCopy.providers.gemini = {
-        ...ctx.appConfig.providers.gemini,
-        apiKey: "[REDACTED]",
-      };
-    }
-    if (ctx.appConfig.providers.openaiCompat?.endpoints) {
-      safeCopy.providers.openaiCompat = {
-        endpoints: ctx.appConfig.providers.openaiCompat.endpoints.map((ep) => ({
-          ...ep,
-          apiKey: "[REDACTED]",
-        })),
-      };
-    }
-    return safeCopy;
+    return exportConfigWithoutSecrets(ctx.appConfig);
   });
 
   ipcMain.handle("config:import", async (_event, config: unknown) => {
@@ -312,7 +301,7 @@ export function registerConfigHandlers(ctx: IpcContext): void {
         key !== "prompts"
       ) {
         appConfigRecord[key] = value;
-        setConfigValue(key, value);
+        setConfigValue(key as keyof AppConfig, value as never);
       }
     }
     ctx.appConfig.overlay = { ...ctx.appConfig.overlay, ...overlayParsed };

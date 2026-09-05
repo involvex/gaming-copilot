@@ -38,6 +38,7 @@ let overlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let providerManager: ProviderManager | null = null;
 let memreaderPlugin: MemreaderPlugin | null = null;
+let isQuitting = false;
 
 function resolveResourcePath(relativePath: string): string {
   if (is.dev) {
@@ -90,7 +91,7 @@ function createMainWindow(): void {
   });
 
   mainWindow.on("close", (e) => {
-    if (app.isQuitting) return;
+    if (isQuitting) return;
     if (appConfig.minimizeToTray && tray) {
       e.preventDefault();
       mainWindow?.hide();
@@ -108,31 +109,23 @@ const OVERLAY_WIN_WIDTH = 420;
 const OVERLAY_WIN_HEIGHT = 220;
 
 function calculateOverlayPosition(position: AppConfig["overlay"]["position"]): {
-  x?: number;
-  y?: number;
+  x: number;
+  y: number;
 } {
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
-  let x: number | undefined;
-  let y: number | undefined;
   switch (position) {
     case "top-left":
-      x = 20;
-      y = 20;
-      break;
+      return { x: 20, y: 20 };
     case "top-right":
-      x = screenWidth - OVERLAY_WIN_WIDTH;
-      y = 20;
-      break;
+      return { x: screenWidth - OVERLAY_WIN_WIDTH, y: 20 };
     case "bottom-left":
-      x = 20;
-      y = screenHeight - OVERLAY_WIN_HEIGHT;
-      break;
-    case "bottom-right":
-      x = screenWidth - OVERLAY_WIN_WIDTH;
-      y = screenHeight - OVERLAY_WIN_HEIGHT;
-      break;
+      return { x: 20, y: screenHeight - OVERLAY_WIN_HEIGHT };
+    default:
+      return {
+        x: screenWidth - OVERLAY_WIN_WIDTH,
+        y: screenHeight - OVERLAY_WIN_HEIGHT,
+      };
   }
-  return { x, y };
 }
 
 function createOverlayWindow(): void {
@@ -399,7 +392,7 @@ function createTray(): void {
     {
       label: "Quit",
       click: () => {
-        app.isQuitting = true;
+        isQuitting = true;
         app.quit();
       },
     },

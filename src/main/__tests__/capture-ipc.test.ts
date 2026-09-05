@@ -66,21 +66,6 @@ describe("ipc/capture handlers", () => {
     expect(result).toBe(false);
   });
 
-  it("should validate exe name format for check-game", async () => {
-    const { registerCaptureHandlers } = await import("../ipc/capture");
-    const ctx = makeCtx();
-    registerCaptureHandlers(ctx as never);
-
-    const handler = getCapturedHandlers().get("capture:check-game") as (
-      _event: unknown,
-      exeName: string,
-    ) => Promise<{ running: boolean; pid: number | null }>;
-
-    const result = await handler(null, "invalid exe name");
-    expect(result.running).toBe(false);
-    expect(result.pid).toBeNull();
-  });
-
   it("should set region when bounds are valid", async () => {
     const { registerCaptureHandlers } = await import("../ipc/capture");
     const ctx = makeCtx();

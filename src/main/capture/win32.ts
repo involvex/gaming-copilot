@@ -26,7 +26,7 @@ export function findProcessByExe(exeName: string): number | null {
     const lines = output.trim().split("\n").filter(Boolean);
     for (const line of lines) {
       const match = line.match(/"([^"]+)","(\d+)"/);
-      if (match) {
+      if (match?.[1] && match[2]) {
         return Number.parseInt(match[2], 10);
       }
     }

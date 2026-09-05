@@ -1,27 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AppConfig } from "../../shared/types";
-
-function redactProviders(config: AppConfig["providers"]): AppConfig["providers"] {
-  const safe = { gemini: undefined, openaiCompat: undefined };
-  if (config.gemini) {
-    safe.gemini = { ...config.gemini, apiKey: "[REDACTED]" };
-  }
-  if (config.openaiCompat?.endpoints) {
-    safe.openaiCompat = {
-      endpoints: config.openaiCompat.endpoints.map((ep) => ({
-        ...ep,
-        apiKey: "[REDACTED]",
-      })),
-    };
-  }
-  return safe;
-}
-
-function exportConfig(config: AppConfig): AppConfig {
-  const safeCopy = JSON.parse(JSON.stringify(config)) as AppConfig;
-  safeCopy.providers = redactProviders(config.providers);
-  return safeCopy;
-}
+import { exportConfigWithoutSecrets } from "../config-utils";
 
 describe("config export — API key redaction", () => {
   it("should redact gemini apiKey in exported config", () => {
@@ -54,7 +33,7 @@ describe("config export — API key redaction", () => {
       },
     } as unknown as AppConfig;
 
-    const exported = exportConfig(config);
+    const exported = exportConfigWithoutSecrets(config);
 
     expect(exported.providers.gemini?.apiKey).toBe("[REDACTED]");
     expect(exported.providers.gemini?.model).toBe("gemini-2.5-flash");
@@ -102,7 +81,7 @@ describe("config export — API key redaction", () => {
       },
     } as unknown as AppConfig;
 
-    const exported = exportConfig(config);
+    const exported = exportConfigWithoutSecrets(config);
 
     expect(exported.providers.openaiCompat?.endpoints[0]?.apiKey).toBe("[REDACTED]");
     expect(exported.providers.openaiCompat?.endpoints[1]?.apiKey).toBe("[REDACTED]");
@@ -155,7 +134,7 @@ describe("config export — API key redaction", () => {
       prompts: { system: "Be helpful.", gameSpecific: {} },
     } as unknown as AppConfig;
 
-    const exported = exportConfig(config);
+    const exported = exportConfigWithoutSecrets(config);
 
     expect(exported.hotkey).toBe("ctrl+shift+g");
     expect(exported.captureQuality).toBe(95);
@@ -190,7 +169,7 @@ describe("config export — API key redaction", () => {
       },
     } as unknown as AppConfig;
 
-    const exported = exportConfig(config);
+    const exported = exportConfigWithoutSecrets(config);
 
     expect(exported.providers.gemini).toBeUndefined();
     expect(exported.providers.openaiCompat).toBeUndefined();

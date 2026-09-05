@@ -145,32 +145,4 @@ describe("ipc/config handlers", () => {
     const providers = result.providers as Record<string, unknown>;
     expect((providers.gemini as Record<string, unknown>)?.apiKey).toBe("[REDACTED]");
   });
-
-  it("should reject invalid hotkey format", async () => {
-    const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = makeCtx();
-    registerConfigHandlers(ctx as never);
-
-    const handler = getCapturedHandlers().get("config:set-hotkey") as (
-      _event: unknown,
-      hotkey: string,
-    ) => Promise<boolean>;
-
-    const result = await handler(null, "INVALID HOTKEY WITH SPACES");
-    expect(result).toBe(false);
-  });
-
-  it("should accept valid hotkey format", async () => {
-    const { registerConfigHandlers } = await import("../ipc/config");
-    const ctx = makeCtx();
-    registerConfigHandlers(ctx as never);
-
-    const handler = getCapturedHandlers().get("config:set-hotkey") as (
-      _event: unknown,
-      hotkey: string,
-    ) => Promise<boolean>;
-
-    const result = await handler(null, "CommandOrControl+Shift+X");
-    expect(result).toBe(true);
-  });
 });

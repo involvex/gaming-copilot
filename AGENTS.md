@@ -7,7 +7,7 @@ Instructions for AI agents working on this codebase.
 ```powershell
 cd "E:\Game\gaming-copilot\gaming-copilot"
 bun run build        # format + lint + typecheck + electron-vite build
-bun run test         # vitest run (23 files, 252 tests)
+bun run test         # vitest run (25 files, 262 tests)
 bun run package      # build Windows installer
 ```
 
@@ -18,7 +18,8 @@ bun run package      # build Windows installer
 Always run `bun run build` before committing. It runs:
 1. `biome format --write src/` — auto-format
 2. `biome check src/` — lint
-3. `tsc --noEmit` — type check
+3. `tsc --noEmit -p tsconfig.node.json` — strict type check for main/preload/shared
+   (including `noUncheckedIndexedAccess`; keep it green — the pre-commit hook enforces it)
 4. `electron-vite build` — production bundle
 
 ## Project Structure

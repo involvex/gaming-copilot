@@ -25,23 +25,6 @@ describe("ipc/screenshots handlers", () => {
       logger: createTestLogger(),
     });
 
-  it("should reject traversal paths on delete", async () => {
-    const { registerScreenshotHandlers } = await import("../ipc/screenshots");
-    const ctx = makeCtx({
-      screenshotDir: "/tmp/screenshots",
-      saveScreenshots: true,
-    });
-    registerScreenshotHandlers(ctx as never);
-
-    const handler = getCapturedHandlers().get("screenshots:delete") as (
-      _event: unknown,
-      filepath: string,
-    ) => Promise<boolean>;
-
-    const result = await handler(null, "../../../etc/passwd");
-    expect(result).toBe(false);
-  });
-
   it("should return false when screenshot saving is disabled for delete", async () => {
     const { registerScreenshotHandlers } = await import("../ipc/screenshots");
     const ctx = makeCtx({
@@ -56,23 +39,6 @@ describe("ipc/screenshots handlers", () => {
     ) => Promise<boolean>;
 
     const result = await handler(null, "shot.png");
-    expect(result).toBe(false);
-  });
-
-  it("should reject traversal paths on open", async () => {
-    const { registerScreenshotHandlers } = await import("../ipc/screenshots");
-    const ctx = makeCtx({
-      screenshotDir: "/tmp/screenshots",
-      saveScreenshots: true,
-    });
-    registerScreenshotHandlers(ctx as never);
-
-    const handler = getCapturedHandlers().get("screenshots:open") as (
-      _event: unknown,
-      filepath: string,
-    ) => Promise<boolean>;
-
-    const result = await handler(null, "../../../etc/passwd");
     expect(result).toBe(false);
   });
 

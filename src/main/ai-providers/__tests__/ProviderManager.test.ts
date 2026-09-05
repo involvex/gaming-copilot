@@ -110,6 +110,7 @@ vi.mock("../openai-compat", () => {
 function makeConfig(providerNames: string[]): AppConfig {
   return {
     hotkey: "CommandOrControl+Shift+G",
+    overlayHotkey: "CommandOrControl+Shift+O",
     autoStart: false,
     minimizeToTray: true,
     notifications: true,
@@ -120,6 +121,8 @@ function makeConfig(providerNames: string[]): AppConfig {
     hotkeyEnabled: true,
     monitorIndex: 0,
     captureMode: "auto",
+    saveScreenshots: false,
+    screenshotDir: null,
     providers: {
       gemini: {
         apiKey: "test-key",
@@ -145,6 +148,8 @@ function makeConfig(providerNames: string[]): AppConfig {
       fontSize: 14,
       theme: "dark",
       clickThrough: true,
+      customCSS: "",
+      showScreenshot: false,
     },
     overlayCustomTheme: {
       backgroundColor: "#111827",
@@ -160,6 +165,7 @@ function makeConfig(providerNames: string[]): AppConfig {
     ocr: { enabled: true, language: "eng" },
     recordDuration: 10,
     telemetry: { enabled: false },
+    games: [],
     prompts: { system: "test", gameSpecific: {} },
   };
 }

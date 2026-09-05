@@ -2,6 +2,11 @@ import { ipcMain, screen } from "electron";
 import { z } from "zod";
 import { recordScreen, resizeImage, smartCapture } from "../capture";
 import { findProcessByExe } from "../capture/win32";
+import {
+  buildScreenshotFilename,
+  isValidGameExeName,
+  parseScreenshotDataUrl,
+} from "../capture-utils";
 import { setConfigValue } from "../config";
 import { exeNameSchema, regionBoundsSchema, validateIPC } from "../schemas";
 import type { IpcContext } from "./context";
@@ -14,7 +19,7 @@ export function registerCaptureHandlers(ctx: IpcContext): void {
       name: d.label || `Display ${index + 1}`,
       bounds: d.bounds,
       workArea: d.workArea,
-      primary: screen.getPrimaryDisplay().displayId === d.displayId,
+      primary: screen.getPrimaryDisplay().id === d.id,
     }));
   });
 
@@ -75,7 +80,7 @@ export function registerCaptureHandlers(ctx: IpcContext): void {
 
   ipcMain.handle("capture:check-game", (_event, exeName: unknown) => {
     const name = validateIPC(exeNameSchema, exeName);
-    if (!/^[\w.-]+\.exe$/.test(name.endsWith(".exe") ? name : `${name}.exe`)) {
+    if (!isValidGameExeName(name)) {
       return { running: false, pid: null };
     }
     const pid = findProcessByExe(name);
@@ -112,19 +117,15 @@ export function registerCaptureHandlers(ctx: IpcContext): void {
       return false;
     }
     try {
-      const base64Match = validUrl.match(/^data:(image\/\w+);base64,(.+)$/);
-      if (!base64Match?.[1] || !base64Match[2]) {
+      const parsed = parseScreenshotDataUrl(validUrl);
+      if (!parsed) {
         ctx.logger.warn("Capture", "Failed to save screenshot: invalid data URL format");
         return false;
       }
-      const mimeType = base64Match[1];
-      const ext = mimeType.replace("image/", "");
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const filename = `gaming-copilot_${timestamp}.${ext}`;
+      const filename = buildScreenshotFilename(parsed.ext);
       const filepath = `${ctx.appConfig.screenshotDir}/${filename}`;
       const { writeFile } = await import("node:fs/promises");
-      const buffer = Buffer.from(base64Match[2], "base64");
-      await writeFile(filepath, buffer);
+      await writeFile(filepath, parsed.buffer);
       ctx.logger.info("Capture", `Screenshot saved: ${filepath}`);
       return true;
     } catch (error) {

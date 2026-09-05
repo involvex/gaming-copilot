@@ -31,7 +31,9 @@ const existsSyncMock = vi.mocked(existsSync);
 describe("MemreaderPlugin", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers({ doNotFake: ["setTimeout"] });
+    // NB: vitest has no `doNotFake` option — everything (including
+    // setTimeout) is faked, matching the suite's actual runtime behavior.
+    vi.useFakeTimers();
     existsSyncMock.mockReturnValue(true);
   });
 
