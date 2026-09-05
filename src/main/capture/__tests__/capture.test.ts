@@ -20,9 +20,9 @@ vi.mock("node:child_process", () => ({
 }));
 
 vi.mock("../win32", () => ({
-  findProcessByExe: vi.fn(() => null),
+  findProcessByExe: vi.fn(() => Promise.resolve(null)),
   getWindowTitleByPid: vi.fn(() => null),
-  isProcessRunning: () => false,
+  isProcessRunning: () => Promise.resolve(false),
 }));
 
 const makeMockImage = (opts: { isEmpty?: boolean; width?: number; height?: number } = {}) => ({
@@ -213,7 +213,7 @@ describe("capture module", () => {
   describe("captureWindowByExe", () => {
     it("should return null if process not found", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(null);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(null);
 
       const result = await captureWindowByExe("gaming.exe");
       expect(result).toBeNull();
@@ -221,7 +221,7 @@ describe("capture module", () => {
 
     it("should return null if no matching source found", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue(null);
 
       mockDesktopCapturer.getSources.mockResolvedValue([]);
@@ -232,7 +232,7 @@ describe("capture module", () => {
 
     it("should capture window when process and source found", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
 
       const mockThumbnail = {
         toPNG: () => Buffer.from("png-data"),
@@ -252,7 +252,7 @@ describe("capture module", () => {
 
     it("should use PNG when quality is undefined", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
 
       const toPNG = vi.fn(() => Buffer.from("png-data"));
       const mockThumbnail = {
@@ -279,7 +279,7 @@ describe("capture module", () => {
   describe("captureWithGDI", () => {
     it("should return null if process not found", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(null);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(null);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue(null);
 
       const result = await captureWithGDI("game.exe");
@@ -288,7 +288,7 @@ describe("capture module", () => {
 
     it("should return null if window title not found", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue(null);
 
       const result = await captureWithGDI("game.exe");
@@ -297,7 +297,7 @@ describe("capture module", () => {
 
     it("should return null if window title is empty", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue("");
 
       const result = await captureWithGDI("game.exe");
@@ -306,7 +306,7 @@ describe("capture module", () => {
 
     it("should return null if PowerShell command fails", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue("Game Window");
 
       const { execSync } = await import("node:child_process");
@@ -322,7 +322,7 @@ describe("capture module", () => {
 
     it("should return CaptureResult on successful capture", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue("Game Window");
 
       const { execSync } = await import("node:child_process");
@@ -343,7 +343,7 @@ describe("capture module", () => {
 
     it("should use PNG format when quality >= 100", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(12345);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(12345);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue("Game Window");
 
       const { execSync } = await import("node:child_process");
@@ -365,7 +365,7 @@ describe("capture module", () => {
 
     it("should validate pid before interpolation", async () => {
       const win32Mock = await import("../win32");
-      vi.mocked(win32Mock.findProcessByExe).mockReturnValue(-1);
+      vi.mocked(win32Mock.findProcessByExe).mockResolvedValue(-1);
       vi.mocked(win32Mock.getWindowTitleByPid).mockReturnValue("Game Window");
 
       const result = await captureWithGDI("game.exe");

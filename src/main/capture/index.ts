@@ -102,7 +102,7 @@ export async function captureWindowByExe(
   quality?: number,
 ): Promise<CaptureResult | null> {
   const { findProcessByExe } = await import("./win32");
-  const pid = findProcessByExe(exeName);
+  const pid = await findProcessByExe(exeName);
   if (!pid) return null;
 
   const sources = await desktopCapturer.getSources({
@@ -170,7 +170,7 @@ export async function captureWithGDI(
   quality?: number,
 ): Promise<CaptureResult | null> {
   const { findProcessByExe, getWindowTitleByPid } = await import("./win32");
-  const pid = findProcessByExe(exeName);
+  const pid = await findProcessByExe(exeName);
   if (!pid) return null;
   try {
     validatePid(pid);

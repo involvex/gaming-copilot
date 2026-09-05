@@ -6,13 +6,20 @@
  */
 
 /**
+ * The canonical safe-executable rule shared by the IPC boundary check below
+ * and the process lookup in `capture/win32.ts`: a bare `<name>.exe` of
+ * letters, digits, `_`, `.`, `-`. Anything else is rejected so untrusted
+ * input can never reach a shell command line.
+ */
+export const GAME_EXE_PATTERN = /^[\w.-]+\.exe$/;
+
+/**
  * Check a renderer-supplied game executable name. The name may omit the
- * `.exe` suffix; anything that is not a bare `<name>.exe` (letters,
- * digits, `_`, `.`, `-`) is rejected so the handler never passes a
- * shell-hostile string to the process lookup.
+ * `.exe` suffix; anything that is not a bare `<name>.exe` is rejected so
+ * the handler never passes a shell-hostile string to the process lookup.
  */
 export function isValidGameExeName(name: string): boolean {
-  return /^[\w.-]+\.exe$/.test(name.endsWith(".exe") ? name : `${name}.exe`);
+  return GAME_EXE_PATTERN.test(name.endsWith(".exe") ? name : `${name}.exe`);
 }
 
 export interface ParsedScreenshotDataUrl {

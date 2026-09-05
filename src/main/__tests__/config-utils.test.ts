@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { AppConfig } from "../../shared/types";
-import { exportConfigWithoutSecrets, isValidHotkeyFormat, redactProviders } from "../config-utils";
+import {
+  exportConfigWithoutSecrets,
+  isValidHotkeyFormat,
+  redactProviders,
+  sanitizeForLog,
+} from "../config-utils";
 
 describe("isValidHotkeyFormat (pure, no Electron mock)", () => {
   it("should accept single modifiers and combos", () => {
@@ -66,6 +71,29 @@ describe("redactProviders (pure, no Electron mock)", () => {
 
     expect(result.gemini).toBeUndefined();
     expect(result.openaiCompat).toBeUndefined();
+  });
+});
+
+describe("sanitizeForLog (pure, no Electron mock)", () => {
+  it("should redact apiKey values at any depth", () => {
+    const result = sanitizeForLog({
+      providers: { gemini: { apiKey: "super-secret", model: "m" } },
+    });
+
+    expect(result).toContain("[REDACTED]");
+    expect(result).not.toContain("super-secret");
+    expect(result).toContain('"model":"m"');
+  });
+
+  it("should truncate long values to 100 chars", () => {
+    expect(sanitizeForLog({ text: "x".repeat(200) })).toHaveLength(100);
+  });
+
+  it("should handle undefined and unserializable values", () => {
+    expect(sanitizeForLog(undefined)).toBe("undefined");
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(sanitizeForLog(circular)).toBe("[unserializable]");
   });
 });
 

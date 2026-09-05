@@ -1,4 +1,19 @@
-import { execSync } from "node:child_process";
+import { execFile, execSync } from "node:child_process";
+import { promisify } from "node:util";
+import { GAME_EXE_PATTERN } from "../capture-utils";
+
+const execFileAsync = promisify(execFile);
+
+/** Process lookups are cached briefly so polling never spawns tasklist per call. */
+const LOOKUP_CACHE_TTL_MS = 2000;
+const MAX_CACHE_ENTRIES = 64;
+
+interface LookupEntry {
+  pid: number | null;
+  expiresAt: number;
+}
+
+const lookupCache = new Map<string, LookupEntry>();
 
 export interface ProcessInfo {
   pid: number;
@@ -6,34 +21,55 @@ export interface ProcessInfo {
   title: string;
 }
 
-/**
- * Find a running process by executable name (e.g., "Neuz.exe").
- * Returns the PID or null if not found.
- */
-const SAFE_EXE_PATTERN = /^[\w.-]+\.exe$/;
+function normalizeExeName(exeName: string): string | null {
+  const name = exeName.endsWith(".exe") ? exeName : `${exeName}.exe`;
+  return GAME_EXE_PATTERN.test(name) ? name : null;
+}
 
-export function findProcessByExe(exeName: string): number | null {
+function parseTasklistOutput(output: string): number | null {
+  const lines = output.trim().split("\n").filter(Boolean);
+  for (const line of lines) {
+    const match = line.match(/"([^"]+)","(\d+)"/);
+    if (match?.[1] && match[2]) {
+      return Number.parseInt(match[2], 10);
+    }
+  }
+  return null;
+}
+
+async function runTasklistLookup(name: string): Promise<number | null> {
   try {
-    const name = exeName.endsWith(".exe") ? exeName : `${exeName}.exe`;
-    if (!SAFE_EXE_PATTERN.test(name)) {
-      return null;
-    }
-    const output = execSync(`tasklist /FI "IMAGENAME eq ${name}" /FO CSV /NH`, {
-      encoding: "utf-8",
-      timeout: 5000,
-    });
-
-    const lines = output.trim().split("\n").filter(Boolean);
-    for (const line of lines) {
-      const match = line.match(/"([^"]+)","(\d+)"/);
-      if (match?.[1] && match[2]) {
-        return Number.parseInt(match[2], 10);
-      }
-    }
-    return null;
+    // argv-based spawn (no shell), so the validated name cannot escape into
+    // a command line; windowsHide avoids flashing a console window.
+    const { stdout } = await execFileAsync(
+      "tasklist",
+      ["/FI", `IMAGENAME eq ${name}`, "/FO", "CSV", "/NH"],
+      { timeout: 5000, encoding: "utf-8", windowsHide: true },
+    );
+    return parseTasklistOutput(stdout);
   } catch {
     return null;
   }
+}
+
+/**
+ * Find a running process by executable name (e.g., "Neuz.exe").
+ * Async with a short TTL cache so repeated checks don't block the main
+ * thread on process spawns. Returns the PID or null if not found.
+ */
+export async function findProcessByExe(exeName: string): Promise<number | null> {
+  const name = normalizeExeName(exeName);
+  if (!name) return null;
+  const now = Date.now();
+  const hit = lookupCache.get(name);
+  if (hit && hit.expiresAt > now) return hit.pid;
+  const pid = await runTasklistLookup(name);
+  lookupCache.set(name, { pid, expiresAt: now + LOOKUP_CACHE_TTL_MS });
+  if (lookupCache.size > MAX_CACHE_ENTRIES) {
+    const oldest = lookupCache.keys().next();
+    if (!oldest.done) lookupCache.delete(oldest.value);
+  }
+  return pid;
 }
 
 /**
@@ -77,6 +113,6 @@ export function getWindowTitleByPid(pid: number): string | null {
 /**
  * Check if a process is running.
  */
-export function isProcessRunning(exeName: string): boolean {
-  return findProcessByExe(exeName) !== null;
+export async function isProcessRunning(exeName: string): Promise<boolean> {
+  return (await findProcessByExe(exeName)) !== null;
 }

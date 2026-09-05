@@ -10,6 +10,7 @@ import {
   endpointConfigSchema,
   fallbackProviderSchema,
   geminiProviderConfigSchema,
+  genericSettingSchemas,
   hotkeySchema,
   overlayConfigSchema,
   promptsConfigSchema,
@@ -219,12 +220,18 @@ export function registerConfigHandlers(ctx: IpcContext): void {
   });
 
   ipcMain.handle("config:set-generic", (_event, key: unknown, value: unknown) => {
-    const typedKey = validateIPC(hotkeySchema, key) as keyof typeof ctx.appConfig;
-    if (typedKey in ctx.appConfig) {
-      ctx.appConfig[typedKey] = value as never;
-      setConfigValue(typedKey, value as never);
-      ctx.emitConfigUpdated();
+    if (typeof key !== "string" || key.length === 0) {
+      throw new Error("IPC validation failed: setting key must be a non-empty string");
     }
+    const schema = genericSettingSchemas[key];
+    if (!schema) {
+      throw new Error(`IPC validation failed: unknown setting "${key}"`);
+    }
+    const validated = validateIPC(schema, value);
+    const appConfigRecord = ctx.appConfig as unknown as Record<string, unknown>;
+    appConfigRecord[key] = validated;
+    setConfigValue(key as keyof AppConfig, validated as never);
+    ctx.emitConfigUpdated();
   });
 
   ipcMain.handle("config:set-telemetry", (_event, enabled: unknown) => {
@@ -291,18 +298,31 @@ export function registerConfigHandlers(ctx: IpcContext): void {
     const overlayParsed = validateIPC(overlayConfigSchema, parsed.overlay || {});
     const ttsParsed = validateIPC(ttsConfigSchema, parsed.tts || {});
     const promptsParsed = validateIPC(promptsConfigSchema, parsed.prompts || {});
-    const appConfigRecord = ctx.appConfig as unknown as Record<string, unknown>;
+    // Validate everything before applying anything, so a bad value can't
+    // leave a half-imported config behind. Unknown keys (e.g. from newer
+    // versions) are skipped with a warning instead of persisted blindly.
+    const validated = new Map<string, unknown>();
     for (const [key, value] of Object.entries(parsed)) {
       if (
-        key !== "providers" &&
-        key !== "telemetry" &&
-        key !== "overlay" &&
-        key !== "tts" &&
-        key !== "prompts"
+        key === "providers" ||
+        key === "telemetry" ||
+        key === "overlay" ||
+        key === "tts" ||
+        key === "prompts"
       ) {
-        appConfigRecord[key] = value;
-        setConfigValue(key as keyof AppConfig, value as never);
+        continue;
       }
+      const schema = genericSettingSchemas[key];
+      if (!schema) {
+        ctx.logger.warn("Config", `Skipping unknown setting in import: ${key}`);
+        continue;
+      }
+      validated.set(key, validateIPC(schema, value));
+    }
+    const appConfigRecord = ctx.appConfig as unknown as Record<string, unknown>;
+    for (const [key, value] of validated) {
+      appConfigRecord[key] = value;
+      setConfigValue(key as keyof AppConfig, value as never);
     }
     ctx.appConfig.overlay = { ...ctx.appConfig.overlay, ...overlayParsed };
     setConfigValue("overlay", ctx.appConfig.overlay);

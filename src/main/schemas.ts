@@ -86,6 +86,61 @@ export const themeSchema = z.enum(APP_THEME_VALUES);
 
 export const chatFormatSchema = z.enum(["markdown", "json"]);
 
+export const ocrConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  language: z.string().min(1).max(32).optional(),
+});
+
+export const overlayCustomThemeSchema = z.object({
+  backgroundColor: z.string().max(64).optional(),
+  textColor: z.string().max(64).optional(),
+  borderColor: z.string().max(64).optional(),
+  borderRadius: z.number().nonnegative().optional(),
+  padding: z.number().nonnegative().optional(),
+});
+
+export const recordDurationSchema = z.number().int().min(1).max(3600);
+
+export const pluginsConfigSchema = z.object({
+  bunMemreader: z
+    .object({
+      enabled: z.boolean().optional(),
+      port: z.number().int().positive().max(65535).optional(),
+      autoStart: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * Setting keys writable via `config:set-generic`, each with its value
+ * schema. Keys outside this map are rejected — add new UI settings here.
+ * `config:import` reuses the same map so exported files round-trip.
+ */
+export const genericSettingSchemas: Record<string, z.ZodType<unknown>> = {
+  theme: themeSchema,
+  notifications: booleanSchema,
+  autoStart: booleanSchema,
+  minimizeToTray: booleanSchema,
+  useKeychain: booleanSchema,
+  hotkeyEnabled: booleanSchema,
+  saveScreenshots: booleanSchema,
+  gameExe: z.string().max(260),
+  hotkey: hotkeySchema,
+  overlayHotkey: hotkeySchema,
+  activeProvider: providerNameSchema,
+  fallbackProvider: fallbackProviderSchema,
+  captureMode: captureModeSchema,
+  captureQuality: captureQualitySchema,
+  maxImageWidth: maxImageWidthSchema,
+  monitorIndex: monitorIndexSchema,
+  recordDuration: recordDurationSchema,
+  screenshotDir: z.string().max(2048).nullable(),
+  captureRegion: regionBoundsSchema,
+  ocr: ocrConfigSchema,
+  overlayCustomTheme: overlayCustomThemeSchema,
+  plugins: pluginsConfigSchema,
+};
+
 export const chatMessageSchema = z.object({
   id: z.string(),
   role: z.enum(["assistant", "user"]),

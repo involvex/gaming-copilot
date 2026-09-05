@@ -78,12 +78,12 @@ export function registerCaptureHandlers(ctx: IpcContext): void {
     return `data:${mimeType};base64,${resizedBuffer.toString("base64")}`;
   });
 
-  ipcMain.handle("capture:check-game", (_event, exeName: unknown) => {
+  ipcMain.handle("capture:check-game", async (_event, exeName: unknown) => {
     const name = validateIPC(exeNameSchema, exeName);
     if (!isValidGameExeName(name)) {
       return { running: false, pid: null };
     }
-    const pid = findProcessByExe(name);
+    const pid = await findProcessByExe(name);
     return { running: pid !== null, pid };
   });
 

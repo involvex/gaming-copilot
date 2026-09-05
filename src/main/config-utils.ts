@@ -42,3 +42,19 @@ export function exportConfigWithoutSecrets(config: AppConfig): AppConfig {
   safeCopy.providers = redactProviders(config.providers);
   return safeCopy;
 }
+
+/**
+ * Serialize a config value for log lines with secrets redacted. Never
+ * throws — unserializable values degrade to a placeholder instead of
+ * crashing the caller.
+ */
+export function sanitizeForLog(value: unknown): string {
+  try {
+    const json = JSON.stringify(value, (k, v: unknown) =>
+      k.toLowerCase() === "apikey" ? "[REDACTED]" : v,
+    );
+    return (json ?? "undefined").slice(0, 100);
+  } catch {
+    return "[unserializable]";
+  }
+}

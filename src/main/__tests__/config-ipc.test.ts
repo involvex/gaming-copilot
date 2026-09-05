@@ -145,4 +145,66 @@ describe("ipc/config handlers", () => {
     const providers = result.providers as Record<string, unknown>;
     expect((providers.gemini as Record<string, unknown>)?.apiKey).toBe("[REDACTED]");
   });
+
+  it("should apply a valid generic setting", async () => {
+    const { registerConfigHandlers } = await import("../ipc/config");
+    const ctx = makeCtx();
+    registerConfigHandlers(ctx as never);
+
+    const handler = getCapturedHandlers().get("config:set-generic") as (
+      _event: unknown,
+      key: unknown,
+      value: unknown,
+    ) => void;
+
+    handler(null, "theme", "light");
+    expect((ctx.appConfig as Record<string, unknown>).theme).toBe("light");
+  });
+
+  it("should reject an unknown generic setting key", async () => {
+    const { registerConfigHandlers } = await import("../ipc/config");
+    const ctx = makeCtx();
+    registerConfigHandlers(ctx as never);
+
+    const handler = getCapturedHandlers().get("config:set-generic") as (
+      _event: unknown,
+      key: unknown,
+      value: unknown,
+    ) => void;
+
+    expect(() => handler(null, "nope", 1)).toThrow("unknown setting");
+  });
+
+  it("should reject an out-of-range generic setting value", async () => {
+    const { registerConfigHandlers } = await import("../ipc/config");
+    const ctx = makeCtx();
+    registerConfigHandlers(ctx as never);
+
+    const handler = getCapturedHandlers().get("config:set-generic") as (
+      _event: unknown,
+      key: unknown,
+      value: unknown,
+    ) => void;
+
+    expect(() => handler(null, "captureQuality", 999)).toThrow("IPC validation failed");
+  });
+
+  it("should skip unknown keys on import but apply known ones", async () => {
+    const { registerConfigHandlers } = await import("../ipc/config");
+    const ctx = makeCtx();
+    registerConfigHandlers(ctx as never);
+
+    const handler = getCapturedHandlers().get("config:import") as (
+      _event: unknown,
+      config: unknown,
+    ) => Promise<boolean>;
+
+    const result = await handler(null, {
+      notifications: true,
+      futureUnknownKey: "ignored",
+    });
+    expect(result).toBe(true);
+    expect((ctx.appConfig as Record<string, unknown>).notifications).toBe(true);
+    expect((ctx.appConfig as Record<string, unknown>).futureUnknownKey).toBeUndefined();
+  });
 });

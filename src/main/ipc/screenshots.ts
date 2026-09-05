@@ -14,14 +14,11 @@ import {
 } from "../screenshot-paths";
 import type { IpcContext } from "./context";
 
-const screenshotsListSchema = z.object({
-  dir: z.string().optional(),
-});
-
 export function registerScreenshotHandlers(ctx: IpcContext): void {
-  ipcMain.handle("screenshots:list", async (_event, input: unknown) => {
-    const parsed = validateIPC(screenshotsListSchema, input);
-    const dir = parsed.dir || ctx.appConfig.screenshotDir;
+  // NB: no caller-supplied directory — listing is always scoped to the
+  // configured screenshot dir so the channel can't enumerate arbitrary paths.
+  ipcMain.handle("screenshots:list", async () => {
+    const dir = ctx.appConfig.screenshotDir;
     if (!dir) return [];
     try {
       const files = await readdir(dir);

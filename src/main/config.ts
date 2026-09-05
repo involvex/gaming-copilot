@@ -1,6 +1,7 @@
 import Store from "electron-store";
 import { DEFAULT_SYSTEM_PROMPT } from "../shared/constants";
 import type { AppConfig, ChatMessage } from "../shared/types";
+import { sanitizeForLog } from "./config-utils";
 import { logger } from "./logger";
 
 const schema = {
@@ -144,7 +145,7 @@ export function getConfig(): AppConfig {
 
 export function setConfigValue<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
   store.set(key, value);
-  logger.debug("Config", `Set ${key} = ${JSON.stringify(value).slice(0, 100)}`);
+  logger.debug("Config", `Set ${key} = ${sanitizeForLog(value)}`);
 }
 
 export function setPartialConfig(partial: Partial<AppConfig>): void {
@@ -214,7 +215,7 @@ function getDefaultConfig(): AppConfig {
       theme: "dark",
       clickThrough: true,
       customCSS: "",
-      showScreenshot: false,
+      showScreenshot: true,
     },
     overlayCustomTheme: {
       backgroundColor: "#111827",

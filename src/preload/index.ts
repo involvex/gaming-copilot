@@ -83,9 +83,9 @@ export interface ElectronAPI {
   getGames: () => Promise<Array<{ id: string; name: string; exe: string; urls: string[] }>>;
 
   // Screenshots
-  listScreenshots: (
-    dir?: string,
-  ) => Promise<Array<{ filename: string; path: string; size: number; mtime: number }>>;
+  listScreenshots: () => Promise<
+    Array<{ filename: string; path: string; size: number; mtime: number }>
+  >;
   deleteScreenshot: (filepath: string) => Promise<boolean>;
   openScreenshot: (filepath: string) => Promise<boolean>;
   openContainingFolder: (filename: string) => Promise<boolean>;
@@ -237,7 +237,7 @@ const electronAPI: ElectronAPI = {
   getGames: () => ipcRenderer.invoke("games:list"),
 
   // Screenshots
-  listScreenshots: (dir?: string) => ipcRenderer.invoke("screenshots:list", dir ? { dir } : {}),
+  listScreenshots: () => ipcRenderer.invoke("screenshots:list"),
   deleteScreenshot: (filepath: string) => ipcRenderer.invoke("screenshots:delete", filepath),
   openScreenshot: (filepath: string) => ipcRenderer.invoke("screenshots:open", filepath),
   openContainingFolder: (filename: string) =>

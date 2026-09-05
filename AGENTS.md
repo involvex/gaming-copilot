@@ -7,7 +7,7 @@ Instructions for AI agents working on this codebase.
 ```powershell
 cd "E:\Game\gaming-copilot\gaming-copilot"
 bun run build        # format + lint + typecheck + electron-vite build
-bun run test         # vitest run (25 files, 262 tests)
+bun run test         # vitest run (25 files, 269 tests)
 bun run package      # build Windows installer
 ```
 

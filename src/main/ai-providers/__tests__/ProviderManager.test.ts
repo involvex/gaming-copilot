@@ -149,7 +149,7 @@ function makeConfig(providerNames: string[]): AppConfig {
       theme: "dark",
       clickThrough: true,
       customCSS: "",
-      showScreenshot: false,
+      showScreenshot: true,
     },
     overlayCustomTheme: {
       backgroundColor: "#111827",
