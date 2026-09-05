@@ -765,7 +765,11 @@ export default function ScreenshotGallery() {
           aria-modal="true"
           aria-label="Screenshot preview"
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setPreview(null)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setPreview(null);
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setPreview(null);
