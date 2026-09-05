@@ -46,7 +46,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     if (resolve) resolve(value);
   };
 
-  const trap = useFocusTrap<HTMLDivElement>(open);
+  const trap = useFocusTrap<HTMLDivElement>(open, {
+    onEscape: () => handleClose(false),
+  });
 
   return (
     <ConfirmContext.Provider value={{ confirm }}>
@@ -64,12 +66,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               handleClose(false);
             }
           }}
-          onKeyDown={(e) => {
-            trap.onKeyDown(e);
-            if (e.key === "Escape") {
-              handleClose(false);
-            }
-          }}
+          onKeyDown={trap.onKeyDown}
         >
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-sm w-full mx-4">
             <h3 className="text-lg font-semibold mb-2">{options.title || "Confirm"}</h3>

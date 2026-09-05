@@ -19,7 +19,9 @@ export default function ChatHistory() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const confirm = useConfirm();
-  const shortcutsTrap = useFocusTrap<HTMLDivElement>(showShortcuts);
+  const shortcutsTrap = useFocusTrap<HTMLDivElement>(showShortcuts, {
+    onEscape: () => setShowShortcuts(false),
+  });
 
   useEffect(() => {
     window.electronAPI.loadChatHistory().then((saved) => {
@@ -332,12 +334,7 @@ export default function ChatHistory() {
               setShowShortcuts(false);
             }
           }}
-          onKeyDown={(e) => {
-            shortcutsTrap.onKeyDown(e);
-            if (e.key === "Escape") {
-              setShowShortcuts(false);
-            }
-          }}
+          onKeyDown={shortcutsTrap.onKeyDown}
         >
           <div
             ref={shortcutsTrap.containerRef}

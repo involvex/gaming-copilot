@@ -67,9 +67,15 @@ export default function ScreenshotGallery() {
     format: string;
   } | null>(null);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
-  const previewTrap = useFocusTrap<HTMLDivElement>(preview !== null && compareWith === null);
-  const compareTrap = useFocusTrap<HTMLDivElement>(preview !== null && compareWith !== null);
-  const renameTrap = useFocusTrap<HTMLDivElement>(renameMode);
+  const previewTrap = useFocusTrap<HTMLDivElement>(preview !== null && compareWith === null, {
+    onEscape: () => setPreview(null),
+  });
+  const compareTrap = useFocusTrap<HTMLDivElement>(preview !== null && compareWith !== null, {
+    onEscape: () => closeCompare(),
+  });
+  const renameTrap = useFocusTrap<HTMLDivElement>(renameMode, {
+    onEscape: () => setRenameMode(false),
+  });
 
   const loadScreenshots = useCallback(async () => {
     setLoading(true);
@@ -767,12 +773,7 @@ export default function ScreenshotGallery() {
               setPreview(null);
             }
           }}
-          onKeyDown={(e) => {
-            previewTrap.onKeyDown(e);
-            if (e.key === "Escape") {
-              setPreview(null);
-            }
-          }}
+          onKeyDown={previewTrap.onKeyDown}
         >
           <div
             ref={previewContainerRef}
@@ -913,12 +914,7 @@ export default function ScreenshotGallery() {
               closeCompare();
             }
           }}
-          onKeyDown={(e) => {
-            compareTrap.onKeyDown(e);
-            if (e.key === "Escape") {
-              closeCompare();
-            }
-          }}
+          onKeyDown={compareTrap.onKeyDown}
         >
           <div className="relative w-full h-full max-w-6xl max-h-[90vh] flex items-center justify-center">
             <div className="relative w-full h-full flex items-center justify-center">
@@ -1016,12 +1012,7 @@ export default function ScreenshotGallery() {
               setRenameMode(false);
             }
           }}
-          onKeyDown={(e) => {
-            renameTrap.onKeyDown(e);
-            if (e.key === "Escape") {
-              setRenameMode(false);
-            }
-          }}
+          onKeyDown={renameTrap.onKeyDown}
         >
           <div
             ref={renameTrap.containerRef}

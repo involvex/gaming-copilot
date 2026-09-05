@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useFocusTrap } from "./useFocusTrap";
 
 function TestDialog({
@@ -68,5 +68,59 @@ describe("useFocusTrap", () => {
   it("does not steal focus while inactive", () => {
     render(<TestDialog active={false} />);
     expect(document.activeElement).toBe(document.body);
+  });
+
+  it("restores focus to the previously focused element on deactivation", () => {
+    function RestoreDialog({ active }: { active: boolean }) {
+      const { containerRef, onKeyDown } = useFocusTrap<HTMLDivElement>(active);
+      return (
+        <div>
+          <button type="button">Trigger</button>
+          {active && (
+            <div role="dialog" aria-label="Restore dialog" onKeyDown={onKeyDown}>
+              <div ref={containerRef} tabIndex={-1}>
+                <button type="button">Inside</button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const { rerender } = render(<RestoreDialog active={false} />);
+    const trigger = screen.getByRole("button", { name: "Trigger" });
+    trigger.focus();
+    rerender(<RestoreDialog active={true} />);
+    expect(screen.getByRole("button", { name: "Inside" })).toBe(document.activeElement);
+    rerender(<RestoreDialog active={false} />);
+    expect(trigger).toBe(document.activeElement);
+  });
+
+  it("calls onEscape for Escape and ignores other keys", () => {
+    function EscapeDialog({ onEscape }: { onEscape: () => void }) {
+      const { containerRef, onKeyDown } = useFocusTrap<HTMLDivElement>(true, {
+        onEscape,
+      });
+      return (
+        <div role="dialog" aria-label="Escape dialog" onKeyDown={onKeyDown}>
+          <div ref={containerRef} tabIndex={-1}>
+            <button type="button">Inside</button>
+          </div>
+        </div>
+      );
+    }
+
+    const onEscape = vi.fn();
+    render(<EscapeDialog onEscape={onEscape} />);
+    const dialog = screen.getByRole("dialog", { name: "Escape dialog" });
+    const inside = screen.getByRole("button", { name: "Inside" });
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(onEscape).toHaveBeenCalledTimes(1);
+
+    inside.focus();
+    fireEvent.keyDown(dialog, { key: "Enter" });
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(onEscape).toHaveBeenCalledTimes(1);
   });
 });
