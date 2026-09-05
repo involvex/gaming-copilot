@@ -8,6 +8,10 @@ on:
 env:
   BUN_VERSION: 1.4
 
+# Needed to create the GitHub Release and upload artifacts.
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build for Release
@@ -39,10 +43,10 @@ jobs:
           bun run typecheck
           bun run test
 
+      # --publish never: the softprops step below owns release creation and
+      # artifact upload; electron-builder must only build into dist/.
       - name: Build and package
-        run: bun run package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run package:release
 
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
