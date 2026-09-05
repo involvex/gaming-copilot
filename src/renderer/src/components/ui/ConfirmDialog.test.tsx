@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ConfirmProvider, useConfirm } from "./ConfirmDialog";
@@ -69,6 +69,24 @@ describe("ConfirmDialog", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("closes when Escape is pressed", () => {
+    render(
+      <ConfirmProvider>
+        <TestConsumer />
+      </ConfirmProvider>,
+    );
+
+    fireEvent.click(screen.getByText("open"));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.keyDown(dialog, { key: "a" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
