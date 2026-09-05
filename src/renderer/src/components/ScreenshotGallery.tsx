@@ -68,7 +68,7 @@ export default function ScreenshotGallery() {
   } | null>(null);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
   const renameDialogRef = useRef<HTMLDivElement>(null);
-  const renameFirstInputRef = useRef<HTMLInputElement>(null);
+  const renameFirstInputRef = useRef<HTMLSelectElement>(null);
 
   const loadScreenshots = useCallback(async () => {
     setLoading(true);
@@ -908,7 +908,11 @@ export default function ScreenshotGallery() {
           aria-modal="true"
           aria-label="Image comparison"
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={closeCompare}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeCompare();
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               closeCompare();
@@ -1006,13 +1010,30 @@ export default function ScreenshotGallery() {
           aria-modal="true"
           aria-label="Bulk rename"
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setRenameMode(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setRenameMode(false);
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setRenameMode(false);
             } else if (e.key === "Tab") {
-              e.preventDefault();
-              renameFirstInputRef.current?.focus();
+              const container = renameDialogRef.current;
+              if (!container) return;
+              const focusable = container.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+              );
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (!first || !last) return;
+              if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+              } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+              }
             }
           }}
         >
@@ -1037,6 +1058,7 @@ export default function ScreenshotGallery() {
                 </label>
                 <select
                   id="rename-mode"
+                  ref={renameFirstInputRef}
                   value={renamePattern}
                   onChange={(e) =>
                     setRenamePattern(e.target.value as "prefix" | "suffix" | "replace")

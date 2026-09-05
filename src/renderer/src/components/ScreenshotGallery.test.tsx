@@ -148,4 +148,80 @@ describe("ScreenshotGallery", () => {
     await waitFor(() => expect(screen.getByText("Dimensions: 1920 × 1080")).toBeInTheDocument());
     expect(mockElectronAPI.getMetadata).toHaveBeenCalledWith("a.png");
   });
+
+  it("keeps bulk rename dialog open when interacting with fields, closes on backdrop", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<ScreenshotGallery />);
+
+    await waitFor(() => expect(screen.getByText("a.png")).toBeInTheDocument());
+
+    await user.click(screen.getByText("Select"));
+    await user.click(screen.getByRole("checkbox", { name: /select all/i }));
+    await user.click(screen.getByText(/Rename Selected/));
+
+    const dialog = await screen.findByRole("dialog", { name: "Bulk rename" });
+
+    fireEvent.click(screen.getByLabelText("Value"));
+    expect(screen.getByRole("dialog", { name: "Bulk rename" })).toBeInTheDocument();
+
+    fireEvent.click(dialog);
+    expect(screen.queryByRole("dialog", { name: "Bulk rename" })).not.toBeInTheDocument();
+  });
+
+  it("closes bulk rename dialog on Escape and traps Tab focus", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<ScreenshotGallery />);
+
+    await waitFor(() => expect(screen.getByText("a.png")).toBeInTheDocument());
+
+    await user.click(screen.getByText("Select"));
+    await user.click(screen.getByRole("checkbox", { name: /select all/i }));
+    await user.click(screen.getByText(/Rename Selected/));
+
+    const dialog = await screen.findByRole("dialog", { name: "Bulk rename" });
+
+    await waitFor(() => expect(document.activeElement?.getAttribute("id")).toBe("rename-mode"));
+
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    cancelButton.focus();
+    fireEvent.keyDown(cancelButton, { key: "Tab" });
+    expect(document.activeElement?.getAttribute("id")).toBe("rename-mode");
+
+    const modeSelect = screen.getByLabelText("Mode");
+    modeSelect.focus();
+    fireEvent.keyDown(modeSelect, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(cancelButton);
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Bulk rename" })).not.toBeInTheDocument();
+  });
+
+  it("keeps compare dialog open when using the slider, closes on backdrop", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<ScreenshotGallery />);
+
+    await waitFor(() => expect(screen.getByText("a.png")).toBeInTheDocument());
+
+    const imageButton = screen.getByAltText("a.png").closest("button");
+    expect(imageButton).toBeTruthy();
+    fireEvent.click(imageButton!);
+
+    const previewDialog = await screen.findByRole("dialog", {
+      name: "Screenshot preview",
+    });
+    await user.click(within(previewDialog).getByRole("button", { name: "Compare" }));
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Image comparison",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /comparison slider/i }));
+    expect(screen.getByRole("dialog", { name: "Image comparison" })).toBeInTheDocument();
+
+    fireEvent.click(dialog);
+    expect(screen.queryByRole("dialog", { name: "Image comparison" })).not.toBeInTheDocument();
+  });
 });
