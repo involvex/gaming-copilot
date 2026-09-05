@@ -9,14 +9,13 @@ export interface IpcContext {
   mainWindow: BrowserWindow | null;
   overlayWindow: BrowserWindow | null;
   providerManager: ProviderManager | null;
+  setProviderManager: (manager: ProviderManager | null) => void;
   memreaderPlugin: MemreaderPlugin | null;
   autoUpdater: typeof autoUpdater;
   emitConfigUpdated: () => void;
   setConfigValue: <K extends keyof AppConfig>(key: K, value: AppConfig[K]) => void;
-  initProviders: () => void;
   toggleOverlay: () => void;
   repositionOverlay: () => void;
-  updateAutoStart: () => void;
   registerHotkey: () => void;
   unregisterHotkey: () => void;
   registerOverlayHotkey: () => void;

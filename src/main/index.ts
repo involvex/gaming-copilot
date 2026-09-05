@@ -15,7 +15,8 @@ import {
 import { autoUpdater } from "electron-updater";
 
 import type { AppConfig } from "../shared/types";
-import { ProviderManager } from "./ai-providers";
+import type { ProviderManager } from "./ai-providers";
+import { initProviders, updateAutoStart } from "./app-helpers";
 import { resizeImage, smartCapture } from "./capture";
 import { initChatStore, initConfig, setConfigValue } from "./config";
 import { registerIpcHandlers } from "./ipc";
@@ -172,11 +173,6 @@ function createOverlayWindow(): void {
 
   overlayWindow.webContents.on("will-navigate", (e) => e.preventDefault());
   overlayWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-}
-
-function initProviders(): void {
-  providerManager = new ProviderManager(appConfig);
-  logger.info("Providers", `Initialized with active: ${appConfig.activeProvider}`);
 }
 
 async function loadSecureKeys(): Promise<void> {
@@ -425,39 +421,32 @@ function createTray(): void {
   logger.info("Tray", "System tray created");
 }
 
-function updateAutoStart(): void {
-  app.setLoginItemSettings({
-    openAtLogin: appConfig.autoStart,
-    path: app.isPackaged ? process.execPath : undefined,
-  });
-  logger.info("AutoStart", `Auto-start set to: ${appConfig.autoStart}`);
-}
-
 app.whenReady().then(async () => {
   logger.info("App", `Starting Gaming Copilot v${app.getVersion()}`);
   createMainWindow();
   createOverlayWindow();
   await loadSecureKeys();
-  initProviders();
+  providerManager = initProviders(appConfig);
   initChatStore();
   registerHotkey();
   registerOverlayHotkey();
   createTray();
-  updateAutoStart();
+  updateAutoStart(appConfig);
 
   registerIpcHandlers({
     appConfig,
     mainWindow,
     overlayWindow,
     providerManager,
+    setProviderManager: (manager) => {
+      providerManager = manager;
+    },
     memreaderPlugin,
     autoUpdater,
     emitConfigUpdated,
     setConfigValue,
-    initProviders,
     toggleOverlay,
     repositionOverlay,
-    updateAutoStart,
     registerHotkey,
     unregisterHotkey,
     registerOverlayHotkey,

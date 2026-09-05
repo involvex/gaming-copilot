@@ -1,4 +1,5 @@
 import { ipcMain } from "electron";
+import { initProviders, updateAutoStart } from "../app-helpers";
 import { setConfigValue } from "../config";
 import {
   booleanSchema,
@@ -122,7 +123,7 @@ export function registerConfigHandlers(ctx: IpcContext): void {
       }
     }
 
-    ctx.initProviders();
+    ctx.setProviderManager(initProviders(ctx.appConfig));
     ctx.emitConfigUpdated();
   });
 
@@ -142,7 +143,7 @@ export function registerConfigHandlers(ctx: IpcContext): void {
     }
 
     setConfigValue("providers", ctx.appConfig.providers);
-    ctx.initProviders();
+    ctx.providerManager = initProviders(ctx.appConfig);
     ctx.emitConfigUpdated();
   });
 
@@ -208,7 +209,7 @@ export function registerConfigHandlers(ctx: IpcContext): void {
     const parsed = validateIPC(booleanSchema, enable);
     ctx.appConfig.autoStart = parsed;
     setConfigValue("autoStart", parsed);
-    ctx.updateAutoStart();
+    updateAutoStart(ctx.appConfig);
     ctx.emitConfigUpdated();
   });
 
