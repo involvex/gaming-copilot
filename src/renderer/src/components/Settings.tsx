@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { AppTheme } from "../../../shared/constants";
+import { APP_THEME_LABELS, APP_THEME_VALUES } from "../../../shared/constants";
 import GameDocs from "./GameDocs";
 import OverlayStyle from "./OverlayStyle";
 import PromptEditor from "./PromptEditor";
@@ -860,12 +861,11 @@ function GeneralConfig({
           value={theme}
           onChange={(e) => onThemeChange(e.target.value as typeof theme)}
         >
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-          <option value="system">System (Auto-detect)</option>
-          <option value="hacker">Hacker (Matrix)</option>
-          <option value="monokai">Monokai</option>
-          <option value="gamer">Gamer (Neon)</option>
+          {APP_THEME_VALUES.map((value) => (
+            <option key={value} value={value}>
+              {APP_THEME_LABELS[value]}
+            </option>
+          ))}
         </Select>
       </div>
 

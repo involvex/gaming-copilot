@@ -59,7 +59,29 @@ export const OPENAI_COMPAT_PRESETS: Record<string, { baseUrl: string; displayNam
 
 export const OVERLAY_POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"] as const;
 
-export type AppTheme = "dark" | "light" | "system" | "hacker" | "monokai" | "gamer";
+/**
+ * Single source of truth for app themes. To add a theme: append its id here,
+ * add its colors to {@link THEME_COLORS}, and add a `:root.theme-<id>` block
+ * in `globals.css` — schema validation, the theme class list, and the
+ * settings selector all derive from this tuple automatically.
+ */
+export const APP_THEME_VALUES = ["dark", "light", "system", "hacker", "monokai", "gamer"] as const;
+
+export type AppTheme = (typeof APP_THEME_VALUES)[number];
+
+/** Concrete `<html>` classes (excludes `system`, which resolves to dark/light). */
+export const THEME_CLASS_NAMES = APP_THEME_VALUES.filter((t) => t !== "system").map(
+  (t) => `theme-${t}`,
+);
+
+export const APP_THEME_LABELS: Record<AppTheme, string> = {
+  dark: "Dark",
+  light: "Light",
+  system: "System (Auto-detect)",
+  hacker: "Hacker (Matrix)",
+  monokai: "Monokai",
+  gamer: "Gamer (Neon)",
+};
 
 export interface ThemeColors {
   bg: string;

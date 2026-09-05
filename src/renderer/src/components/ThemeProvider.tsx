@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import type { AppTheme } from "../../../shared/constants";
+import { THEME_CLASS_NAMES } from "../../../shared/constants";
 
 export interface ThemeContextValue {
   theme: AppTheme;
@@ -21,7 +22,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const resolved = t === "system" ? resolveSystemTheme() : t;
     setResolvedTheme(resolved);
     const docEl = document.documentElement.classList;
-    docEl.remove("theme-dark", "theme-light", "theme-hacker", "theme-monokai", "theme-gamer");
+    docEl.remove(...THEME_CLASS_NAMES);
     docEl.add(`theme-${resolved}`);
   });
 

@@ -29,10 +29,13 @@
 
 /* ==========================================================================
    Theme: Dark (default)
+   Dark variables live on plain `:root` so new themes never need to be
+   added to a `:not()` chain — each `:root.theme-<id>` block below simply
+   overrides these defaults.
    ========================================================================== */
 
-:root.theme-dark,
-:root:not(.theme-light):not(.theme-hacker):not(.theme-monokai):not(.theme-gamer) {
+:root,
+:root.theme-dark {
   --color-bg: #0f172a;
   --color-surface: #1e293b;
   --color-surface-hover: #334155;
