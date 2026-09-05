@@ -21,7 +21,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const resolved = t === "system" ? resolveSystemTheme() : t;
     setResolvedTheme(resolved);
     const docEl = document.documentElement.classList;
-    docEl.remove("theme-dark", "theme-light", "theme-hacker", "theme-monokai");
+    docEl.remove("theme-dark", "theme-light", "theme-hacker", "theme-monokai", "theme-gamer");
     docEl.add(`theme-${resolved}`);
   });
 

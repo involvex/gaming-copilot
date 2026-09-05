@@ -32,7 +32,7 @@
    ========================================================================== */
 
 :root.theme-dark,
-:root:not(.theme-light):not(.theme-hacker):not(.theme-monokai) {
+:root:not(.theme-light):not(.theme-hacker):not(.theme-monokai):not(.theme-gamer) {
   --color-bg: #0f172a;
   --color-surface: #1e293b;
   --color-surface-hover: #334155;
@@ -129,6 +129,115 @@
   --color-warning: #fd971f;
   --color-error: #f92672;
   --color-text-inverse: #272822;
+}
+
+/* ==========================================================================
+   Theme: Gamer (neon cyber)
+   ========================================================================== */
+
+:root.theme-gamer {
+  --color-bg: #060a17;
+  --color-surface: #0b1226;
+  --color-surface-hover: #141d38;
+  --color-text: #e6f6ff;
+  --color-text-secondary: #8fa3c7;
+  --color-text-tertiary: #54648a;
+  --color-border: #1c2a52;
+  --color-accent: #00e5ff;
+  --color-accent-hover: #00b8d4;
+  --color-card-bg: #0b1226;
+  --color-card-border: #1c2a52;
+  --color-input-bg: #0b1226;
+  --color-input-border: #274069;
+  --color-code: #7df9ff;
+  --color-success: #39ff88;
+  --color-warning: #ffb300;
+  --color-error: #ff2d55;
+  --color-text-inverse: #04121a;
+
+  /* Gamer-specific neon glow effects */
+  --glow-accent: 0 0 10px rgba(0, 229, 255, 0.55), 0 0 2px rgba(0, 229, 255, 0.9);
+  --glow-danger: 0 0 10px rgba(255, 45, 85, 0.5);
+}
+
+/* ==========================================================================
+   Custom window title bar (frameless window chrome)
+   ========================================================================== */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 2.75rem;
+  padding-left: 0.75rem;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  user-select: none;
+  flex-shrink: 0;
+}
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+.titlebar-nodrag {
+  -webkit-app-region: no-drag;
+}
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.titlebar-brand svg {
+  color: var(--color-accent);
+}
+.titlebar-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+.titlebar-nav-item {
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+.titlebar-nav-item:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-hover);
+}
+.titlebar-nav-item-active {
+  background-color: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+.titlebar-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+.titlebar-control {
+  width: 2.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast);
+}
+.titlebar-control:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+}
+.titlebar-control-close:hover {
+  background-color: #e81123;
+  color: #ffffff;
 }
 
 /* ==========================================================================
@@ -447,6 +556,52 @@ body {
 .theme-hacker .btn-primary,
 .theme-hacker .btn-primary:hover {
   box-shadow: var(--glow-accent);
+}
+
+/* ==========================================================================
+   Gamer theme accents (navbar, borders, buttons)
+   ========================================================================== */
+
+.theme-gamer .titlebar {
+  background: linear-gradient(180deg, #0d1530 0%, #0b1226 100%);
+  border-bottom: 1px solid var(--color-accent);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+}
+.theme-gamer .titlebar-brand {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+}
+.theme-gamer .titlebar-nav-item-active {
+  box-shadow: var(--glow-accent);
+}
+.theme-gamer .btn-primary {
+  background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+  box-shadow: var(--glow-accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.theme-gamer .btn-danger {
+  box-shadow: var(--glow-danger);
+}
+.theme-gamer .card {
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.06),
+    0 8px 30px rgba(0, 0, 0, 0.45);
+}
+.theme-gamer .input:focus,
+.theme-gamer .input-bordered:focus,
+.theme-gamer .textarea:focus {
+  box-shadow:
+    0 0 0 1px var(--color-accent),
+    var(--glow-accent);
+}
+.theme-gamer .section-heading {
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+}
+.theme-gamer .kbd {
+  border: 1px solid var(--color-input-border);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.25);
 }
 
 /* ==========================================================================

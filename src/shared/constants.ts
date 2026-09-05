@@ -59,7 +59,7 @@ export const OPENAI_COMPAT_PRESETS: Record<string, { baseUrl: string; displayNam
 
 export const OVERLAY_POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"] as const;
 
-export type AppTheme = "dark" | "light" | "system" | "hacker" | "monokai";
+export type AppTheme = "dark" | "light" | "system" | "hacker" | "monokai" | "gamer";
 
 export interface ThemeColors {
   bg: string;
@@ -157,6 +157,25 @@ export const THEME_COLORS: Record<Exclude<AppTheme, "system">, ThemeColors> = {
     success: "#8fc63f",
     warning: "#fd971f",
     error: "#f92672",
+  },
+  gamer: {
+    bg: "#060a17",
+    surface: "#0b1226",
+    surfaceHover: "#141d38",
+    text: "#e6f6ff",
+    textSecondary: "#8fa3c7",
+    textTertiary: "#54648a",
+    border: "#1c2a52",
+    accent: "#00e5ff",
+    accentHover: "#00b8d4",
+    cardBg: "#0b1226",
+    cardBorder: "#1c2a52",
+    inputBg: "#0b1226",
+    inputBorder: "#274069",
+    code: "#7df9ff",
+    success: "#39ff88",
+    warning: "#ffb300",
+    error: "#ff2d55",
   },
 };
 

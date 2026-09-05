@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import type { AppTheme } from "../../../shared/constants";
 import GameDocs from "./GameDocs";
 import OverlayStyle from "./OverlayStyle";
 import PromptEditor from "./PromptEditor";
 import ProviderConfig from "./ProviderConfig";
 import ScreenshotGallery from "./ScreenshotGallery";
 import { useTheme } from "./ThemeProvider";
+import TitleBar from "./TitleBar";
 import TTSConfig from "./TTSConfig";
 import { Button, Card, Input, Select, Toggle } from "./ui";
 
@@ -215,78 +217,68 @@ export default function Settings() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] p-4 sm:p-6">
-      <div className="container mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              window.location.hash = "#/";
-            }}
-          >
-            Back to App
-          </Button>
-        </div>
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
+      <TitleBar />
+      <div className="p-4 sm:p-6">
+        <div className="container mx-auto">
+          <div className="mb-6">
+            <label htmlFor="settings-search" className="sr-only">
+              Search settings
+            </label>
+            <Input
+              id="settings-search"
+              type="text"
+              placeholder="Search settings..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
 
-        <div className="mb-6">
-          <label htmlFor="settings-search" className="sr-only">
-            Search settings
-          </label>
-          <Input
-            id="settings-search"
-            type="text"
-            placeholder="Search settings..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+          <div className="flex gap-1 mb-6 bg-[var(--color-surface)] rounded-lg p-1 flex-wrap overflow-x-auto">
+            {filteredTabs.length === 0 && search ? (
+              <div className="w-full text-center py-4 text-[var(--color-text-tertiary)] text-sm">
+                No settings found matching "{search}"
+              </div>
+            ) : (
+              filteredTabs.map((tab) => {
+                const matchesSearch =
+                  search &&
+                  (tab.label.toLowerCase().includes(search.toLowerCase()) ||
+                    tab.keywords.some((kw) => kw.toLowerCase().includes(search.toLowerCase())));
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (search) setSearch("");
+                    }}
+                    className={`relative flex-1 min-w-[120px] px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    } ${matchesSearch ? "ring-2 ring-[var(--color-accent)]/50" : ""}`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })
+            )}
+          </div>
 
-        <div className="flex gap-1 mb-6 bg-[var(--color-surface)] rounded-lg p-1 flex-wrap overflow-x-auto">
-          {filteredTabs.length === 0 && search ? (
-            <div className="w-full text-center py-4 text-[var(--color-text-tertiary)] text-sm">
-              No settings found matching "{search}"
-            </div>
-          ) : (
-            filteredTabs.map((tab) => {
-              const matchesSearch =
-                search &&
-                (tab.label.toLowerCase().includes(search.toLowerCase()) ||
-                  tab.keywords.some((kw) => kw.toLowerCase().includes(search.toLowerCase())));
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    if (search) setSearch("");
-                  }}
-                  className={`relative flex-1 min-w-[120px] px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-[var(--color-accent)] text-white"
-                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
-                  } ${matchesSearch ? "ring-2 ring-[var(--color-accent)]/50" : ""}`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })
-          )}
+          <Card>
+            {activeTab === "providers" && <ProviderConfig config={config} />}
+            {activeTab === "capture" && <CaptureConfig config={config} />}
+            {activeTab === "overlay" && <OverlayStyle config={config} />}
+            {activeTab === "tts" && <TTSConfig config={config} />}
+            {activeTab === "prompts" && <PromptEditor config={config} />}
+            {activeTab === "games" && <GameDocs config={config} />}
+            {activeTab === "screenshots" && <ScreenshotGallery />}
+            {activeTab === "general" && (
+              <GeneralConfig config={config} theme={theme} onThemeChange={setTheme} />
+            )}
+          </Card>
         </div>
-
-        <Card>
-          {activeTab === "providers" && <ProviderConfig config={config} />}
-          {activeTab === "capture" && <CaptureConfig config={config} />}
-          {activeTab === "overlay" && <OverlayStyle config={config} />}
-          {activeTab === "tts" && <TTSConfig config={config} />}
-          {activeTab === "prompts" && <PromptEditor config={config} />}
-          {activeTab === "games" && <GameDocs config={config} />}
-          {activeTab === "screenshots" && <ScreenshotGallery />}
-          {activeTab === "general" && (
-            <GeneralConfig config={config} theme={theme} onThemeChange={setTheme} />
-          )}
-        </Card>
       </div>
     </div>
   );
@@ -760,8 +752,8 @@ function GeneralConfig({
   onThemeChange,
 }: {
   config: Record<string, unknown> | null;
-  theme: "dark" | "light" | "system" | "hacker" | "monokai";
-  onThemeChange: (theme: "dark" | "light" | "system" | "hacker" | "monokai") => void;
+  theme: AppTheme;
+  onThemeChange: (theme: AppTheme) => void;
 }) {
   const [telemetry, setTelemetry] = useState<boolean>(
     ((config?.telemetry as Record<string, unknown>)?.enabled as boolean) ?? false,
@@ -873,6 +865,7 @@ function GeneralConfig({
           <option value="system">System (Auto-detect)</option>
           <option value="hacker">Hacker (Matrix)</option>
           <option value="monokai">Monokai</option>
+          <option value="gamer">Gamer (Neon)</option>
         </Select>
       </div>
 

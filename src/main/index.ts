@@ -99,6 +99,7 @@ function createMainWindow(): void {
     height: 670,
     show: false,
     autoHideMenuBar: true,
+    frame: false,
     ...(process.platform === "linux"
       ? {
           icon: nativeImage.createFromPath(resolveResourcePath("resources/icon.png")),
@@ -1461,6 +1462,23 @@ ipcMain.handle("overlay:set-css", (_event, css: unknown) => {
 ipcMain.handle("window:open-settings", () => {
   mainWindow?.show();
   mainWindow?.webContents.send("navigate:settings");
+});
+
+ipcMain.handle("window:minimize", () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.handle("window:toggle-maximize", () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
+
+ipcMain.handle("window:close", () => {
+  mainWindow?.close();
 });
 
 // IPC Handlers — Plugins

@@ -68,6 +68,9 @@ src/
 | `plugin:memreader:stop` | R → M | Stop memreader sidecar |
 | `plugin:memreader:state` | R → M | Get game state |
 | `window:open-settings` | R → M | Open settings window |
+| `window:minimize` | R → M | Minimize main window (custom title bar) |
+| `window:toggle-maximize` | R → M | Toggle main window maximize (custom title bar) |
+| `window:close` | R → M | Close main window (custom title bar) |
 | `overlay:data` | M → R | Push text to overlay |
 | `capture:result` | M → R | Push screenshot to renderer |
 | `navigate:settings` | M → R | Navigate to settings tab |

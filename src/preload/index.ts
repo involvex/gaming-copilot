@@ -127,6 +127,9 @@ export interface ElectronAPI {
 
   // Window
   openSettings: () => Promise<void>;
+  minimizeWindow: () => Promise<void>;
+  toggleMaximizeWindow: () => Promise<void>;
+  closeWindow: () => Promise<void>;
 
   // App
   getVersion: () => Promise<string>;
@@ -268,6 +271,9 @@ const electronAPI: ElectronAPI = {
 
   // Window
   openSettings: () => ipcRenderer.invoke("window:open-settings"),
+  minimizeWindow: () => ipcRenderer.invoke("window:minimize"),
+  toggleMaximizeWindow: () => ipcRenderer.invoke("window:toggle-maximize"),
+  closeWindow: () => ipcRenderer.invoke("window:close"),
 
   // App
   getVersion: () => ipcRenderer.invoke("app:get-version"),
