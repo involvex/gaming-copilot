@@ -1,5 +1,5 @@
 import { readdir, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { extname, join, resolve } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
 import AdmZip from "adm-zip";
@@ -1204,6 +1204,15 @@ ipcMain.handle("screenshots:copy-path", async (_event, path: unknown) => {
 const tagsFilePath = (dir: string) => join(dir, "screenshot-tags.json");
 const favoritesFilePath = (dir: string) => join(dir, "screenshot-favorites.json");
 
+function resolveScreenshotPath(dir: string, filename: string): string {
+  const resolved = resolve(dir, filename);
+  const base = resolve(dir);
+  if (!resolved.startsWith(base + join("", "")) && resolved !== base) {
+    throw new Error("Invalid screenshot path");
+  }
+  return resolved;
+}
+
 async function loadTags(dir: string): Promise<Record<string, string[]>> {
   try {
     const { readFile } = await import("node:fs/promises");
@@ -1249,6 +1258,11 @@ ipcMain.handle("screenshots:set-tags", async (_event, input: unknown) => {
 ipcMain.handle("screenshots:toggle-favorite", async (_event, filename: unknown) => {
   const validName = validateIPC(z.string(), filename);
   if (!appConfig.screenshotDir) return false;
+  try {
+    resolveScreenshotPath(appConfig.screenshotDir, validName);
+  } catch {
+    return false;
+  }
   const favorites = await loadFavorites(appConfig.screenshotDir);
   favorites[validName] = !favorites[validName];
   await saveFavorites(appConfig.screenshotDir, favorites);
@@ -1274,11 +1288,12 @@ ipcMain.handle("screenshots:bulk-rename", async (_event, input: unknown) => {
     return { success: false, error: "Screenshot saving is not enabled" };
   }
   try {
-    const { rename } = await import("node:fs/promises");
+    const { rename, access } = await import("node:fs/promises");
     const results: Array<{ old: string; new: string }> = [];
+    const conflicts: string[] = [];
     for (const oldName of parsed.filenames) {
-      const oldPath = join(appConfig.screenshotDir, oldName);
-      const ext = oldName.slice(oldName.lastIndexOf("."));
+      const oldPath = resolveScreenshotPath(appConfig.screenshotDir, oldName);
+      const ext = extname(oldName);
       const base = oldName.slice(0, oldName.lastIndexOf("."));
       let newBase = base;
       if (parsed.mode === "prefix") {
@@ -1290,13 +1305,22 @@ ipcMain.handle("screenshots:bulk-rename", async (_event, input: unknown) => {
       }
       const newName = `${newBase}${ext}`;
       if (newName !== oldName) {
-        const newPath = join(appConfig.screenshotDir, newName);
-        await rename(oldPath, newPath);
-        results.push({ old: oldName, new: newName });
+        const newPath = resolveScreenshotPath(appConfig.screenshotDir, newName);
+        try {
+          await access(newPath);
+          conflicts.push(newName);
+        } catch {
+          await rename(oldPath, newPath);
+          results.push({ old: oldName, new: newName });
+        }
       }
     }
     logger.info("Screenshots", `Renamed ${results.length} files`);
-    return { success: true, results };
+    return {
+      success: true,
+      results,
+      conflicts: conflicts.length > 0 ? conflicts : undefined,
+    };
   } catch (error) {
     logger.error("Screenshots", `Failed to rename: ${error}`);
     return {
@@ -1309,8 +1333,8 @@ ipcMain.handle("screenshots:bulk-rename", async (_event, input: unknown) => {
 ipcMain.handle("screenshots:get-metadata", async (_event, filename: unknown) => {
   const validName = validateIPC(z.string(), filename);
   if (!appConfig.screenshotDir) return null;
-  const filepath = join(appConfig.screenshotDir, validName);
   try {
+    const filepath = resolveScreenshotPath(appConfig.screenshotDir, validName);
     const { stat } = await import("node:fs/promises");
     const info = await stat(filepath);
     const nativeImage = (await import("electron")).nativeImage;
@@ -1324,7 +1348,7 @@ ipcMain.handle("screenshots:get-metadata", async (_event, filename: unknown) => 
       height: size.height,
       createdAt: info.birthtimeMs,
       modifiedAt: info.mtimeMs,
-      format: validName.split(".").pop()?.toUpperCase() || "UNKNOWN",
+      format: extname(validName).slice(1).toUpperCase() || "UNKNOWN",
     };
   } catch (error) {
     logger.error("Screenshots", `Failed to get metadata: ${error}`);

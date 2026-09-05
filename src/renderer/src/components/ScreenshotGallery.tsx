@@ -51,6 +51,7 @@ export default function ScreenshotGallery() {
   const [renamePattern, setRenamePattern] = useState<"prefix" | "suffix" | "replace">("prefix");
   const [renameValue, setRenameValue] = useState("");
   const [renameFind, setRenameFind] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<{
     filename: string;
     path: string;
@@ -62,8 +63,11 @@ export default function ScreenshotGallery() {
     format: string;
   } | null>(null);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
+  const renameDialogRef = useRef<HTMLDivElement>(null);
+  const renameFirstInputRef = useRef<HTMLInputElement>(null);
 
-  const loadScreenshots = async () => {
+  const loadScreenshots = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -81,7 +85,7 @@ export default function ScreenshotGallery() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadScreenshots();
@@ -108,6 +112,10 @@ export default function ScreenshotGallery() {
     setShowFavoritesOnly(false);
     resetPage();
   }, [resetPage]);
+
+  useEffect(() => {
+    resetPage();
+  }, [showFavoritesOnly, resetPage]);
 
   const filtered = allScreenshots.filter((shot) => {
     if (showFavoritesOnly && !favorites[shot.filename]) return false;
@@ -341,6 +349,7 @@ export default function ScreenshotGallery() {
 
   const handleBulkRename = async () => {
     if (selection.size === 0 || !renameValue.trim()) return;
+    setRenameError(null);
     const filenames = Array.from(selection);
     const result = await window.electronAPI.bulkRename(
       filenames,
@@ -349,23 +358,40 @@ export default function ScreenshotGallery() {
       renamePattern === "replace" ? renameFind : undefined,
     );
     if (result.success) {
-      alert(`Renamed ${result.results?.length || 0} files`);
+      const renamed = result.results?.length || 0;
+      const conflicts = result.conflicts?.length || 0;
+      let message = `Renamed ${renamed} file${renamed !== 1 ? "s" : ""}`;
+      if (conflicts > 0) {
+        message += ` (${conflicts} skipped due to name conflict)`;
+      }
+      setMetadataError(message);
       setRenameMode(false);
       setRenameValue("");
       setRenameFind("");
       await loadScreenshots();
     } else {
-      alert(`Rename failed: ${result.error}`);
+      setRenameError(result.error || "Rename failed");
     }
   };
 
+  useEffect(() => {
+    if (renameMode && renameFirstInputRef.current) {
+      renameFirstInputRef.current.focus();
+    }
+  }, [renameMode]);
+
   const loadMetadata = async (filename: string) => {
     setLoadingMetadata(true);
+    setMetadataError(null);
     try {
       const data = await window.electronAPI.getMetadata(filename);
       setMetadata(data);
+      if (!data) {
+        setMetadataError("Failed to load metadata for this file");
+      }
     } catch {
       setMetadata(null);
+      setMetadataError("Failed to load metadata for this file");
     } finally {
       setLoadingMetadata(false);
     }
@@ -384,7 +410,14 @@ export default function ScreenshotGallery() {
               <Button variant="secondary" size="sm" onClick={handleExportZip} disabled={exporting}>
                 {exporting ? "Exporting..." : "Export ZIP"}
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => setRenameMode(true)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setRenameMode(true);
+                  setRenameError(null);
+                }}
+              >
                 Rename Selected ({selection.size})
               </Button>
             </>
@@ -848,6 +881,11 @@ export default function ScreenshotGallery() {
                 </div>
               </div>
             )}
+            {metadataError && (
+              <div className="absolute bottom-16 left-4 bg-red-900/80 text-red-200 text-xs rounded-lg p-3 max-w-xs">
+                {metadataError}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -960,18 +998,26 @@ export default function ScreenshotGallery() {
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setRenameMode(false);
+            } else if (e.key === "Tab") {
+              e.preventDefault();
+              renameFirstInputRef.current?.focus();
             }
           }}
         >
-          <button
-            type="button"
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
+          <div
+            ref={renameDialogRef}
+            tabIndex={-1}
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-md w-full mx-4 pointer-events-auto"
           >
             <h3 className="text-lg font-semibold mb-4">Bulk Rename</h3>
             <p className="text-sm text-[var(--color-text-secondary)] mb-4">
               Renaming {selection.size} selected file(s).
             </p>
+            {renameError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                {renameError}
+              </div>
+            )}
             <div className="space-y-3">
               <div>
                 <label htmlFor="rename-mode" className="block text-sm font-medium mb-1">
@@ -1036,7 +1082,7 @@ export default function ScreenshotGallery() {
                 Cancel
               </Button>
             </div>
-          </button>
+          </div>
         </div>
       )}
     </Card>
