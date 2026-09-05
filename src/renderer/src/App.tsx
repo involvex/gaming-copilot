@@ -4,6 +4,7 @@ import Overlay from "./components/Overlay";
 import RegionSelector from "./components/RegionSelector";
 import Settings from "./components/Settings";
 import { Button, Card } from "./components/ui";
+import { ToastProvider } from "./components/ui/Toast";
 
 function MainWindow() {
   const [showRegionSelector, setShowRegionSelector] = useState(false);
@@ -145,5 +146,9 @@ export default function App() {
 
   if (route === "#/overlay") return <Overlay />;
   if (route === "#/settings") return <Settings />;
-  return <MainWindow />;
+  return (
+    <ToastProvider>
+      <MainWindow />
+    </ToastProvider>
+  );
 }

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { OPENAI_COMPAT_PRESETS } from "../../../shared/constants";
 import { Button, Input, Select } from "./ui";
+import { useToast } from "./ui/Toast";
 
 export default function ProviderConfig({ config }: { config: Record<string, unknown> | null }) {
+  const toast = useToast();
   const providers = (config?.providers as Record<string, unknown>) || {};
   const activeProvider = (config?.activeProvider as string) || "gemini";
   const fallbackProvider = (config?.fallbackProvider as string) || null;
@@ -125,7 +127,10 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
       const models = await window.electronAPI.fetchModels(name);
       setModels(models);
     } catch (error) {
-      alert(`Failed to fetch models: ${error instanceof Error ? error.message : String(error)}`);
+      toast.showToast(
+        `Failed to fetch models: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
     } finally {
       setFetching(false);
     }
@@ -135,7 +140,10 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     setTesting(name);
     const ok = await window.electronAPI.testProvider(name);
     setTesting(null);
-    alert(ok ? `${name} connected successfully!` : `${name} failed. Check your API key.`);
+    toast.showToast(
+      ok ? `${name} connected successfully!` : `${name} failed. Check your API key.`,
+      ok ? "success" : "error",
+    );
   };
 
   const handleTestAll = async () => {

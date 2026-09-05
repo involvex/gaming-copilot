@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card } from "./ui";
+import { useToast } from "./ui/Toast";
 
 interface ScreenshotEntry {
   filename: string;
@@ -14,6 +15,7 @@ type SortDir = "asc" | "desc";
 const PAGE_SIZE = 20;
 
 export default function ScreenshotGallery() {
+  const toast = useToast();
   const [allScreenshots, setAllScreenshots] = useState<ScreenshotEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
@@ -63,7 +65,6 @@ export default function ScreenshotGallery() {
     format: string;
   } | null>(null);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
-  const [metadataError, setMetadataError] = useState<string | null>(null);
   const renameDialogRef = useRef<HTMLDivElement>(null);
   const renameFirstInputRef = useRef<HTMLInputElement>(null);
 
@@ -205,12 +206,15 @@ export default function ScreenshotGallery() {
       const filenames = Array.from(selection);
       const result = await window.electronAPI.exportZip(filenames, `screenshots-${Date.now()}.zip`);
       if (result.success) {
-        alert(`Exported ${filenames.length} screenshots to:\n${result.path}`);
+        toast.showToast(`Exported ${filenames.length} screenshots to: ${result.path}`, "success");
       } else {
-        alert(`Export failed: ${result.error}`);
+        toast.showToast(`Export failed: ${result.error}`, "error");
       }
     } catch (err) {
-      alert(`Export failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.showToast(
+        `Export failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        "error",
+      );
     } finally {
       setExporting(false);
     }
@@ -364,7 +368,7 @@ export default function ScreenshotGallery() {
       if (conflicts > 0) {
         message += ` (${conflicts} skipped due to name conflict)`;
       }
-      setMetadataError(message);
+      toast.showToast(message, "success");
       setRenameMode(false);
       setRenameValue("");
       setRenameFind("");
@@ -382,16 +386,15 @@ export default function ScreenshotGallery() {
 
   const loadMetadata = async (filename: string) => {
     setLoadingMetadata(true);
-    setMetadataError(null);
     try {
       const data = await window.electronAPI.getMetadata(filename);
       setMetadata(data);
       if (!data) {
-        setMetadataError("Failed to load metadata for this file");
+        toast.showToast("Failed to load metadata for this file", "error");
       }
     } catch {
       setMetadata(null);
-      setMetadataError("Failed to load metadata for this file");
+      toast.showToast("Failed to load metadata for this file", "error");
     } finally {
       setLoadingMetadata(false);
     }
@@ -879,11 +882,6 @@ export default function ScreenshotGallery() {
                   <div>Created: {new Date(metadata.createdAt).toLocaleString()}</div>
                   <div>Modified: {new Date(metadata.modifiedAt).toLocaleString()}</div>
                 </div>
-              </div>
-            )}
-            {metadataError && (
-              <div className="absolute bottom-16 left-4 bg-red-900/80 text-red-200 text-xs rounded-lg p-3 max-w-xs">
-                {metadataError}
               </div>
             )}
           </div>
