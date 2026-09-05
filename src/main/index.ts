@@ -1,5 +1,5 @@
 import { readdir, stat, writeFile } from "node:fs/promises";
-import { extname, join, resolve } from "node:path";
+import { extname, join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
 import AdmZip from "adm-zip";
@@ -54,6 +54,7 @@ import {
   ttsConfigSchema,
   validateIPC,
 } from "./schemas";
+import { assertBareFilename, resolveScreenshotPath, sanitizeZipName } from "./screenshot-paths";
 import { deleteKey, getAccount, retrieveKey, storeKey } from "./secure-storage";
 
 export function trackEvent(event: string, metadata?: Record<string, unknown>): void {
@@ -1150,7 +1151,13 @@ ipcMain.handle("screenshots:delete", async (_event, filepath: unknown) => {
   if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
     return false;
   }
-  const resolved = join(appConfig.screenshotDir, validPath);
+  let resolved: string;
+  try {
+    resolved = resolveScreenshotPath(appConfig.screenshotDir, validPath);
+  } catch {
+    logger.warn("Screenshots", "Rejected invalid screenshot path for delete");
+    return false;
+  }
   try {
     const { unlink } = await import("node:fs/promises");
     await unlink(resolved);
@@ -1167,7 +1174,13 @@ ipcMain.handle("screenshots:open", async (_event, filepath: unknown) => {
   if (!appConfig.saveScreenshots || !appConfig.screenshotDir) {
     return false;
   }
-  const resolved = join(appConfig.screenshotDir, validPath);
+  let resolved: string;
+  try {
+    resolved = resolveScreenshotPath(appConfig.screenshotDir, validPath);
+  } catch {
+    logger.warn("Screenshots", "Rejected invalid screenshot path for open");
+    return false;
+  }
   try {
     await shell.openPath(resolved);
     return true;
@@ -1204,15 +1217,6 @@ ipcMain.handle("screenshots:copy-path", async (_event, path: unknown) => {
 
 const tagsFilePath = (dir: string) => join(dir, "screenshot-tags.json");
 const favoritesFilePath = (dir: string) => join(dir, "screenshot-favorites.json");
-
-function resolveScreenshotPath(dir: string, filename: string): string {
-  const resolved = resolve(dir, filename);
-  const base = resolve(dir);
-  if (!resolved.startsWith(base + join("", "")) && resolved !== base) {
-    throw new Error("Invalid screenshot path");
-  }
-  return resolved;
-}
 
 async function loadTags(dir: string): Promise<Record<string, string[]>> {
   try {
@@ -1360,8 +1364,8 @@ ipcMain.handle("screenshots:get-metadata", async (_event, filename: unknown) => 
 ipcMain.handle("screenshots:export-zip", async (_event, input: unknown) => {
   const parsed = validateIPC(
     z.object({
-      filenames: z.array(z.string()),
-      zipName: z.string().default("screenshots-export.zip"),
+      filenames: z.array(z.string().min(1).max(255)).min(1).max(1000),
+      zipName: z.string().min(1).max(100).default("screenshots-export.zip"),
     }),
     input,
   );
@@ -1371,10 +1375,11 @@ ipcMain.handle("screenshots:export-zip", async (_event, input: unknown) => {
   try {
     const zip = new AdmZip();
     for (const filename of parsed.filenames) {
-      const filepath = join(appConfig.screenshotDir, filename);
+      assertBareFilename(filename);
+      const filepath = resolveScreenshotPath(appConfig.screenshotDir, filename);
       zip.addLocalFile(filepath, "", filename);
     }
-    const zipPath = join(appConfig.screenshotDir, parsed.zipName);
+    const zipPath = resolveScreenshotPath(appConfig.screenshotDir, sanitizeZipName(parsed.zipName));
     zip.writeZip(zipPath);
     logger.info("Screenshots", `Exported ZIP: ${zipPath}`);
     await shell.openPath(appConfig.screenshotDir);

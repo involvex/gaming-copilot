@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { APP_THEME_VALUES } from "../shared/constants";
 import type { ChatMessage, RegionBounds } from "../shared/types";
 
 export const regionBoundsSchema = z.object({
@@ -81,7 +82,7 @@ export const exeNameSchema = z.string().min(1);
 
 export const booleanSchema = z.boolean();
 
-export const themeSchema = z.enum(["dark", "light", "system", "hacker", "monokai", "gamer"]);
+export const themeSchema = z.enum(APP_THEME_VALUES);
 
 export const chatFormatSchema = z.enum(["markdown", "json"]);
 
