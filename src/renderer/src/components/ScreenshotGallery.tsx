@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card } from "./ui";
+import { useConfirm } from "./ui/ConfirmDialog";
 import { useToast } from "./ui/Toast";
 
 interface ScreenshotEntry {
@@ -16,6 +17,7 @@ const PAGE_SIZE = 20;
 
 export default function ScreenshotGallery() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [allScreenshots, setAllScreenshots] = useState<ScreenshotEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
@@ -159,9 +161,13 @@ export default function ScreenshotGallery() {
   const hasMore = sorted.length > page;
 
   const handleDelete = async (filename: string) => {
-    if (!window.confirm(`Delete ${filename}?`)) return;
-    const ok = await window.electronAPI.deleteScreenshot(filename);
-    if (ok) {
+    const ok = await confirm({
+      message: `Delete ${filename}?`,
+      variant: "danger",
+    });
+    if (!ok) return;
+    const result = await window.electronAPI.deleteScreenshot(filename);
+    if (result) {
       setAllScreenshots((prev) => prev.filter((s) => s.filename !== filename));
       setSelection((prev) => {
         const next = new Set(prev);
@@ -180,7 +186,11 @@ export default function ScreenshotGallery() {
 
   const handleBatchDelete = async () => {
     if (selection.size === 0) return;
-    if (!window.confirm(`Delete ${selection.size} selected screenshot(s)?`)) return;
+    const ok = await confirm({
+      message: `Delete ${selection.size} selected screenshot(s)?`,
+      variant: "danger",
+    });
+    if (!ok) return;
     const toDelete = Array.from(selection);
     let deleted = 0;
     for (const filename of toDelete) {

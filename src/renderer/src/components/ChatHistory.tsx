@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ChatMessage } from "../../../shared/types";
 import { Button } from "./ui";
+import { useConfirm } from "./ui/ConfirmDialog";
 
 interface PendingRequest {
   msgId: string;
@@ -17,6 +18,7 @@ export default function ChatHistory() {
   const [pendingRequest, setPendingRequest] = useState<PendingRequest | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const confirm = useConfirm();
 
   useEffect(() => {
     window.electronAPI.loadChatHistory().then((saved) => {
@@ -145,10 +147,13 @@ export default function ChatHistory() {
   };
 
   const handleClearHistory = async () => {
-    if (window.confirm("Clear all chat history?")) {
-      await window.electronAPI.clearChatHistory();
-      setMessages([]);
-    }
+    const ok = await confirm({
+      message: "Clear all chat history?",
+      variant: "danger",
+    });
+    if (!ok) return;
+    await window.electronAPI.clearChatHistory();
+    setMessages([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

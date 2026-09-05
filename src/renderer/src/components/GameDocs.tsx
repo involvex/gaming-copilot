@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Input } from "./ui";
+import { useConfirm } from "./ui/ConfirmDialog";
 
 interface GameEntry {
   id: string;
@@ -9,6 +10,7 @@ interface GameEntry {
 }
 
 export default function GameDocs({ config }: { config: Record<string, unknown> | null }) {
+  const confirm = useConfirm();
   const [games, setGames] = useState<GameEntry[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -67,7 +69,11 @@ export default function GameDocs({ config }: { config: Record<string, unknown> |
   };
 
   const handleRemove = async (id: string) => {
-    if (!confirm(`Remove game "${games.find((g) => g.id === id)?.name}"?`)) return;
+    const ok = await confirm({
+      message: `Remove game "${games.find((g) => g.id === id)?.name}"?`,
+      variant: "danger",
+    });
+    if (!ok) return;
     await window.electronAPI.removeGame(id);
     await loadGames();
   };

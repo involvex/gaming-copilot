@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { OPENAI_COMPAT_PRESETS } from "../../../shared/constants";
 import { Button, Input, Select } from "./ui";
+import { useConfirm } from "./ui/ConfirmDialog";
 import { useToast } from "./ui/Toast";
 
 export default function ProviderConfig({ config }: { config: Record<string, unknown> | null }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const providers = (config?.providers as Record<string, unknown>) || {};
   const activeProvider = (config?.activeProvider as string) || "gemini";
   const fallbackProvider = (config?.fallbackProvider as string) || null;
@@ -182,8 +184,12 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
     setNewCustomModel("gpt-4-vision-preview");
   };
 
-  const handleRemoveCustomProvider = (name: string) => {
-    if (!confirm(`Remove custom provider "${name}"?`)) return;
+  const handleRemoveCustomProvider = async (name: string) => {
+    const ok = await confirm({
+      message: `Remove custom provider "${name}"?`,
+      variant: "danger",
+    });
+    if (!ok) return;
     window.electronAPI.removeEndpoint(name);
   };
 

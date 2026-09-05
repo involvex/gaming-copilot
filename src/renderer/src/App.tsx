@@ -4,6 +4,7 @@ import Overlay from "./components/Overlay";
 import RegionSelector from "./components/RegionSelector";
 import Settings from "./components/Settings";
 import { Button, Card } from "./components/ui";
+import { ConfirmProvider } from "./components/ui/ConfirmDialog";
 import { ToastProvider } from "./components/ui/Toast";
 
 function MainWindow() {
@@ -147,8 +148,10 @@ export default function App() {
   if (route === "#/overlay") return <Overlay />;
   if (route === "#/settings") return <Settings />;
   return (
-    <ToastProvider>
-      <MainWindow />
-    </ToastProvider>
+    <ConfirmProvider>
+      <ToastProvider>
+        <MainWindow />
+      </ToastProvider>
+    </ConfirmProvider>
   );
 }

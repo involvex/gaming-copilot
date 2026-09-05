@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_SYSTEM_PROMPT } from "../../../shared/constants";
 import { Button, Input, Textarea } from "./ui";
+import { useConfirm } from "./ui/ConfirmDialog";
 
 export default function PromptEditor({ config }: { config: Record<string, unknown> | null }) {
+  const confirm = useConfirm();
   const prompts = (config?.prompts as Record<string, unknown>) || {};
   const gameSpecificRaw = (prompts.gameSpecific as Record<string, string> | undefined) || {};
 
@@ -36,7 +38,11 @@ export default function PromptEditor({ config }: { config: Record<string, unknow
   };
 
   const handleRemoveGamePrompt = async (name: string) => {
-    if (!confirm(`Remove game-specific prompt for "${name}"?`)) return;
+    const ok = await confirm({
+      message: `Remove game-specific prompt for "${name}"?`,
+      variant: "danger",
+    });
+    if (!ok) return;
     const updated: Record<string, string> = { ...gamePrompts };
     delete updated[name];
     setGamePrompts(updated);
