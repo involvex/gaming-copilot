@@ -7,7 +7,7 @@ Instructions for AI agents working on this codebase.
 ```powershell
 cd "E:\Game\gaming-copilot\gaming-copilot"
 bun run build        # format + lint + typecheck + electron-vite build
-bun run test         # vitest run (12 files, 177 tests)
+bun run test         # vitest run (23 files, 252 tests)
 bun run package      # build Windows installer
 ```
 
@@ -74,6 +74,22 @@ src/
 | `overlay:data` | M → R | Push text to overlay |
 | `capture:result` | M → R | Push screenshot to renderer |
 | `navigate:settings` | M → R | Navigate to settings tab |
+
+## Testing IPC handlers
+
+- Main-process tests run under the Node project in `vitest.config.ts`, which loads
+  `src/main/__tests__/setup.ts` — global mocks for `electron`, `electron-store`,
+  `../logger`, and `shared/constants`. Never re-declare these `vi.mock` calls per file.
+- Import test state/helpers from `src/main/__tests__/helpers.ts`:
+  `getCapturedHandlers()`, `resetIpcTestState()`, `createTestLogger()`, `createCtx()`.
+- `beforeEach`: `vi.clearAllMocks()` + `vi.resetModules()` + `resetIpcTestState()`,
+  then `await import("../config")` → `initConfig()` (dynamic import so fresh modules
+  pick up the mocks). Test-specific mocks (e.g. `../app-helpers`) stay in the test file.
+- Why shared setup instead of a shared mock module: Vitest hoists `vi.mock` above
+  file-level bindings, so factories must only reference `vi`/`globalThis`. The setup
+  file keeps factories self-contained with state on `globalThis`; `helpers.ts` holds
+  only mock-free utilities. Prefer extracting pure logic (like `screenshot-paths.ts`)
+  so new code can be tested without the Electron mock at all.
 
 ## Common Tasks
 

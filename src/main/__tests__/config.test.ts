@@ -1,60 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatMessage } from "../../shared/types";
-
-const mockStore: Record<string, unknown> = {};
-
-vi.mock("electron-store", () => {
-  return {
-    default: class MockStore {
-      path = "/fake/path/config.json";
-      store: Record<string, unknown> = {};
-
-      constructor(opts?: { defaults?: Record<string, unknown> }) {
-        this.store = opts?.defaults ? { ...opts.defaults } : {};
-        mockStore.path = this.path;
-      }
-
-      get(key: string, defaultValue?: unknown) {
-        if (!(key in this.store)) return defaultValue;
-        return this.store[key];
-      }
-
-      set(key: string, value: unknown) {
-        this.store[key] = value;
-        mockStore[key] = value;
-      }
-    },
-  };
-});
-
-vi.mock("../logger", () => ({
-  logger: {
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    errorWithStack: vi.fn(),
-  },
-}));
-
-vi.mock("electron", () => ({
-  app: {
-    getPath: vi.fn(() => "/fake/path"),
-  },
-}));
-
-vi.mock("../../../shared/constants", () => ({
-  DEFAULT_SYSTEM_PROMPT: "You are a helpful AI assistant.",
-}));
+import { resetIpcTestState } from "./helpers";
 
 describe("config module", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
-    const keys = Object.keys(mockStore);
-    for (const key of keys) {
-      delete mockStore[key];
-    }
+    resetIpcTestState();
   });
 
   afterEach(() => {
