@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useState } from "react";
 import { Button } from "./Button";
+import { useFocusTrap } from "./useFocusTrap";
 
 export interface ConfirmOptions {
   title?: string;
@@ -45,6 +46,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     if (resolve) resolve(value);
   };
 
+  const trap = useFocusTrap<HTMLDivElement>(open);
+
   return (
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
@@ -53,6 +56,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           role="dialog"
           aria-modal="true"
           aria-label={options.title || "Confirm"}
+          ref={trap.containerRef}
+          tabIndex={-1}
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -60,6 +65,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             }
           }}
           onKeyDown={(e) => {
+            trap.onKeyDown(e);
             if (e.key === "Escape") {
               handleClose(false);
             }

@@ -10,3 +10,5 @@ export type { TextareaProps } from "./Textarea";
 export { Textarea } from "./Textarea";
 export type { ToggleProps } from "./Toggle";
 export { Toggle } from "./Toggle";
+export type { UseFocusTrapResult } from "./useFocusTrap";
+export { useFocusTrap } from "./useFocusTrap";

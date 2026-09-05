@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card } from "./ui";
+import { Button, Card, useFocusTrap } from "./ui";
 import { useConfirm } from "./ui/ConfirmDialog";
 import { useToast } from "./ui/Toast";
 
@@ -67,8 +67,9 @@ export default function ScreenshotGallery() {
     format: string;
   } | null>(null);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
-  const renameDialogRef = useRef<HTMLDivElement>(null);
-  const renameFirstInputRef = useRef<HTMLSelectElement>(null);
+  const previewTrap = useFocusTrap<HTMLDivElement>(preview !== null && compareWith === null);
+  const compareTrap = useFocusTrap<HTMLDivElement>(preview !== null && compareWith !== null);
+  const renameTrap = useFocusTrap<HTMLDivElement>(renameMode);
 
   const loadScreenshots = useCallback(async () => {
     setLoading(true);
@@ -387,12 +388,6 @@ export default function ScreenshotGallery() {
       setRenameError(result.error || "Rename failed");
     }
   };
-
-  useEffect(() => {
-    if (renameMode && renameFirstInputRef.current) {
-      renameFirstInputRef.current.focus();
-    }
-  }, [renameMode]);
 
   const loadMetadata = async (filename: string) => {
     setLoadingMetadata(true);
@@ -764,6 +759,8 @@ export default function ScreenshotGallery() {
           role="dialog"
           aria-modal="true"
           aria-label="Screenshot preview"
+          ref={previewTrap.containerRef}
+          tabIndex={-1}
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -771,6 +768,7 @@ export default function ScreenshotGallery() {
             }
           }}
           onKeyDown={(e) => {
+            previewTrap.onKeyDown(e);
             if (e.key === "Escape") {
               setPreview(null);
             }
@@ -907,6 +905,8 @@ export default function ScreenshotGallery() {
           role="dialog"
           aria-modal="true"
           aria-label="Image comparison"
+          ref={compareTrap.containerRef}
+          tabIndex={-1}
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -914,6 +914,7 @@ export default function ScreenshotGallery() {
             }
           }}
           onKeyDown={(e) => {
+            compareTrap.onKeyDown(e);
             if (e.key === "Escape") {
               closeCompare();
             }
@@ -1016,29 +1017,14 @@ export default function ScreenshotGallery() {
             }
           }}
           onKeyDown={(e) => {
+            renameTrap.onKeyDown(e);
             if (e.key === "Escape") {
               setRenameMode(false);
-            } else if (e.key === "Tab") {
-              const container = renameDialogRef.current;
-              if (!container) return;
-              const focusable = container.querySelectorAll<HTMLElement>(
-                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-              );
-              const first = focusable[0];
-              const last = focusable[focusable.length - 1];
-              if (!first || !last) return;
-              if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-              } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-              }
             }
           }}
         >
           <div
-            ref={renameDialogRef}
+            ref={renameTrap.containerRef}
             tabIndex={-1}
             className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-md w-full mx-4 pointer-events-auto"
           >
@@ -1058,7 +1044,7 @@ export default function ScreenshotGallery() {
                 </label>
                 <select
                   id="rename-mode"
-                  ref={renameFirstInputRef}
+                  ref={renameTrap.initialFocusRef}
                   value={renamePattern}
                   onChange={(e) =>
                     setRenamePattern(e.target.value as "prefix" | "suffix" | "replace")

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ChatMessage } from "../../../shared/types";
-import { Button } from "./ui";
+import { Button, useFocusTrap } from "./ui";
 import { useConfirm } from "./ui/ConfirmDialog";
 
 interface PendingRequest {
@@ -19,6 +19,7 @@ export default function ChatHistory() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const confirm = useConfirm();
+  const shortcutsTrap = useFocusTrap<HTMLDivElement>(showShortcuts);
 
   useEffect(() => {
     window.electronAPI.loadChatHistory().then((saved) => {
@@ -332,12 +333,17 @@ export default function ChatHistory() {
             }
           }}
           onKeyDown={(e) => {
+            shortcutsTrap.onKeyDown(e);
             if (e.key === "Escape") {
               setShowShortcuts(false);
             }
           }}
         >
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-md w-full mx-4">
+          <div
+            ref={shortcutsTrap.containerRef}
+            tabIndex={-1}
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 max-w-md w-full mx-4"
+          >
             <h3 className="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
