@@ -54,7 +54,14 @@ import {
   ttsConfigSchema,
   validateIPC,
 } from "./schemas";
-import { assertBareFilename, resolveScreenshotPath, sanitizeZipName } from "./screenshot-paths";
+import {
+  assertBareFilename,
+  bulkRenameFiles,
+  loadFavorites,
+  resolveScreenshotPath,
+  sanitizeZipName,
+  toggleFavorite,
+} from "./screenshot-paths";
 import { deleteKey, getAccount, retrieveKey, storeKey } from "./secure-storage";
 
 export function trackEvent(event: string, metadata?: Record<string, unknown>): void {
@@ -1216,7 +1223,6 @@ ipcMain.handle("screenshots:copy-path", async (_event, path: unknown) => {
 });
 
 const tagsFilePath = (dir: string) => join(dir, "screenshot-tags.json");
-const favoritesFilePath = (dir: string) => join(dir, "screenshot-favorites.json");
 
 async function loadTags(dir: string): Promise<Record<string, string[]>> {
   try {
@@ -1230,20 +1236,6 @@ async function loadTags(dir: string): Promise<Record<string, string[]>> {
 
 async function saveTags(dir: string, tags: Record<string, string[]>): Promise<void> {
   await writeFile(tagsFilePath(dir), JSON.stringify(tags, null, 2), "utf-8");
-}
-
-async function loadFavorites(dir: string): Promise<Record<string, boolean>> {
-  try {
-    const { readFile } = await import("node:fs/promises");
-    const data = await readFile(favoritesFilePath(dir), "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function saveFavorites(dir: string, favorites: Record<string, boolean>): Promise<void> {
-  await writeFile(favoritesFilePath(dir), JSON.stringify(favorites, null, 2), "utf-8");
 }
 
 ipcMain.handle("screenshots:get-tags", async () => {
@@ -1264,14 +1256,11 @@ ipcMain.handle("screenshots:toggle-favorite", async (_event, filename: unknown) 
   const validName = validateIPC(z.string(), filename);
   if (!appConfig.screenshotDir) return false;
   try {
-    resolveScreenshotPath(appConfig.screenshotDir, validName);
+    await toggleFavorite(appConfig.screenshotDir, validName);
+    return true;
   } catch {
     return false;
   }
-  const favorites = await loadFavorites(appConfig.screenshotDir);
-  favorites[validName] = !favorites[validName];
-  await saveFavorites(appConfig.screenshotDir, favorites);
-  return true;
 });
 
 ipcMain.handle("screenshots:get-favorites", async () => {
@@ -1293,33 +1282,7 @@ ipcMain.handle("screenshots:bulk-rename", async (_event, input: unknown) => {
     return { success: false, error: "Screenshot saving is not enabled" };
   }
   try {
-    const { rename, access } = await import("node:fs/promises");
-    const results: Array<{ old: string; new: string }> = [];
-    const conflicts: string[] = [];
-    for (const oldName of parsed.filenames) {
-      const oldPath = resolveScreenshotPath(appConfig.screenshotDir, oldName);
-      const ext = extname(oldName);
-      const base = oldName.slice(0, oldName.lastIndexOf("."));
-      let newBase = base;
-      if (parsed.mode === "prefix") {
-        newBase = `${parsed.value}${base}`;
-      } else if (parsed.mode === "suffix") {
-        newBase = `${base}${parsed.value}`;
-      } else if (parsed.mode === "replace") {
-        newBase = base.replace(parsed.find || "", parsed.value);
-      }
-      const newName = `${newBase}${ext}`;
-      if (newName !== oldName) {
-        const newPath = resolveScreenshotPath(appConfig.screenshotDir, newName);
-        try {
-          await access(newPath);
-          conflicts.push(newName);
-        } catch {
-          await rename(oldPath, newPath);
-          results.push({ old: oldName, new: newName });
-        }
-      }
-    }
+    const { results, conflicts } = await bulkRenameFiles(appConfig.screenshotDir, parsed);
     logger.info("Screenshots", `Renamed ${results.length} files`);
     return {
       success: true,
