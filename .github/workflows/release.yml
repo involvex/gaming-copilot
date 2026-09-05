@@ -35,8 +35,7 @@ jobs:
 
       - name: Lint, typecheck, test
         run: |
-          bunx biome format --check src/
-          bunx biome check src/
+          bun run lint
           bun run typecheck
           bun run test
 

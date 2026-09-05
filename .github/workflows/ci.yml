@@ -32,9 +32,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      - name: Check formatting
-        run: bunx biome format --check src/
-
       - name: Lint
         run: bunx biome check src/
 
