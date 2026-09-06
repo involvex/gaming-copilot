@@ -245,6 +245,8 @@ export default function AnnotationCanvas({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !textInput) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
         e.preventDefault();
         e.stopPropagation();
         handleSkip();
