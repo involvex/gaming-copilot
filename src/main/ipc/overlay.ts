@@ -31,11 +31,18 @@ export function registerOverlayHandlers(ctx: IpcContext): void {
     const rawCss = validateIPC(z.string(), css);
     const sanitizedCss = rawCss
       .replace(/@import\b[^;]+;?/gi, "")
-      .replace(/@font-face\b[^{]*\{[^}]*\}/gi, "")
+      .replace(/@font-face\b[^^{]*\{[^}]*\}/gi, "")
       .replace(/url\s*\([^)]*\)/gi, "url('' )");
     ctx.appConfig.overlay.customCSS = sanitizedCss;
     setConfigValue("overlay", ctx.appConfig.overlay);
     ctx.emitConfigUpdated();
     ctx.overlayWindow?.webContents.send("overlay:set-css", sanitizedCss);
+  });
+
+  ipcMain.handle("overlay:set-persistent", (_event, persistent: unknown) => {
+    const parsed = validateIPC(booleanSchema, persistent);
+    ctx.appConfig.overlay.persistent = parsed;
+    setConfigValue("overlay", ctx.appConfig.overlay);
+    ctx.emitConfigUpdated();
   });
 }

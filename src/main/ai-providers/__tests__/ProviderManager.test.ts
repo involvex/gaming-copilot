@@ -123,6 +123,7 @@ function makeConfig(providerNames: string[]): AppConfig {
     captureMode: "auto",
     saveScreenshots: false,
     screenshotDir: null,
+    lastActiveDisplayId: null,
     providers: {
       gemini: {
         apiKey: "test-key",
@@ -150,6 +151,7 @@ function makeConfig(providerNames: string[]): AppConfig {
       clickThrough: true,
       customCSS: "",
       showScreenshot: true,
+      persistent: false,
     },
     overlayCustomTheme: {
       backgroundColor: "#111827",

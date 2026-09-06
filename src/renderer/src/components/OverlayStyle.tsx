@@ -19,6 +19,7 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
   const [showScreenshot, setShowScreenshot] = useState<boolean>(
     (overlay.showScreenshot as boolean) ?? true,
   );
+  const [persistent, setPersistent] = useState<boolean>((overlay.persistent as boolean) ?? false);
   const [backgroundColor, setBackgroundColor] = useState<string>(
     (customTheme.backgroundColor as string) || "#111827",
   );
@@ -201,6 +202,17 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
         onChange={handleShowScreenshotToggle}
         label="Show Screenshot"
         description="Display a small thumbnail of the captured screenshot in the overlay during analysis."
+      />
+
+      <Toggle
+        id="overlay-persistent"
+        checked={persistent}
+        onChange={async (next) => {
+          setPersistent(next);
+          await window.electronAPI.setPersistentOverlay(next);
+        }}
+        label="Persistent Overlay"
+        description="Keep the overlay visible after analysis instead of auto-dismissing."
       />
 
       <div className="border-t border-divider pt-4">

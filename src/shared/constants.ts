@@ -10,6 +10,7 @@ export const DEFAULT_OVERLAY = {
   theme: "dark" as const,
   clickThrough: true,
   customCSS: "",
+  persistent: false,
 };
 
 export const DEFAULT_TTS = {

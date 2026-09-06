@@ -27,6 +27,19 @@ export class GeminiProvider implements AIProvider {
     return RATE_LIMITER.getInfo();
   }
 
+  async fetchModels(): Promise<string[]> {
+    try {
+      const response = await this.client.models.list();
+      const models = (response as { models?: Array<{ name?: string }> }).models ?? [];
+      return models
+        .map((m) => m.name)
+        .filter((name): name is string => typeof name === "string" && name.length > 0)
+        .sort();
+    } catch {
+      return [];
+    }
+  }
+
   async analyze(params: {
     imageBase64: string;
     mimeType: "image/png" | "image/jpeg";

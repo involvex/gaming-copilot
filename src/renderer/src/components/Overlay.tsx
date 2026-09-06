@@ -22,6 +22,7 @@ interface OverlayConfig {
   theme: "dark" | "light" | "game" | "hacker" | "monokai";
   clickThrough: boolean;
   showScreenshot: boolean;
+  persistent: boolean;
 }
 
 export default function Overlay() {
@@ -50,6 +51,7 @@ export default function Overlay() {
     theme: DEFAULT_OVERLAY.theme as OverlayConfig["theme"],
     clickThrough: DEFAULT_OVERLAY.clickThrough,
     showScreenshot: true,
+    persistent: DEFAULT_OVERLAY.persistent,
   });
   const [customTheme, setCustomTheme] = useState<OverlayCustomTheme>({
     backgroundColor: "#111827",
@@ -58,7 +60,12 @@ export default function Overlay() {
     padding: 16,
     borderColor: "#374151",
   });
+  const [persistent, setPersistent] = useState(overlayConfig.persistent);
   const loadedConfigRef = useRef<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    setPersistent(overlayConfig.persistent);
+  }, [overlayConfig.persistent]);
 
   const applyPresetIfNeeded = useCallback(
     (cfg: Record<string, unknown>) => {
@@ -100,6 +107,7 @@ export default function Overlay() {
         theme: themeName as OverlayConfig["theme"],
         clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
         showScreenshot: (overlay.showScreenshot as boolean) ?? prev.showScreenshot,
+        persistent: (overlay.persistent as boolean) ?? prev.persistent,
       }));
 
       setCustomCSS((overlay.customCSS as string) || "");
@@ -120,6 +128,7 @@ export default function Overlay() {
         theme: (overlay.theme as OverlayConfig["theme"]) || prev.theme,
         clickThrough: (overlay.clickThrough as boolean) ?? prev.clickThrough,
         showScreenshot: (overlay.showScreenshot as boolean) ?? prev.showScreenshot,
+        persistent: (overlay.persistent as boolean) ?? prev.persistent,
       }));
       setCustomCSS((overlay.customCSS as string) || "");
       const customThemeConfig = config?.overlayCustomTheme as Record<string, unknown> | undefined;
@@ -240,7 +249,7 @@ export default function Overlay() {
   }, [visible]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || overlayConfig.persistent) return;
     const timer = setTimeout(() => {
       setOpacity(0);
       stop();
@@ -254,7 +263,7 @@ export default function Overlay() {
     }, overlayConfig.duration);
 
     return () => clearTimeout(timer);
-  }, [visible, overlayConfig.duration]);
+  }, [visible, overlayConfig.duration, overlayConfig.persistent]);
 
   const getPositionClasses = () => {
     switch (overlayConfig.position) {
@@ -299,6 +308,22 @@ export default function Overlay() {
             {providerInfo.model && ` · ${providerInfo.model}`}
           </div>
         )}
+        <button
+          type="button"
+          onClick={async () => {
+            const next = !persistent;
+            setPersistent(next);
+            await window.electronAPI.setPersistentOverlay(next);
+          }}
+          className={`absolute top-2 right-2 text-xs px-2 py-1 rounded border transition-colors ${
+            persistent
+              ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
+              : "bg-transparent text-[var(--color-text-tertiary)] border-[var(--color-border)] hover:text-[var(--color-text)]"
+          }`}
+          title={persistent ? "Unpin overlay (auto-dismiss)" : "Pin overlay (stay visible)"}
+        >
+          {persistent ? "📌 Pinned" : "📌 Pin"}
+        </button>
         {screenshot && overlayConfig.showScreenshot && (
           <img
             src={screenshot}

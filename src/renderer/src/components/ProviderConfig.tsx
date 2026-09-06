@@ -24,6 +24,8 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
   const [geminiModel, setGeminiModel] = useState(
     (geminiProvider?.model as string) || "gemini-2.5-flash",
   );
+  const [geminiModels, setGeminiModels] = useState<string[]>([]);
+  const [geminiFetching, setGeminiFetching] = useState(false);
 
   const [zenKey, setZenKey] = useState((zenEndpoint?.apiKey as string) || "");
   const [zenModel, setZenModel] = useState(
@@ -271,16 +273,34 @@ export default function ProviderConfig({ config }: { config: Record<string, unkn
           >
             Model
           </label>
-          <Select
-            id="gemini-model"
-            value={geminiModel}
-            onChange={(e) => setGeminiModel(e.target.value)}
-            onBlur={handleSaveGemini}
-          >
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
-            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-          </Select>
+          <div className="flex gap-2">
+            <Select
+              id="gemini-model"
+              value={geminiModel}
+              onChange={(e) => {
+                setGeminiModel(e.target.value);
+                handleSaveGemini();
+              }}
+              className="flex-1"
+            >
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+              {geminiModels.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </Select>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleFetchModels("gemini", setGeminiModels, setGeminiFetching)}
+              disabled={!geminiKey || geminiFetching}
+            >
+              {geminiFetching ? "..." : "Fetch"}
+            </Button>
+          </div>
         </div>
         <Button
           variant="secondary"

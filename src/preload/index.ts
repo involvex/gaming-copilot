@@ -62,6 +62,8 @@ export interface ElectronAPI {
   setHotkey: (hotkey: string) => Promise<boolean>;
   setOverlayHotkey: (hotkey: string) => Promise<boolean>;
   setHotkeyEnabled: (enabled: boolean) => Promise<boolean>;
+  validateHotkey: (hotkey: string) => Promise<{ valid: boolean; conflict: boolean }>;
+  setPersistentOverlay: (persistent: boolean) => Promise<void>;
   setSetting: (key: string, value: unknown) => Promise<void>;
   setTelemetry: (enabled: boolean) => Promise<void>;
   setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") => Promise<void>;
@@ -225,6 +227,9 @@ const electronAPI: ElectronAPI = {
   setHotkey: (hotkey: string) => ipcRenderer.invoke("config:set-hotkey", hotkey),
   setOverlayHotkey: (hotkey: string) => ipcRenderer.invoke("config:set-overlay-hotkey", hotkey),
   setHotkeyEnabled: (enabled: boolean) => ipcRenderer.invoke("config:set-hotkey-enabled", enabled),
+  validateHotkey: (hotkey: string) => ipcRenderer.invoke("hotkeys:validate", hotkey),
+  setPersistentOverlay: (persistent: boolean) =>
+    ipcRenderer.invoke("overlay:set-persistent", persistent),
   setSetting: (key: string, value: unknown) => ipcRenderer.invoke("config:set-generic", key, value),
   setTelemetry: (enabled: boolean) => ipcRenderer.invoke("config:set-telemetry", enabled),
   setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") =>

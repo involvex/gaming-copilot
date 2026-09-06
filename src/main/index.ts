@@ -108,28 +108,60 @@ function createMainWindow(): void {
 const OVERLAY_WIN_WIDTH = 420;
 const OVERLAY_WIN_HEIGHT = 220;
 
-function calculateOverlayPosition(position: AppConfig["overlay"]["position"]): {
+interface DisplayBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function calculateOverlayPosition(
+  position: AppConfig["overlay"]["position"],
+  display?: DisplayBounds,
+): {
   x: number;
   y: number;
 } {
-  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+  const workArea = display ?? screen.getPrimaryDisplay().workArea;
+  const screenWidth = workArea.width;
+  const screenHeight = workArea.height;
+  const offsetX = workArea.x;
+  const offsetY = workArea.y;
   switch (position) {
     case "top-left":
-      return { x: 20, y: 20 };
+      return { x: offsetX + 20, y: offsetY + 20 };
     case "top-right":
-      return { x: screenWidth - OVERLAY_WIN_WIDTH, y: 20 };
+      return { x: offsetX + screenWidth - OVERLAY_WIN_WIDTH, y: offsetY + 20 };
     case "bottom-left":
-      return { x: 20, y: screenHeight - OVERLAY_WIN_HEIGHT };
+      return {
+        x: offsetX + 20,
+        y: offsetY + screenHeight - OVERLAY_WIN_HEIGHT,
+      };
     default:
       return {
-        x: screenWidth - OVERLAY_WIN_WIDTH,
-        y: screenHeight - OVERLAY_WIN_HEIGHT,
+        x: offsetX + screenWidth - OVERLAY_WIN_WIDTH,
+        y: offsetY + screenHeight - OVERLAY_WIN_HEIGHT,
       };
   }
 }
 
+function getDisplayBounds(displayId: string): DisplayBounds | undefined {
+  const displays = screen.getAllDisplays();
+  const display = displays.find((d) => String(d.id) === displayId);
+  if (!display) return undefined;
+  return {
+    x: display.workArea.x,
+    y: display.workArea.y,
+    width: display.workArea.width,
+    height: display.workArea.height,
+  };
+}
+
 function createOverlayWindow(): void {
-  const { x, y } = calculateOverlayPosition(appConfig.overlay.position);
+  const displayBounds = appConfig.lastActiveDisplayId
+    ? getDisplayBounds(appConfig.lastActiveDisplayId)
+    : undefined;
+  const { x, y } = calculateOverlayPosition(appConfig.overlay.position, displayBounds);
 
   overlayWindow = new BrowserWindow({
     width: 400,
@@ -215,6 +247,10 @@ function registerHotkey(): void {
     if (!result) {
       logger.warn("Hotkey", "No capture result");
       return;
+    }
+
+    if (result.displayId) {
+      appConfig.lastActiveDisplayId = result.displayId;
     }
 
     const resizedBuffer = resizeImage(
@@ -354,7 +390,10 @@ function toggleOverlay(): void {
 
 function repositionOverlay(): void {
   if (!overlayWindow) return;
-  const { x, y } = calculateOverlayPosition(appConfig.overlay.position);
+  const displayBounds = appConfig.lastActiveDisplayId
+    ? getDisplayBounds(appConfig.lastActiveDisplayId)
+    : undefined;
+  const { x, y } = calculateOverlayPosition(appConfig.overlay.position, displayBounds);
   overlayWindow.setPosition(x, y);
 }
 

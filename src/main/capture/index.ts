@@ -8,6 +8,7 @@ export interface CaptureResult {
   height: number;
   timestamp: number;
   format: "png" | "jpeg";
+  displayId?: string;
 }
 
 export interface RegionBounds {
@@ -123,6 +124,7 @@ export async function captureWindowByExe(
       height: thumbnail.getSize().height,
       timestamp: Date.now(),
       format,
+      displayId: source.display_id,
     };
   }
 
@@ -157,6 +159,7 @@ export async function captureFullScreen(
     height: thumbnail.getSize().height,
     timestamp: Date.now(),
     format,
+    displayId: screen.display_id,
   };
 }
 

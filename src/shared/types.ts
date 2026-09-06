@@ -89,6 +89,9 @@ export interface AppConfig {
   saveScreenshots: boolean;
   screenshotDir: string | null;
 
+  // Overlay display tracking
+  lastActiveDisplayId: string | null;
+
   // Providers
   providers: {
     gemini?: {
@@ -119,6 +122,7 @@ export interface AppConfig {
     clickThrough: boolean;
     customCSS: string;
     showScreenshot: boolean;
+    persistent: boolean;
   };
 
   // Overlay Custom Theme

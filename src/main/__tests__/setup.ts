@@ -131,5 +131,11 @@ vi.mock("electron", () => {
     screen: {
       getAllDisplays: vi.fn(() => []),
     },
+    globalShortcut: {
+      register: vi.fn(() => true),
+      unregister: vi.fn(),
+      unregisterAll: vi.fn(),
+      isRegistered: vi.fn(() => false),
+    },
   };
 });

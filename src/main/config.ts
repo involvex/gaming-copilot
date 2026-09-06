@@ -203,6 +203,7 @@ function getDefaultConfig(): AppConfig {
     captureMode: "auto",
     saveScreenshots: false,
     screenshotDir: null,
+    lastActiveDisplayId: null,
     providers: {},
     activeProvider: "gemini",
     fallbackProvider: null,
@@ -216,6 +217,7 @@ function getDefaultConfig(): AppConfig {
       clickThrough: true,
       customCSS: "",
       showScreenshot: true,
+      persistent: false,
     },
     overlayCustomTheme: {
       backgroundColor: "#111827",

@@ -5,6 +5,7 @@ import { registerChatHandlers } from "./chat";
 import { registerConfigHandlers } from "./config";
 import type { IpcContext } from "./context";
 import { registerGamesHandlers } from "./games";
+import { registerHotkeyHandlers } from "./hotkeys";
 import { registerOverlayHandlers } from "./overlay";
 import { registerPluginHandlers } from "./plugins";
 import { registerScreenshotHandlers } from "./screenshots";
@@ -21,4 +22,5 @@ export function registerIpcHandlers(ctx: IpcContext): void {
   registerWindowHandlers(ctx);
   registerPluginHandlers(ctx);
   registerAppHandlers(ctx);
+  registerHotkeyHandlers();
 }

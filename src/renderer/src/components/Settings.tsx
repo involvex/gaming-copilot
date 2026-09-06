@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AppTheme } from "../../../shared/constants";
 import { APP_THEME_LABELS, APP_THEME_VALUES } from "../../../shared/constants";
 import GameDocs from "./GameDocs";
+import HotkeyRecorder from "./HotkeyRecorder";
 import OverlayStyle from "./OverlayStyle";
 import PromptEditor from "./PromptEditor";
 import ProviderConfig from "./ProviderConfig";
@@ -302,7 +303,6 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   const [maxImageWidth, setMaxImageWidth] = useState<number>(
     (config?.maxImageWidth as number) || 1024,
   );
-  const [hotkeyInput, setHotkeyInput] = useState("");
   const [ocrEnabled, setOcrEnabled] = useState<boolean>(
     ((config?.ocr as Record<string, unknown>)?.enabled as boolean) ?? true,
   );
@@ -388,27 +388,6 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
     await window.electronAPI.setHotkeyEnabled(next);
   };
 
-  const handleHotkeyChange = async () => {
-    if (hotkeyInput.trim()) {
-      const ok = await window.electronAPI.setHotkey(hotkeyInput.trim());
-      if (ok) {
-        setHotkey(hotkeyInput.trim());
-        setHotkeyInput("");
-      }
-    }
-  };
-
-  const [overlayHotkeyInput, setOverlayHotkeyInput] = useState("");
-  const handleOverlayHotkeyChange = async () => {
-    if (overlayHotkeyInput.trim()) {
-      const ok = await window.electronAPI.setOverlayHotkey(overlayHotkeyInput.trim());
-      if (ok) {
-        setOverlayHotkey(overlayHotkeyInput.trim());
-        setOverlayHotkeyInput("");
-      }
-    }
-  };
-
   const handleSaveScreenshotsToggle = async (next: boolean) => {
     setSaveScreenshots(next);
     if (next && !screenshotDir) {
@@ -489,24 +468,18 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         <p className="field-label-description">
           Current: <kbd className="kbd">{hotkey}</kbd>
         </p>
-        <div className="flex gap-2">
-          <Input
-            id="hotkey-input"
-            type="text"
-            value={hotkeyInput}
-            onChange={(e) => setHotkeyInput(e.target.value)}
-            onBlur={handleHotkeyChange}
-            placeholder="Ctrl+Shift+G"
-          />
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleHotkeyChange}
-            disabled={!hotkeyInput.trim()}
-          >
-            Save
-          </Button>
-        </div>
+        <HotkeyRecorder
+          value={hotkey}
+          onChange={async (newHotkey) => {
+            const ok = await window.electronAPI.setHotkey(newHotkey);
+            if (ok) setHotkey(newHotkey);
+          }}
+          onValidate={async (candidate) => {
+            const result = await window.electronAPI.validateHotkey(candidate);
+            return { valid: result.valid, conflict: result.conflict };
+          }}
+          placeholder="Ctrl+Shift+G"
+        />
       </div>
 
       <div>
@@ -516,24 +489,18 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         <p className="field-label-description">
           Current: <kbd className="kbd">{overlayHotkey}</kbd>
         </p>
-        <div className="flex gap-2">
-          <Input
-            id="overlay-hotkey-input"
-            type="text"
-            value={overlayHotkeyInput}
-            onChange={(e) => setOverlayHotkeyInput(e.target.value)}
-            onBlur={handleOverlayHotkeyChange}
-            placeholder="Ctrl+Shift+O"
-          />
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleOverlayHotkeyChange}
-            disabled={!overlayHotkeyInput.trim()}
-          >
-            Save
-          </Button>
-        </div>
+        <HotkeyRecorder
+          value={overlayHotkey}
+          onChange={async (newHotkey) => {
+            const ok = await window.electronAPI.setOverlayHotkey(newHotkey);
+            if (ok) setOverlayHotkey(newHotkey);
+          }}
+          onValidate={async (candidate) => {
+            const result = await window.electronAPI.validateHotkey(candidate);
+            return { valid: result.valid, conflict: result.conflict };
+          }}
+          placeholder="Ctrl+Shift+O"
+        />
         <p className="field-label-description">
           Show/hide the overlay window. Also available in the tray context menu.
         </p>
