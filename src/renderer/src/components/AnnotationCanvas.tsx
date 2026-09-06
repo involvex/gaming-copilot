@@ -238,6 +238,22 @@ export default function AnnotationCanvas({
     onAnnotated(canvas.toDataURL("image/png"));
   };
 
+  const handleSave = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    try {
+      const result = await window.electronAPI.saveAnnotatedScreenshot(dataUrl);
+      if (result.success) {
+        alert(`Saved: ${result.path}`);
+      } else {
+        alert(`Save failed: ${result.error}`);
+      }
+    } catch {
+      alert("Save failed");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-[var(--color-surface)] rounded-lg shadow-xl border border-[var(--color-border)] max-w-5xl w-full max-h-[90vh] flex flex-col">
@@ -249,6 +265,9 @@ export default function AnnotationCanvas({
             </button>
             <button type="button" onClick={handleClear} className="btn btn-secondary text-sm">
               Clear
+            </button>
+            <button type="button" onClick={handleSave} className="btn btn-secondary text-sm">
+              Save
             </button>
             <button type="button" onClick={onCancel} className="btn btn-secondary text-sm">
               Cancel

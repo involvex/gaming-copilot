@@ -106,4 +106,37 @@ describe("ipc/screenshots handlers", () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe("Screenshot saving is not enabled");
   });
+
+  it("should return error when screenshot saving is disabled for annotated save", async () => {
+    const { registerScreenshotHandlers } = await import("../ipc/screenshots");
+    const ctx = makeCtx({ screenshotDir: null, saveScreenshots: false });
+    registerScreenshotHandlers(ctx as never);
+
+    const handler = getCapturedHandlers().get("screenshots:save-annotated") as (
+      _event: unknown,
+      dataUrl: string,
+    ) => Promise<{ success: boolean; error?: string }>;
+
+    const result = await handler(null, "data:image/png;base64,abc123");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Screenshot saving is not enabled");
+  });
+
+  it("should return error for invalid data URL on annotated save", async () => {
+    const { registerScreenshotHandlers } = await import("../ipc/screenshots");
+    const ctx = makeCtx({
+      screenshotDir: "/tmp/screenshots",
+      saveScreenshots: true,
+    });
+    registerScreenshotHandlers(ctx as never);
+
+    const handler = getCapturedHandlers().get("screenshots:save-annotated") as (
+      _event: unknown,
+      dataUrl: string,
+    ) => Promise<{ success: boolean; error?: string }>;
+
+    const result = await handler(null, "not-a-data-url");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Invalid data URL");
+  });
 });

@@ -259,4 +259,32 @@ export function registerScreenshotHandlers(ctx: IpcContext): void {
       };
     }
   });
+
+  ipcMain.handle("screenshots:save-annotated", async (_event, dataUrl: unknown) => {
+    const validDataUrl = validateIPC(z.string(), dataUrl);
+    if (!ctx.appConfig.saveScreenshots || !ctx.appConfig.screenshotDir) {
+      return { success: false, error: "Screenshot saving is not enabled" };
+    }
+    try {
+      const match = validDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!match || !match[1] || !match[2]) {
+        return { success: false, error: "Invalid data URL" };
+      }
+      const ext = match[1] === "png" ? "png" : "jpeg";
+      const buffer = Buffer.from(match[2], "base64");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `gaming-copilot_annotated_${timestamp}.${ext}`;
+      const { writeFile } = await import("node:fs/promises");
+      const filepath = join(ctx.appConfig.screenshotDir, filename);
+      await writeFile(filepath, buffer);
+      ctx.logger.info("Screenshots", `Saved annotated screenshot: ${filepath}`);
+      return { success: true, path: filepath, filename };
+    } catch (error) {
+      ctx.logger.error("Screenshots", `Failed to save annotated screenshot: ${error}`);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Save failed",
+      };
+    }
+  });
 }

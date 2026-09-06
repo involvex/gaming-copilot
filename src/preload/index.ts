@@ -122,6 +122,9 @@ export interface ElectronAPI {
     filenames: string[],
     zipName?: string,
   ) => Promise<{ success: boolean; path?: string; error?: string }>;
+  saveAnnotatedScreenshot: (
+    dataUrl: string,
+  ) => Promise<{ success: boolean; path?: string; error?: string }>;
 
   // Plugins
   startMemreader: () => Promise<boolean>;
@@ -275,6 +278,8 @@ const electronAPI: ElectronAPI = {
       filenames,
       zipName: zipName || "screenshots-export.zip",
     }),
+  saveAnnotatedScreenshot: (dataUrl: string) =>
+    ipcRenderer.invoke("screenshots:save-annotated", dataUrl),
 
   // Plugins
   startMemreader: () => ipcRenderer.invoke("plugin:memreader:start"),
