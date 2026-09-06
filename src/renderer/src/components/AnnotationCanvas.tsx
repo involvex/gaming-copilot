@@ -238,6 +238,22 @@ export default function AnnotationCanvas({
     onAnnotated(canvas.toDataURL("image/png"));
   };
 
+  const handleSkip = useCallback(() => {
+    onAnnotated(imageUrl);
+  }, [imageUrl, onAnnotated]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !textInput) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSkip();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [textInput, handleSkip]);
+
   const handleSave = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -271,6 +287,9 @@ export default function AnnotationCanvas({
             </button>
             <button type="button" onClick={onCancel} className="btn btn-secondary text-sm">
               Cancel
+            </button>
+            <button type="button" onClick={handleSkip} className="btn btn-secondary text-sm">
+              Skip
             </button>
             <button type="button" onClick={handleDone} className="btn btn-primary text-sm">
               Analyze
