@@ -297,6 +297,9 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
   const [overlayHotkey, setOverlayHotkey] = useState(
     (config?.overlayHotkey as string) || "CommandOrControl+Shift+O",
   );
+  const [annotationSkipShortcut, setAnnotationSkipShortcut] = useState(
+    (config?.annotationSkipShortcut as string) || "Escape",
+  );
   const [hotkeyEnabled, setHotkeyEnabled] = useState<boolean>(
     (config?.hotkeyEnabled as boolean) ?? true,
   );
@@ -504,6 +507,27 @@ function CaptureConfig({ config }: { config: Record<string, unknown> | null }) {
         <p className="field-label-description">
           Show/hide the overlay window. Also available in the tray context menu.
         </p>
+      </div>
+
+      <div>
+        <label htmlFor="annotation-skip-shortcut" className="field-label">
+          Annotation Skip Shortcut
+        </label>
+        <p className="field-label-description">
+          Skip annotation and analyze immediately. Default: <kbd className="kbd">Escape</kbd>
+        </p>
+        <HotkeyRecorder
+          value={annotationSkipShortcut}
+          onChange={async (newShortcut) => {
+            await window.electronAPI.setSetting("annotationSkipShortcut", newShortcut);
+            setAnnotationSkipShortcut(newShortcut);
+          }}
+          onValidate={async (candidate) => {
+            const result = await window.electronAPI.validateHotkey(candidate);
+            return { valid: result.valid, conflict: result.conflict };
+          }}
+          placeholder="Escape"
+        />
       </div>
 
       <Toggle

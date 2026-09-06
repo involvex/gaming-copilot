@@ -37,6 +37,7 @@ describe("ipc/games handlers", () => {
         hotkeyEnabled: true,
         hotkey: "CommandOrControl+Shift+G",
         overlayHotkey: "CommandOrControl+Shift+O",
+        annotationSkipShortcut: "Escape",
         telemetry: { enabled: false },
       } as Record<string, unknown>,
       logger: createTestLogger(),

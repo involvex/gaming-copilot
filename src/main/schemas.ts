@@ -128,6 +128,7 @@ export const genericSettingSchemas: Record<string, z.ZodType<unknown>> = {
   gameExe: z.string().max(260),
   hotkey: hotkeySchema,
   overlayHotkey: hotkeySchema,
+  annotationSkipShortcut: hotkeySchema,
   activeProvider: providerNameSchema,
   fallbackProvider: fallbackProviderSchema,
   captureMode: captureModeSchema,

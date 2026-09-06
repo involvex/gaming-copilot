@@ -111,6 +111,7 @@ function makeConfig(providerNames: string[]): AppConfig {
   return {
     hotkey: "CommandOrControl+Shift+G",
     overlayHotkey: "CommandOrControl+Shift+O",
+    annotationSkipShortcut: "Escape",
     autoStart: false,
     minimizeToTray: true,
     notifications: true,

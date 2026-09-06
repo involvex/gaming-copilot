@@ -7,6 +7,7 @@ import { logger } from "./logger";
 const schema = {
   hotkey: { type: "string", default: "CommandOrControl+Shift+G" },
   overlayHotkey: { type: "string", default: "CommandOrControl+Shift+O" },
+  annotationSkipShortcut: { type: "string", default: "Escape" },
   autoStart: { type: "boolean", default: false },
   minimizeToTray: { type: "boolean", default: true },
   notifications: { type: "boolean", default: true },
@@ -191,6 +192,7 @@ function getDefaultConfig(): AppConfig {
   return {
     hotkey: "CommandOrControl+Shift+G",
     overlayHotkey: "CommandOrControl+Shift+O",
+    annotationSkipShortcut: "Escape",
     autoStart: false,
     minimizeToTray: true,
     notifications: true,

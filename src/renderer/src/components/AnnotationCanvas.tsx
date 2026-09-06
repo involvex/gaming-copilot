@@ -30,6 +30,40 @@ function drawArrow(
   ctx.fill();
 }
 
+function matchesAccelerator(e: KeyboardEvent, accelerator: string): boolean {
+  const parts = accelerator.split("+").map((p) => p.trim());
+  const requiredModifiers = new Set<string>();
+  let keyName: string | undefined;
+
+  for (const part of parts) {
+    const lower = part.toLowerCase();
+    if (lower === "control" || lower === "commandorcontrol") {
+      requiredModifiers.add("control");
+    } else if (lower === "alt") {
+      requiredModifiers.add("alt");
+    } else if (lower === "shift") {
+      requiredModifiers.add("shift");
+    } else {
+      keyName = part;
+    }
+  }
+
+  if (!keyName) return false;
+
+  if (requiredModifiers.has("control") && !e.ctrlKey) return false;
+  if (requiredModifiers.has("alt") && !e.altKey) return false;
+  if (requiredModifiers.has("shift") && !e.shiftKey) return false;
+
+  if (!requiredModifiers.has("control") && e.ctrlKey) return false;
+  if (!requiredModifiers.has("alt") && e.altKey) return false;
+  if (!requiredModifiers.has("shift") && e.shiftKey) return false;
+
+  let eventKey = e.key;
+  if (eventKey === " ") eventKey = "Space";
+
+  return eventKey === keyName || eventKey.toLowerCase() === keyName.toLowerCase();
+}
+
 export type AnnotationTool = "rect" | "arrow" | "text";
 
 export interface Annotation {
@@ -75,6 +109,17 @@ export default function AnnotationCanvas({
   } | null>(null);
   const [textInput, setTextInput] = useState<{ x: number; y: number } | null>(null);
   const [textValue, setTextValue] = useState("");
+  const [skipShortcut, setSkipShortcut] = useState("Escape");
+
+  useEffect(() => {
+    window.electronAPI.getConfig().then((cfg) => {
+      const config = cfg as Record<string, unknown>;
+      const shortcut = config?.annotationSkipShortcut as string | undefined;
+      if (shortcut) {
+        setSkipShortcut(shortcut);
+      }
+    });
+  }, []);
 
   const loadImage = useCallback((url: string) => {
     const img = new Image();
@@ -244,7 +289,7 @@ export default function AnnotationCanvas({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !textInput) {
+      if (matchesAccelerator(e, skipShortcut) && !textInput) {
         const target = e.target as HTMLElement;
         if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
         e.preventDefault();
@@ -254,7 +299,7 @@ export default function AnnotationCanvas({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [textInput, handleSkip]);
+  }, [textInput, handleSkip, skipShortcut]);
 
   const handleSave = async () => {
     const canvas = canvasRef.current;
