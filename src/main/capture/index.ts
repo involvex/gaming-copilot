@@ -243,6 +243,8 @@ if ($width -gt 0 -and $height -gt 0) {
 
   $graphics.Dispose()
   $bitmap.Dispose()
+
+  Write-Output (ConvertTo-Json -InputObject @{ left=$rect.left; top=$rect.top; right=$rect.right; bottom=$rect.bottom } -Compress)
 } else {
   exit 1
 }
@@ -250,10 +252,35 @@ if ($width -gt 0 -and $height -gt 0) {
 
     const output = execSync(
       `powershell -NoProfile -Command "${script.replace(/"/g, '\\"').replace(/\n/g, "; ")}"`,
-      { encoding: "base64", timeout: 10000, maxBuffer: 10 * 1024 * 1024 },
+      { encoding: "utf8", timeout: 10000, maxBuffer: 10 * 1024 * 1024 },
     );
 
-    const buffer = Buffer.from(output, "base64");
+    const lines = output.trim().split("\n");
+    const rectLine = lines[0];
+    const base64Line = lines.slice(1).join("\n");
+    if (!rectLine || !base64Line) return null;
+
+    let displayId: string | undefined;
+    try {
+      const rect = JSON.parse(rectLine) as {
+        left: number;
+        top: number;
+        right: number;
+        bottom: number;
+      };
+      const { screen } = require("electron");
+      const display = screen.getDisplayMatching({
+        x: rect.left,
+        y: rect.top,
+        width: rect.right - rect.left,
+        height: rect.bottom - rect.top,
+      });
+      displayId = String(display.id);
+    } catch {
+      displayId = undefined;
+    }
+
+    const buffer = Buffer.from(base64Line, "base64");
     if (buffer.length === 0) return null;
 
     const image = nativeImage.createFromBuffer(buffer);
@@ -266,6 +293,7 @@ if ($width -gt 0 -and $height -gt 0) {
       height,
       timestamp: Date.now(),
       format,
+      displayId,
     };
   } catch {
     return null;

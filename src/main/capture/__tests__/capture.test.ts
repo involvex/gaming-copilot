@@ -327,7 +327,13 @@ describe("capture module", () => {
 
       const { execSync } = await import("node:child_process");
       const base64Output = Buffer.from("fake-captured-image").toString("base64");
-      vi.mocked(execSync).mockReturnValue(base64Output);
+      const rectJson = JSON.stringify({
+        left: 0,
+        top: 0,
+        right: 1920,
+        bottom: 1080,
+      });
+      vi.mocked(execSync).mockReturnValue(`${rectJson}\n${base64Output}`);
 
       mockNativeImage.createFromBuffer.mockReturnValue(makeMockImage());
 
@@ -348,7 +354,13 @@ describe("capture module", () => {
 
       const { execSync } = await import("node:child_process");
       const base64Output = Buffer.from("fake-captured-image").toString("base64");
-      vi.mocked(execSync).mockReturnValue(base64Output);
+      const rectJson = JSON.stringify({
+        left: 0,
+        top: 0,
+        right: 1920,
+        bottom: 1080,
+      });
+      vi.mocked(execSync).mockReturnValue(`${rectJson}\n${base64Output}`);
 
       mockNativeImage.createFromBuffer.mockReturnValue(makeMockImage());
 

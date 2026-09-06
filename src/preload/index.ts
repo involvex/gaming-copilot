@@ -6,7 +6,7 @@ export interface ElectronAPI {
   captureScreenshot: () => Promise<string | null>;
   capturePreview: () => Promise<string | null>;
   captureRecord: () => Promise<string | null>;
-  getScreens: () => Promise<Array<{ index: number; name: string; primary: boolean }>>;
+  getScreens: () => Promise<Array<{ index: number; name: string; primary: boolean; id: string }>>;
   checkGame: (exeName: string) => Promise<{ running: boolean; pid: number | null }>;
   setGameExe: (exe: string) => Promise<void>;
   setCaptureRegion: (
@@ -64,6 +64,7 @@ export interface ElectronAPI {
   setHotkeyEnabled: (enabled: boolean) => Promise<boolean>;
   validateHotkey: (hotkey: string) => Promise<{ valid: boolean; conflict: boolean }>;
   setPersistentOverlay: (persistent: boolean) => Promise<void>;
+  submitAnnotation: (dataUrl: string) => Promise<void>;
   setSetting: (key: string, value: unknown) => Promise<void>;
   setTelemetry: (enabled: boolean) => Promise<void>;
   setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") => Promise<void>;
@@ -150,6 +151,8 @@ export interface ElectronAPI {
     callback: (info: { displayName: string; model: string }) => void,
   ) => () => void;
   onOverlayPosition: (callback: (position: AppConfig["overlay"]["position"]) => void) => () => void;
+  onOverlayAnnotate: (callback: (dataUrl: string) => void) => () => void;
+  onOverlayAnnotated: (callback: (dataUrl: string) => void) => () => void;
   onNavigateSettings: (callback: () => void) => () => void;
   onUpdateStatus: (
     callback: (status: string, version?: string, message?: string) => void,
@@ -230,6 +233,7 @@ const electronAPI: ElectronAPI = {
   validateHotkey: (hotkey: string) => ipcRenderer.invoke("hotkeys:validate", hotkey),
   setPersistentOverlay: (persistent: boolean) =>
     ipcRenderer.invoke("overlay:set-persistent", persistent),
+  submitAnnotation: (dataUrl: string) => ipcRenderer.invoke("overlay:annotated", dataUrl),
   setSetting: (key: string, value: unknown) => ipcRenderer.invoke("config:set-generic", key, value),
   setTelemetry: (enabled: boolean) => ipcRenderer.invoke("config:set-telemetry", enabled),
   setCaptureMode: (mode: "auto" | "window" | "fullscreen" | "gdi") =>
@@ -329,6 +333,16 @@ const electronAPI: ElectronAPI = {
     ) => callback(position);
     ipcRenderer.on("overlay:set-position", handler);
     return () => ipcRenderer.removeListener("overlay:set-position", handler);
+  },
+  onOverlayAnnotate: (callback: (dataUrl: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, dataUrl: string) => callback(dataUrl);
+    ipcRenderer.on("overlay:annotate", handler);
+    return () => ipcRenderer.removeListener("overlay:annotate", handler);
+  },
+  onOverlayAnnotated: (callback: (dataUrl: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, dataUrl: string) => callback(dataUrl);
+    ipcRenderer.on("overlay:annotated", handler);
+    return () => ipcRenderer.removeListener("overlay:annotated", handler);
   },
   onNavigateSettings: (callback: () => void) => {
     const handler = () => callback();

@@ -20,6 +20,7 @@ export interface IpcContext {
   unregisterHotkey: () => void;
   registerOverlayHotkey: () => void;
   setHotkey: (hotkey: string) => void;
+  resolveAnnotation: (dataUrl: string) => void;
   logger: {
     info: (component: string, message: string) => void;
     warn: (component: string, message: string) => void;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { OverlayCustomTheme } from "../../../shared/constants";
 import { OVERLAY_PRESET_THEMES } from "../../../shared/constants";
 import { Card, Input, Select, Toggle } from "./ui";
@@ -33,6 +33,12 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
     (customTheme.borderRadius as number) || 8,
   );
   const [padding, setPadding] = useState<number>((customTheme.padding as number) || 16);
+  const [screens, setScreens] = useState<
+    Array<{ index: number; name: string; primary: boolean; id: string }>
+  >([]);
+  const [lastActiveDisplayId, setLastActiveDisplayId] = useState<string>(
+    (config?.lastActiveDisplayId as string) || "primary",
+  );
 
   const persist = (update: Record<string, unknown>) => {
     window.electronAPI.setOverlayConfig(update);
@@ -40,6 +46,18 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
 
   const persistTheme = (update: OverlayCustomTheme) => {
     window.electronAPI.setSetting("overlayCustomTheme", update);
+  };
+
+  useEffect(() => {
+    window.electronAPI.getScreens().then((s) => {
+      setScreens(s);
+    });
+  }, []);
+
+  const handleDisplayChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setLastActiveDisplayId(value);
+    await window.electronAPI.setSetting("lastActiveDisplayId", value === "primary" ? null : value);
   };
 
   const handlePresetChange = (preset: string) => {
@@ -125,6 +143,23 @@ export default function OverlayStyle({ config }: { config: Record<string, unknow
           <option value="bottom-left">Bottom Left</option>
           <option value="top-right">Top Right</option>
           <option value="top-left">Top Left</option>
+        </Select>
+      </div>
+
+      <div>
+        <label htmlFor="overlay-display" className="field-label">
+          Overlay Display
+        </label>
+        <p className="field-label-description">
+          Choose which display the overlay appears on. Defaults to the active game display.
+        </p>
+        <Select id="overlay-display" value={lastActiveDisplayId} onChange={handleDisplayChange}>
+          <option value="primary">Primary Display (Auto)</option>
+          {screens.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} {s.primary ? "(Primary)" : ""}
+            </option>
+          ))}
         </Select>
       </div>
 

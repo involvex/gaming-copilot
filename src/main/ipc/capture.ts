@@ -20,6 +20,7 @@ export function registerCaptureHandlers(ctx: IpcContext): void {
       bounds: d.bounds,
       workArea: d.workArea,
       primary: screen.getPrimaryDisplay().id === d.id,
+      id: String(d.id),
     }));
   });
 

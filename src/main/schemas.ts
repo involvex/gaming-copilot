@@ -140,6 +140,7 @@ export const genericSettingSchemas: Record<string, z.ZodType<unknown>> = {
   ocr: ocrConfigSchema,
   overlayCustomTheme: overlayCustomThemeSchema,
   plugins: pluginsConfigSchema,
+  lastActiveDisplayId: z.string().max(128).nullable(),
 };
 
 export const chatMessageSchema = z.object({

@@ -45,4 +45,15 @@ export function registerOverlayHandlers(ctx: IpcContext): void {
     setConfigValue("overlay", ctx.appConfig.overlay);
     ctx.emitConfigUpdated();
   });
+
+  ipcMain.handle("overlay:annotate", (_event, dataUrl: unknown) => {
+    const validDataUrl = validateIPC(z.string(), dataUrl);
+    ctx.overlayWindow?.webContents.send("overlay:annotate", validDataUrl);
+    ctx.overlayWindow?.show();
+  });
+
+  ipcMain.handle("overlay:annotated", (_event, dataUrl: unknown) => {
+    const validDataUrl = validateIPC(z.string(), dataUrl);
+    ctx.resolveAnnotation(validDataUrl);
+  });
 }

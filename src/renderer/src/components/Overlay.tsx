@@ -5,6 +5,7 @@ import {
   type OverlayCustomTheme,
 } from "../../../shared/constants";
 import { speak, stop } from "../tts";
+import AnnotationCanvas from "./AnnotationCanvas";
 
 interface TtsConfig {
   enabled: boolean;
@@ -61,6 +62,8 @@ export default function Overlay() {
     borderColor: "#374151",
   });
   const [persistent, setPersistent] = useState(overlayConfig.persistent);
+  const [annotationMode, setAnnotationMode] = useState(false);
+  const [annotationImage, setAnnotationImage] = useState<string>("");
   const loadedConfigRef = useRef<Record<string, unknown> | null>(null);
 
   useEffect(() => {
@@ -219,6 +222,27 @@ export default function Overlay() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = window.electronAPI.onOverlayAnnotated((dataUrl) => {
+      setAnnotationImage(dataUrl);
+      setAnnotationMode(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onOverlayAnnotate((dataUrl) => {
+      setAnnotationImage(dataUrl);
+      setAnnotationMode(true);
+      setText("");
+      setScreenshot("");
+      setProviderInfo(null);
+      setOpacity(1);
+      setVisible(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = window.electronAPI.onOverlayStreamDone((finalText) => {
       setStreaming(false);
       if (ttsConfig.enabled && finalText && !finalText.startsWith("Error:")) {
@@ -299,44 +323,59 @@ export default function Overlay() {
           borderColor: customTheme.borderColor,
         }}
       >
-        {providerInfo && (
-          <div
-            className="overlay-provider mb-2 text-xs font-medium opacity-70"
-            style={{ color: customTheme.textColor }}
-          >
-            via {providerInfo.displayName}
-            {providerInfo.model && ` · ${providerInfo.model}`}
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={async () => {
-            const next = !persistent;
-            setPersistent(next);
-            await window.electronAPI.setPersistentOverlay(next);
-          }}
-          className={`absolute top-2 right-2 text-xs px-2 py-1 rounded border transition-colors ${
-            persistent
-              ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
-              : "bg-transparent text-[var(--color-text-tertiary)] border-[var(--color-border)] hover:text-[var(--color-text)]"
-          }`}
-          title={persistent ? "Unpin overlay (auto-dismiss)" : "Pin overlay (stay visible)"}
-        >
-          {persistent ? "📌 Pinned" : "📌 Pin"}
-        </button>
-        {screenshot && overlayConfig.showScreenshot && (
-          <img
-            src={screenshot}
-            alt="Captured screenshot"
-            className="rounded mb-2 max-h-32 object-contain border border-[var(--color-border)]"
+        {annotationMode ? (
+          <AnnotationCanvas
+            imageUrl={annotationImage}
+            onAnnotated={async (dataUrl) => {
+              await window.electronAPI.submitAnnotation(dataUrl);
+            }}
+            onCancel={() => {
+              setAnnotationMode(false);
+              setAnnotationImage("");
+            }}
           />
+        ) : (
+          <>
+            {providerInfo && (
+              <div
+                className="overlay-provider mb-2 text-xs font-medium opacity-70"
+                style={{ color: customTheme.textColor }}
+              >
+                via {providerInfo.displayName}
+                {providerInfo.model && ` · ${providerInfo.model}`}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={async () => {
+                const next = !persistent;
+                setPersistent(next);
+                await window.electronAPI.setPersistentOverlay(next);
+              }}
+              className={`absolute top-2 right-2 text-xs px-2 py-1 rounded border transition-colors ${
+                persistent
+                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
+                  : "bg-transparent text-[var(--color-text-tertiary)] border-[var(--color-border)] hover:text-[var(--color-text)]"
+              }`}
+              title={persistent ? "Unpin overlay (auto-dismiss)" : "Pin overlay (stay visible)"}
+            >
+              {persistent ? "📌 Pinned" : "📌 Pin"}
+            </button>
+            {screenshot && overlayConfig.showScreenshot && (
+              <img
+                src={screenshot}
+                alt="Captured screenshot"
+                className="rounded mb-2 max-h-32 object-contain border border-[var(--color-border)]"
+              />
+            )}
+            <p
+              className="overlay-text leading-relaxed whitespace-pre-wrap"
+              style={{ color: customTheme.textColor }}
+            >
+              {text}
+            </p>
+          </>
         )}
-        <p
-          className="overlay-text leading-relaxed whitespace-pre-wrap"
-          style={{ color: customTheme.textColor }}
-        >
-          {text}
-        </p>
       </div>
     </div>
   );

@@ -39,6 +39,20 @@ let tray: Tray | null = null;
 let providerManager: ProviderManager | null = null;
 let memreaderPlugin: MemreaderPlugin | null = null;
 let isQuitting = false;
+let annotationResolve: ((dataUrl: string) => void) | null = null;
+
+async function waitForAnnotation(): Promise<string> {
+  return new Promise((resolve) => {
+    annotationResolve = resolve;
+  });
+}
+
+function resolveAnnotation(dataUrl: string): void {
+  if (annotationResolve) {
+    annotationResolve(dataUrl);
+    annotationResolve = null;
+  }
+}
 
 function resolveResourcePath(relativePath: string): string {
   if (is.dev) {
@@ -276,15 +290,6 @@ function registerHotkey(): void {
       }
     }
 
-    overlayWindow?.webContents.send("overlay:data", "Analyzing screenshot...");
-    overlayWindow?.webContents.send("overlay:screenshot", resizedDataUrl);
-    overlayWindow?.show();
-
-    const providerInfo = providerManager?.getActiveProviderInfo();
-    if (providerInfo) {
-      overlayWindow?.webContents.send("overlay:provider", providerInfo);
-    }
-
     let ocrContext: string | undefined;
     if (appConfig.ocr.enabled) {
       try {
@@ -303,6 +308,21 @@ function registerHotkey(): void {
     }
 
     const gameContext = getGameContext(gameExe);
+
+    overlayWindow?.webContents.send("overlay:annotate", resizedDataUrl);
+    overlayWindow?.show();
+
+    const annotatedDataUrl = await waitForAnnotation();
+    const annotatedBase64 = annotatedDataUrl.replace(/^data:image\/\w+;base64,/, "");
+    const annotatedMimeType = annotatedDataUrl.startsWith("data:image/png")
+      ? "image/png"
+      : "image/jpeg";
+
+    const providerInfo = providerManager?.getActiveProviderInfo();
+    if (providerInfo) {
+      overlayWindow?.webContents.send("overlay:provider", providerInfo);
+    }
+
     const context = [ocrContext, gameContext].filter(Boolean).join("\n\n");
 
     if (providerManager && providerManager.getAvailableProviders().length > 0) {
@@ -315,8 +335,8 @@ function registerHotkey(): void {
 
         let fullText = "";
         for await (const chunk of providerManager.streamAnalyze(
-          resizedBase64,
-          resizedMimeType,
+          annotatedBase64,
+          annotatedMimeType,
           finalPrompt,
           "Analyze this game screenshot.",
           context || undefined,
@@ -483,6 +503,7 @@ app.whenReady().then(async () => {
     unregisterHotkey,
     registerOverlayHotkey,
     setHotkey,
+    resolveAnnotation,
     logger,
   });
 
