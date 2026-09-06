@@ -267,7 +267,7 @@ export function registerScreenshotHandlers(ctx: IpcContext): void {
     }
     try {
       const match = validDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-      if (!match || !match[1] || !match[2]) {
+      if (!match?.[1] || !match[2]) {
         return { success: false, error: "Invalid data URL" };
       }
       const ext = match[1] === "png" ? "png" : "jpeg";
